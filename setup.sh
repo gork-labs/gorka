@@ -6,7 +6,7 @@
 set -e
 
 # Configuration
-GITHUB_REPO="bohdan-gork/agents"  # Update this to your actual GitHub repo
+GITHUB_REPO="gork-labs/gorka"
 GITHUB_BRANCH="main"
 GORKA_URL="https://raw.githubusercontent.com/${GITHUB_REPO}/${GITHUB_BRANCH}/bin/gorka"
 

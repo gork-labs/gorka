@@ -11,7 +11,7 @@ author: "@bohdan-shulha"
 
 **One-liner installation:**
 ```bash
-curl -fsSL https://raw.githubusercontent.com/bohdan-gork/agents/main/setup.sh | bash
+curl -fsSL https://raw.githubusercontent.com/gork-labs/gorka/main/setup.sh | bash
 ```
 
 Then run:
@@ -314,7 +314,7 @@ export ENABLE_ULTRATHINK=true
 
 Install gorka CLI tool and the agent system with a single command:
 ```bash
-curl -fsSL https://raw.githubusercontent.com/bohdan-gork/agents/main/setup.sh | bash
+curl -fsSL https://raw.githubusercontent.com/gork-labs/gorka/main/setup.sh | bash
 ```
 
 Then install the configurations:
@@ -335,14 +335,14 @@ If you prefer manual installation:
 
 1. **Download the gorka CLI**:
    ```bash
-   curl -fsSL https://raw.githubusercontent.com/bohdan-gork/agents/main/bin/gorka -o ~/.local/bin/gorka
+   curl -fsSL https://raw.githubusercontent.com/gork-labs/gorka/main/bin/gorka -o ~/.local/bin/gorka
    chmod +x ~/.local/bin/gorka
    ```
 
 2. **Clone the repository**:
    ```bash
-   git clone https://github.com/bohdan-gork/agents.git
-   cd agents
+   git clone https://github.com/gork-labs/gorka.git
+   cd gorka
    ```
 
 3. **Install configurations**:
