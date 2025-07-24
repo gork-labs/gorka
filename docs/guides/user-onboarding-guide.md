@@ -56,20 +56,12 @@ curl -fsSL https://raw.githubusercontent.com/gork-labs/gorka/main/setup.sh | bas
 gorka help
 ```
 
-### Step 2: Choose Installation Type
-
-**Option A: Global Installation (Recommended for beginners)**
+### Step 2: Install Gorka Agent System
 ```bash
-# Install for all VS Code projects
-gorka install --global
-```
-
-**Option B: Workspace Installation (Project-specific)**
-```bash
-# Navigate to your project
+# Navigate to your project directory
 cd your-project-directory
 
-# Install for this project only
+# Install Gorka for this workspace
 gorka install
 ```
 
@@ -275,7 +267,7 @@ gorka self-upgrade
 **Solution**:
 ```bash
 # Reinstall configurations
-gorka install --global
+gorka install
 
 # Restart VS Code
 # Check .vscode/mcp.json exists and is valid JSON
@@ -298,11 +290,11 @@ gorka update sync
 **Problem**: Can't write to installation directories
 **Solution**:
 ```bash
-# For global installation issues:
-sudo gorka install --global
+# For workspace installation issues:
+sudo gorka install
 
-# Or use workspace installation instead:
-gorka install
+# Check directory permissions
+ls -la .vscode .github
 ```
 
 #### "Repository access failed"
@@ -366,7 +358,7 @@ Once comfortable with basics, you can:
 
 ### Multi-Project Management
 For teams managing multiple projects:
-- Use global installation for consistent experience
+- Install Gorka in each project workspace for project-specific setup
 - Sync configurations across projects with `gorka update sync`
 - Maintain project-specific memory graphs
 - Share architectural decisions via memory export/import

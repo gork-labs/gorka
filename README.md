@@ -173,7 +173,6 @@ graph TB
 
 - **🔄 Self-Upgrading System**: `gorka self-upgrade` keeps the CLI and agents current
 - **📦 Component Management**: Add, remove, and sync agent configurations
-- **🌐 Global & Workspace Scopes**: Install for single projects or system-wide
 - **🔍 Metadata Tracking**: Comprehensive component lifecycle management
 
 ## Installation
@@ -211,10 +210,7 @@ bash <(curl -fsSL https://raw.githubusercontent.com/gork-labs/gorka/main/setup.s
 
 Then install the configurations:
 ```bash
-# Install globally for all projects
-gorka install --global
-
-# Or install for current workspace only
+# Install for current workspace
 gorka install
 
 # Check what's installed
@@ -248,16 +244,11 @@ If you prefer manual installation:
 
 ### What Gets Installed
 
-- **Global installation** (`gorka install --global`):
-  - MCP server configurations to VS Code user settings
-  - Prompt templates to VS Code user folder
-  - Available across all your projects
-  - Metadata tracked in separate `gorka.json` files
-
 - **Workspace installation** (`gorka install`):
-  - Workspace-specific MCP configurations
-  - Memory server for project context
-  - Created in `.vscode/mcp.json`
+  - MCP server configurations to `.vscode/mcp.json`
+  - Chatmodes and instructions to `.github/` directory
+  - Memory server for project context and knowledge storage
+  - All components available within the current project
   - Instructions copied to `.github/instructions/`
 
 ### System Management
@@ -477,14 +468,12 @@ Agents adopt specific expertise:
 
 ### MCP Servers Required
 
-**Global Servers** (configured in `mcp.global.json`):
+**All Servers** (configured in `mcp.json`):
 1. **sequentialthinking**: Extended reasoning capabilities (ultrathink modes)
 2. **context7**: Documentation and library context
 3. **deepwiki**: GitHub repository documentation
 4. **git**: Git operations and repository analysis
 5. **time**: Timestamp management and timezone handling
-
-**Workspace Servers** (configured in `mcp.workspace.json`):
 6. **memory**: Knowledge graph and pattern storage
 
 **Standard VS Code Tools** (available per agent):

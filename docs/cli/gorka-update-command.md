@@ -2,18 +2,18 @@
 title: "Gorka Update Command Reference"
 author: "@bohdan-shulha"
 date: "2025-07-24"
-last_updated: "2025-07-24T15:50:26+02:00"
+last_updated: "2025-07-24T18:01:15+02:00"
 timezone: "Europe/Warsaw"
 status: "approved"
-version: "2.4.0"
+version: "2.5.2"
 reviewers: []
 tags: ["cli", "gorka", "mcp", "management"]
 document_type: "guide"
 ---
 
 # Gorka Update Command Reference
-*Last updated: 2025-07-24T15:50:26+02:00 (Europe/Warsaw)*
-*Version: 2.4.0*
+*Last updated: 2025-07-24T18:01:15+02:00 (Europe/Warsaw)*
+*Version: 2.5.2*
 *Status: APPROVED*
 
 ## Document History
@@ -25,10 +25,13 @@ document_type: "guide"
 | 2.2.0 | 2025-07-24 | 15:36:37 | @bohdan-shulha | Approved | Added self-upgrade as top-level command |
 | 2.3.0 | 2025-07-24 | 15:46:56 | @bohdan-shulha | Approved | Moved self-upgrade docs to separate file |
 | 2.4.0 | 2025-07-24 | 15:50:26 | @bohdan-shulha | Approved | Removed all self-upgrade references |
+| 2.5.0 | 2025-07-24 | 17:49:05 | @bohdan-shulha | Approved | Removed global option support, fixed corrupted frontmatter |
+| 2.5.1 | 2025-07-24 | 17:54:05 | @bohdan-shulha | Approved | Fixed malformed frontmatter with embedded syntax |
+| 2.5.2 | 2025-07-24 | 18:01:15 | @bohdan-shulha | Approved | Repaired frontmatter corruption completely |
 
 ## Overview
 
-The `gorka update` command provides comprehensive management of MCP servers, chatmodes, and instructions installed by the Gorka agent system. It allows you to list, sync, add, remove, and clean up components in both global and workspace scopes.
+The `gorka update` command provides comprehensive management of MCP servers, chatmodes, and instructions installed by the Gorka agent system. It allows you to list, sync, add, remove, and clean up components in your workspace.
 
 ## Command Structure
 
@@ -44,22 +47,17 @@ Shows the status of installed components.
 
 **Syntax:**
 ```bash
-gorka update list [global|workspace|available|both]
+gorka update list [available]
 ```
 
 **Options:**
-- `global` - Show global components (VS Code user directory)
-- `workspace` - Show workspace components (current project)
+- Default - Show workspace components (current project)
 - `available` - Show components available from repository
-- `both` or empty - Show both global and workspace components
 
 **Examples:**
 ```bash
-# Show all installed components
+# Show installed components
 gorka update list
-
-# Show only workspace components
-gorka update list workspace
 
 # Show available components from repository
 gorka update list available
@@ -71,21 +69,13 @@ Synchronizes with the latest repository, adding new components and updating exis
 
 **Syntax:**
 ```bash
-gorka update sync [global|workspace|both]
+gorka update sync
 ```
-
-**Options:**
-- `global` - Sync global configuration only
-- `workspace` - Sync workspace configuration only
-- `both` or empty - Sync both global and workspace
 
 **Examples:**
 ```bash
-# Sync both global and workspace
+# Sync workspace components
 gorka update sync
-
-# Sync only workspace
-gorka update sync workspace
 ```
 
 ### `gorka update remove`
@@ -101,21 +91,17 @@ gorka update remove <type> <name> [global|workspace]
 - `server` - MCP server
 - `input` - MCP input
 - `chatmode` - Chatmode file
-- `instruction` - Instruction file (workspace only)
-
-**Scope:**
-- `global` - Remove from global configuration
-- `workspace` or empty - Remove from workspace configuration
+- `instruction` - Instruction file
 
 **Examples:**
 ```bash
 # Remove a server from workspace
 gorka update remove server memory
 
-# Remove a chatmode from global configuration
-gorka update remove chatmode "Software Engineer - Gorka.chatmode.md" global
+# Remove a chatmode
+gorka update remove chatmode "Software Engineer - Gorka.chatmode.md"
 
-# Remove an instruction from workspace
+# Remove an instruction
 gorka update remove instruction "DATETIME_HANDLING_GORKA.instructions.md"
 ```
 
@@ -125,21 +111,13 @@ Removes components that are tracked by gorka but no longer exist in the reposito
 
 **Syntax:**
 ```bash
-gorka update clean-orphans [global|workspace|both]
+gorka update clean-orphans
 ```
-
-**Options:**
-- `global` - Clean global orphans only
-- `workspace` - Clean workspace orphans only
-- `both` or empty - Clean both global and workspace orphans
 
 **Examples:**
 ```bash
-# Clean orphans from both scopes
+# Clean orphaned components
 gorka update clean-orphans
-
-# Clean workspace orphans only
-gorka update clean-orphans workspace
 ```
 
 ## Component Types
@@ -147,27 +125,25 @@ gorka update clean-orphans workspace
 ### MCP Servers
 - **Location**: `mcp.json` files (configuration only)
 - **Tracking**: `gorka.json` files, `"servers"` array
-- **Scopes**: Global and workspace
+- **Scope**: Workspace
 - **Examples**: `memory`, `git`, `time`, `context7`
 
 ### MCP Inputs
 - **Location**: `mcp.json` files (configuration only)
 - **Tracking**: `gorka.json` files, `"inputs"` array
-- **Scopes**: Global and workspace
+- **Scope**: Workspace
 - **Examples**: Input configurations for MCP servers
 
 ### Chatmodes
-- **Location**:
-  - Global: `~/Library/Application Support/Code/User/chatmodes/` (macOS)
-  - Workspace: `.github/chatmodes/`
+- **Location**: `.github/chatmodes/`
 - **Tracking**: `gorka.json` files, `"chatmodes"` array
-- **Scopes**: Global and workspace
+- **Scope**: Workspace
 - **Examples**: `Software Engineer - Gorka.chatmode.md`
 
 ### Instructions
 - **Location**: `.github/instructions/`
 - **Tracking**: `gorka.json` files, `"instructions"` array
-- **Scopes**: Workspace only
+- **Scope**: Workspace
 - **Examples**: `DATETIME_HANDLING_GORKA.instructions.md`
 
 ## Gorka Metadata Tracking
@@ -175,7 +151,6 @@ gorka update clean-orphans workspace
 The update system uses metadata stored in separate `gorka.json` files to track gorka-managed components:
 
 ### Metadata File Locations
-- **Global**: `~/Library/Application Support/Code/User/gorka.json` (macOS)
 - **Workspace**: `.vscode/gorka.json`
 
 ### Metadata Structure
@@ -197,12 +172,6 @@ The update system uses metadata stored in separate `gorka.json` files to track g
 
 ## File Locations
 
-### Global Scope
-- **MCP Config**: `~/Library/Application Support/Code/User/mcp.json` (macOS)
-- **Gorka Metadata**: `~/Library/Application Support/Code/User/gorka.json` (macOS)
-- **Chatmodes**: `~/Library/Application Support/Code/User/chatmodes/`
-- **Instructions**: Not applicable for global scope
-
 ### Workspace Scope
 - **MCP Config**: `.vscode/mcp.json`
 - **Gorka Metadata**: `.vscode/gorka.json`
@@ -217,15 +186,9 @@ $ gorka update remove server nonexistent
 [ERROR] Server 'nonexistent' is not managed by gorka or doesn't exist
 ```
 
-### Scope Conflicts
-```bash
-$ gorka update remove instruction test.md global
-[ERROR] Instructions are not available in global scope
-```
-
 ### Missing Configuration
 ```bash
-$ gorka update list workspace
+$ gorka update list
 No gorka metadata found for workspace scope
 Run 'gorka update sync' to initialize.
 ```
@@ -234,8 +197,7 @@ Run 'gorka update sync' to initialize.
 
 The update system is fully backward compatible with existing `gorka install` commands:
 
-- `gorka install` - Still works as before, now with enhanced metadata tracking
-- `gorka install --global` - Enhanced with metadata tracking
+- `gorka install` - Enhanced with metadata tracking
 - `gorka clean` - Unchanged
 
 ## Advanced Usage
@@ -250,8 +212,8 @@ gorka update list
 gorka update clean-orphans
 
 # Remove multiple components
-gorka update remove server old-server workspace
-gorka update remove chatmode "Old Chatmode.md" workspace
+gorka update remove server old-server
+gorka update remove chatmode "Old Chatmode.md"
 ```
 
 ### Maintenance Workflow
@@ -271,7 +233,7 @@ gorka update list                    # Verify final state
    - Ensure you have write access to VS Code user directory
    - Run with appropriate permissions if needed
 
-3. **JSON Parsing Errors**
+2. **JSON Parsing Errors**
    - Check if MCP JSON files are valid
    - Use `jq` to validate: `jq . .vscode/mcp.json`
    - Verify gorka.json syntax: `jq . .vscode/gorka.json`
@@ -312,14 +274,14 @@ gorka update list
 ### Selective Management
 ```bash
 # Remove specific outdated components
-gorka update remove server old-memory workspace
-gorka update remove chatmode "Old Engineer - Gorka.chatmode.md" global
+gorka update remove server old-memory
+gorka update remove chatmode "Old Engineer - Gorka.chatmode.md"
 
-# Sync only workspace
-gorka update sync workspace
+# Sync workspace
+gorka update sync
 
-# Check for workspace orphans
-gorka update clean-orphans workspace
+# Check for orphaned components
+gorka update clean-orphans
 ```
 
 This update system provides comprehensive management capabilities while maintaining the safety and reliability of the gorka agent system.

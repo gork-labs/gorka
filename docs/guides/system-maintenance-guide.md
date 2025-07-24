@@ -66,10 +66,6 @@ Gorka follows a **proactive maintenance approach**:
 ```bash
 # Check current component status
 gorka update list
-
-# Review both global and workspace installations
-gorka update list global
-gorka update list workspace
 ```
 
 **Expected Output**: All components show ✓ status with no missing files
