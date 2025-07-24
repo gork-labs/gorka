@@ -54,7 +54,7 @@ Arguments: {"timezone": "Europe/Warsaw"}
 
 // ... perform work ...
 
-// Track end
+// Track end  
 Use datetime tool: get_current_time
 Arguments: {"timezone": "Europe/Warsaw"}
 // Store result: endTime
@@ -69,7 +69,7 @@ observations: [
 ## What NOT to Do
 
 ❌ **DON'T** hardcode any dates, times, or durations
-❌ **DON'T** copy timestamps from examples
+❌ **DON'T** copy timestamps from examples 
 ❌ **DON'T** write "Time spent: 45 minutes"
 ❌ **DON'T** assume current date
 ❌ **DON'T** reuse timestamps
@@ -137,7 +137,7 @@ Arguments: {"timezone": "Europe/Warsaw"}
 
 // Use same timestamp for related operations
 entity1.observations: ["Created: 2025-07-24T14:36:23+02:00"]
-entity2.observations: ["Created: 2025-07-24T14:36:23+02:00"]
+entity2.observations: ["Created: 2025-07-24T14:36:23+02:00"]  
 relationship.observations: ["Established: 2025-07-24T14:36:23+02:00"]
 ```
 

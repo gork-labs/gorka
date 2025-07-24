@@ -182,6 +182,12 @@ graph TB
 - Query before create pattern
 - Rich relationships
 
+### Documentation Standards (`instructions/DOCUMENTATION_STANDARDS_GORKA.instructions.md`)
+- Standard file locations and naming
+- Required frontmatter and structure
+- Document lifecycle management
+- Review templates and indicators
+
 ## Advanced Features
 
 ### 1. Extended Thinking Modes
@@ -455,27 +461,7 @@ If you prefer manual installation:
    - Predictive patterns
    - Automated optimization
 
-## Quick Reference
 
-### File Location Patterns
-- Designs: `docs/architecture/YYYY-MM-DD-*.md`
-- Tests: `tests/[unit|integration|e2e]/`
-- Docs: `docs/[guides|api|tutorials]/`
-- Infrastructure: `infrastructure/[terraform|k8s]/`
-
-### Status Workflow
-```
-draft → under_review → needs_revision → under_review → approved
-                    ↓
-                 rejected
-```
-
-### Review Indicators
-- 🔴 Critical (must fix)
-- 🟡 Important (should fix)
-- 🟢 Suggestion (consider)
-- ✅ Approved
-- ❌ Rejected
 
 ## Sponsors
 
