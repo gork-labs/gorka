@@ -226,19 +226,19 @@ graph TB
 
 ## Shared Guidelines
 
-### DateTime Handling (`instructions/DATETIME_HANDLING_GORKA.instructions.md`)
+### [DateTime Handling](instructions/DATETIME_HANDLING_GORKA.instructions.md)
 - Always use datetime MCP tool
 - Never hardcode timestamps
 - Track durations with start/end times
 - Use Europe/Warsaw timezone
 
-### Memory Usage (`instructions/MEMORY_USAGE_GUIDELINES_GORKA.instructions.md`)
+### [Memory Usage](instructions/MEMORY_USAGE_GUIDELINES_GORKA.instructions.md)
 - Consistent naming conventions
 - Proper entity types
 - Query before create pattern
 - Rich relationships
 
-### Documentation Standards (`instructions/DOCUMENTATION_STANDARDS_GORKA.instructions.md`)
+### [Documentation Standards](instructions/DOCUMENTATION_STANDARDS_GORKA.instructions.md)
 - Standard file locations and naming
 - Required frontmatter and structure
 - Document lifecycle management
