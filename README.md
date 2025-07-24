@@ -1,7 +1,7 @@
 ---
 title: "Production Coding Agent System Documentation"
 date: "2025-07-24"
-last_updated: "2025-07-24T14:43:16+02:00"
+last_updated: "2025-07-24T16:05:17+02:00"
 author: "@bohdan-shulha"
 ---
 
@@ -32,64 +32,111 @@ gorka install
 
 ## Overview
 
-This is a comprehensive agent system designed for software development teams, incorporating advanced Sonnet-4 capabilities including extended thinking modes (ultrathink), multi-perspective analysis, and iterative refinement patterns.
+This is a comprehensive agent system designed for software development teams, incorporating advanced Sonnet-4 capabilities including **mandatory sequential thinking (7-15 thoughts minimum)**, extended thinking modes (ultrathink), multi-perspective analysis, and iterative refinement patterns.
+
+### 🧠 Core Innovation: Sequential Thinking
+Every complex task now requires structured thinking using the `mcp_sequentialthi_sequentialthinking` tool, ensuring:
+- **Minimum 7 thoughts** for simple analysis
+- **10-12 thoughts** for standard problems
+- **13-15+ thoughts** for complex architecture decisions
+- **Progressive insight building** with revision capabilities
+- **Multi-perspective analysis** for comprehensive solutions
 
 ## System Architecture
 
+Gorka provides a comprehensive AI agent ecosystem built on three foundational pillars:
+
+### Core Foundations
+
+- **🧠 Sequential Thinking**: All agents use structured reasoning (7-15 thought minimum) for complex analysis
+- **💾 Memory Integration**: Persistent knowledge graph tracking domain concepts and decisions
+- **📝 Documentation Standards**: Comprehensive guides and references for every component
+
+### Agent Specializations
+
 ```mermaid
 graph TB
-    subgraph "Core Development Agents"
+    subgraph "Core Architecture & Design"
         A[Software Architect]
-        B[Software Engineer]
-        C[Test Engineer]
-        D[Design Reviewer]
+        B[Design Reviewer]
+        C[Database Architect]
     end
 
-    subgraph "Operations & Support"
-        E[DevOps Engineer]
-        F[Technical Writer]
+    subgraph "Development & Quality"
+        D[Software Engineer]
+        E[Test Engineer]
+        F[Security Engineer]
     end
 
-    subgraph "System Maintenance"
-        G[Memory Curator]
+    subgraph "Operations & Documentation"
+        G[DevOps Engineer]
+        H[Technical Writer]
+        I[Prompt Writer]
     end
 
-    subgraph "Shared Resources"
-        H[Memory Graph]
-        I[Codebase]
-        J[Documentation]
+    subgraph "System Intelligence"
+        J[Memory Curator]
+        K[Sequential Thinking Engine]
     end
 
-    A --> H
-    B --> H
-    C --> H
-    D --> H
-    E --> H
-    F --> H
-    G --> H
+    subgraph "Shared Infrastructure"
+        L[Memory Graph]
+        M[Knowledge Base]
+        N[Documentation System]
+        O[Gorka CLI]
+    end
 
-    A --> J
-    B --> I
-    C --> I
-    D --> J
-    E --> I
-    F --> J
+    A --> L
+    B --> L
+    C --> L
+    D --> L
+    E --> L
+    F --> L
+    G --> L
+    H --> L
+    I --> L
+    J --> L
+    K --> L
+
+    A --> N
+    B --> M
+    C --> M
+    D --> M
+    E --> N
+    F --> N
+    G --> N
+    H --> N
+    I --> N
+
+    J --> M
+    K --> M
+    O --> N
 ```
+
+### Integration Features
+
+- **🔄 Self-Upgrading System**: `gorka self-upgrade` keeps the CLI and agents current
+- **📦 Component Management**: Add, remove, and sync agent configurations
+- **🌐 Global & Workspace Scopes**: Install for single projects or system-wide
+- **🔍 Metadata Tracking**: Comprehensive component lifecycle management
 
 ## Available Agents
 
 ### 1. [Software Architect](chatmodes/Software%20Architect%20-%20Gorka.chatmode.md)
 - **Purpose**: Design comprehensive system architectures
 - **Key Features**:
+  - **Sequential thinking (10-15 thoughts minimum) for complex designs**
   - Multi-perspective analysis (ultrathink)
   - Iterative design refinement
   - Architectural decision documentation
   - Pattern recognition and reuse
+  - **Document creation focus (no code implementation)**
 - **Outputs**: Design documents in `docs/architecture/`
 
 ### 2. [Software Engineer](chatmodes/Software%20Engineer%20-%20Gorka.chatmode.md)
 - **Purpose**: Implement high-quality, maintainable code
 - **Key Features**:
+  - **Sequential thinking (8-12 thoughts) for implementation planning**
   - Pattern-based implementation
   - Comprehensive error handling
   - Performance optimization
@@ -99,15 +146,18 @@ graph TB
 ### 3. [Design Reviewer](chatmodes/Design%20Reviewer%20-%20Gorka.chatmode.md)
 - **Purpose**: Conduct thorough technical reviews
 - **Key Features**:
+  - **Sequential thinking (8-12 thoughts) for comprehensive reviews**
   - Document modification authority
   - Multi-perspective review (security, performance, etc.)
   - Approval/rejection workflow
   - Human collaboration support
+  - **Design document focus (no code review)**
 - **Outputs**: Updated documents with review sections
 
 ### 4. [Test Engineer](chatmodes/Test%20Engineer%20-%20Gorka.chatmode.md)
 - **Purpose**: Ensure quality through comprehensive testing
 - **Key Features**:
+  - **Sequential thinking (8-10 thoughts) for test strategy development**
   - Multi-level test strategies
   - Failure analysis and prevention
   - Performance baseline tracking
@@ -117,6 +167,7 @@ graph TB
 ### 5. [DevOps Engineer](chatmodes/DevOps%20Engineer%20-%20Gorka.chatmode.md)
 - **Purpose**: Manage infrastructure and operations
 - **Key Features**:
+  - **Sequential thinking (8-12 thoughts) for infrastructure planning**
   - Infrastructure as Code
   - CI/CD pipeline design
   - Incident response
@@ -126,6 +177,7 @@ graph TB
 ### 6. [Technical Writer](chatmodes/Technical%20Writer%20-%20Gorka.chatmode.md)
 - **Purpose**: Create clear, comprehensive documentation
 - **Key Features**:
+  - **Sequential thinking (7-10 thoughts) for content structure**
   - Multi-audience adaptation
   - API documentation
   - Tutorial creation
@@ -135,6 +187,7 @@ graph TB
 ### 7. [Memory Curator](chatmodes/Memory%20Curator%20-%20Gorka.chatmode.md)
 - **Purpose**: Maintain knowledge graph quality
 - **Key Features**:
+  - **Sequential thinking (7-9 thoughts) for systematic analysis**
   - Systematic entity review
   - Duplicate detection and merging
   - Relationship optimization
@@ -144,6 +197,7 @@ graph TB
 ### 8. [Database Architect](chatmodes/Database%20Architect%20-%20Gorka.chatmode.md)
 - **Purpose**: Design scalable data solutions
 - **Key Features**:
+  - **Sequential thinking (10-15 thoughts) for complex data architecture**
   - Schema design and optimization
   - Migration strategies
   - Performance tuning
@@ -153,6 +207,7 @@ graph TB
 ### 9. [Security Engineer](chatmodes/Security%20Engineer%20-%20Gorka.chatmode.md)
 - **Purpose**: Implement application security best practices
 - **Key Features**:
+  - **Sequential thinking (8-12 thoughts) for threat analysis**
   - Vulnerability assessment
   - Secure coding patterns
   - Authentication and authorization
@@ -162,6 +217,7 @@ graph TB
 ### 10. [Prompt Writer](chatmodes/Prompt%20Writer%20-%20Gorka.chatmode.md)
 - **Purpose**: Craft optimal prompts using advanced Sonnet-4 techniques
 - **Key Features**:
+  - **Sequential thinking (7-10 thoughts) for prompt optimization**
   - Extended thinking modes (ultrathink)
   - Multi-perspective analysis
   - Iterative refinement patterns
@@ -191,10 +247,13 @@ graph TB
 ## Advanced Features
 
 ### 1. Extended Thinking Modes
-- **think**: Basic extended reasoning
-- **think hard**: Deeper analysis
-- **think harder**: Complex problem solving
-- **ultrathink**: Maximum reasoning allocation
+- **Standard**: Basic analysis (7-9 thoughts)
+- **Think**: Enhanced reasoning (10-12 thoughts)
+- **Think Hard**: Deep analysis (12-15 thoughts)
+- **Think Harder**: Complex problems (15+ thoughts)
+- **Ultrathink**: Maximum reasoning with multi-perspective analysis
+
+**All complex tasks automatically use sequential thinking with minimum thought requirements.**
 
 ### 2. Multi-Perspective Analysis
 Agents can analyze from multiple viewpoints:
@@ -378,13 +437,17 @@ bash <(curl -fsSL https://raw.githubusercontent.com/gork-labs/gorka/main/setup.s
 Then install the configurations:
 ```bash
 # Install globally for all projects
-gorka install global
+gorka install --global
 
 # Or install for current workspace only
-gorka install workspace
-
-# Or install both (global + workspace if .vscode exists)
 gorka install
+
+# Check what's installed
+gorka update list
+
+# Keep system updated
+gorka self-upgrade          # Upgrade gorka binary itself
+gorka update sync           # Update components to latest
 ```
 
 ### Manual Installation
@@ -410,15 +473,41 @@ If you prefer manual installation:
 
 ### What Gets Installed
 
-- **Global installation** (`gorka install global`):
+- **Global installation** (`gorka install --global`):
   - MCP server configurations to VS Code user settings
   - Prompt templates to VS Code user folder
   - Available across all your projects
+  - Metadata tracked in separate `gorka.json` files
 
-- **Workspace installation** (`gorka install workspace`):
+- **Workspace installation** (`gorka install`):
   - Workspace-specific MCP configurations
   - Memory server for project context
   - Created in `.vscode/mcp.json`
+  - Instructions copied to `.github/instructions/`
+
+### System Management
+
+The gorka system includes comprehensive management tools:
+
+```bash
+# List installed components
+gorka update list               # Show all components
+gorka update list available     # Show available from repository
+
+# Sync with latest repository
+gorka update sync              # Update everything
+gorka update sync workspace    # Update workspace only
+
+# Remove components
+gorka update remove server memory workspace
+gorka update remove chatmode "Old Agent.md"
+
+# Clean up orphaned components
+gorka update clean-orphans     # Remove components no longer in repo
+
+# Upgrade gorka itself
+gorka self-upgrade             # Safe binary update with backup
+```
 
 ## Getting Started
 
@@ -434,7 +523,7 @@ If you prefer manual installation:
    ```
 
 3. **Test Basic Workflow**
-   - Ask software architect to design a simple feature
+   - Ask software architect to design a simple feature (watch sequential thinking in action)
    - Have software engineer implement it
    - Run tests with test engineer
    - Review with design reviewer
@@ -443,6 +532,23 @@ If you prefer manual installation:
    - Start documenting patterns
    - Create relationships
    - Run regular memory reviews
+
+5. **Maintain Your System**
+   ```bash
+   # Weekly maintenance routine
+   gorka update sync              # Get latest updates
+   gorka update clean-orphans     # Clean up old components
+   gorka self-upgrade            # Keep gorka binary current
+   ```
+
+## Key Documentation
+
+- **[Documentation Standards](instructions/DOCUMENTATION_STANDARDS_GORKA.instructions.md)**: Comprehensive guidelines for all documentation
+- **[Sequential Thinking Guide](instructions/THINKING_PROCESS_GORKA.instructions.md)**: Detailed thinking process requirements
+- **[DateTime Handling](instructions/DATETIME_HANDLING_GORKA.instructions.md)**: Time management guidelines
+- **[Memory Usage](instructions/MEMORY_USAGE_GUIDELINES_GORKA.instructions.md)**: Knowledge graph best practices
+- **[CLI Reference](docs/gorka-update-command.md)**: Complete gorka command reference
+- **[Self-Upgrade Guide](docs/gorka-self-upgrade-command.md)**: Binary upgrade documentation
 
 ## Future Enhancements
 
@@ -473,4 +579,4 @@ We're grateful for the support of our sponsors who make this project possible:
 
 *System designed by @bohdan-shulha*
 *Incorporating Sonnet-4 advanced capabilities*
-*Last updated: 2025-07-24T14:43:16+02:00*
+*Last updated: 2025-07-24T16:05:17+02:00*
