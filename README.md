@@ -1,7 +1,7 @@
 ---
 title: "Production Coding Agent System Documentation"
-date: "2025-01-23"
-last_updated: "2025-01-23 15:45:42 UTC"
+date: "2025-07-24"
+last_updated: "2025-07-24 10:20:14 UTC"
 author: "@bohdan-shulha"
 ---
 
@@ -67,7 +67,7 @@ graph TB
 
 ## Available Agents
 
-### 1. Software Architect (`Software Architect - Gorka.chatmode.md`)
+### 1. Software Architect (`chatmodes/Software Architect - Gorka.chatmode.md`)
 - **Purpose**: Design comprehensive system architectures
 - **Key Features**:
   - Multi-perspective analysis (ultrathink)
@@ -76,7 +76,7 @@ graph TB
   - Pattern recognition and reuse
 - **Outputs**: Design documents in `docs/architecture/`
 
-### 2. Software Engineer (`Software Engineer - Gorka.chatmode.md`)
+### 2. Software Engineer (`chatmodes/Software Engineer - Gorka.chatmode.md`)
 - **Purpose**: Implement high-quality, maintainable code
 - **Key Features**:
   - Pattern-based implementation
@@ -85,7 +85,7 @@ graph TB
   - Test-driven development
 - **Outputs**: Production code with >80% test coverage
 
-### 3. Design Reviewer (`Design Reviewer - Gorka.chatmode.md`)
+### 3. Design Reviewer (`chatmodes/Design Reviewer - Gorka.chatmode.md`)
 - **Purpose**: Conduct thorough technical reviews
 - **Key Features**:
   - Document modification authority
@@ -94,7 +94,7 @@ graph TB
   - Human collaboration support
 - **Outputs**: Updated documents with review sections
 
-### 4. Test Engineer (`Test Engineer - Gorka.chatmode.md`)
+### 4. Test Engineer (`chatmodes/Test Engineer - Gorka.chatmode.md`)
 - **Purpose**: Ensure quality through comprehensive testing
 - **Key Features**:
   - Multi-level test strategies
@@ -103,7 +103,7 @@ graph TB
   - Test pattern documentation
 - **Outputs**: Test suites, strategies, and quality reports
 
-### 5. DevOps Engineer (`DevOps Engineer - Gorka.chatmode.md`)
+### 5. DevOps Engineer (`chatmodes/DevOps Engineer - Gorka.chatmode.md`)
 - **Purpose**: Manage infrastructure and operations
 - **Key Features**:
   - Infrastructure as Code
@@ -112,7 +112,7 @@ graph TB
   - Monitoring and alerting
 - **Outputs**: Infrastructure code, runbooks, monitoring
 
-### 6. Technical Writer (`Technical Writer - Gorka.chatmode.md`)
+### 6. Technical Writer (`chatmodes/Technical Writer - Gorka.chatmode.md`)
 - **Purpose**: Create clear, comprehensive documentation
 - **Key Features**:
   - Multi-audience adaptation
@@ -121,7 +121,7 @@ graph TB
   - Documentation testing
 - **Outputs**: User guides, API docs, tutorials
 
-### 7. Memory Curator (`Memory Curator - Gorka.chatmode.md`)
+### 7. Memory Curator (`chatmodes/Memory Curator - Gorka.chatmode.md`)
 - **Purpose**: Maintain knowledge graph quality
 - **Key Features**:
   - Systematic entity review
@@ -130,15 +130,42 @@ graph TB
   - Domain insights
 - **Outputs**: Review reports, cleaned knowledge graph
 
+### 8. Database Architect (`chatmodes/Database Architect - Gorka.chatmode.md`)
+- **Purpose**: Design scalable data solutions
+- **Key Features**:
+  - Schema design and optimization
+  - Migration strategies
+  - Performance tuning
+  - Data integrity assurance
+- **Outputs**: Database schemas, migration scripts, performance optimizations
+
+### 9. Security Engineer (`chatmodes/Security Engineer - Gorka.chatmode.md`)
+- **Purpose**: Implement application security best practices
+- **Key Features**:
+  - Vulnerability assessment
+  - Secure coding patterns
+  - Authentication and authorization
+  - OWASP compliance
+- **Outputs**: Security configurations, vulnerability fixes, security documentation
+
+### 10. Prompt Writer (`chatmodes/Prompt Writer - Gorka.chatmode.md`)
+- **Purpose**: Craft optimal prompts using advanced Sonnet-4 techniques
+- **Key Features**:
+  - Extended thinking modes (ultrathink)
+  - Multi-perspective analysis
+  - Iterative refinement patterns
+  - Role-based prompting
+- **Outputs**: Effective prompts, prompt templates, optimization strategies
+
 ## Shared Guidelines
 
-### Time Management (`TIME_MANAGEMENT_GORKA.instructions.md`)
+### Time Management (`instructions/TIME_MANAGEMENT_GORKA.instructions.md`)
 - Always use datetime MCP tool
 - Never hardcode timestamps
 - Track durations with start/end times
 - Use Europe/Warsaw timezone
 
-### Memory Usage (`MEMORY_USAGE_GUIDELINES_GORKA.instructions.md`)
+### Memory Usage (`instructions/MEMORY_USAGE_GUIDELINES_GORKA.instructions.md`)
 - Consistent naming conventions
 - Proper entity types
 - Query before create pattern
@@ -177,12 +204,15 @@ Agents adopt specific expertise:
 ### Starting a New Feature
 ```
 1. Architect: Create design document (ultrathink)
-2. Reviewer: Review and approve design
-3. Engineer: Implement with patterns
-4. Test Engineer: Create comprehensive tests
-5. DevOps: Prepare infrastructure
-6. Writer: Document for users
-7. Memory Curator: Capture learnings
+2. Security Engineer: Review security implications
+3. Database Architect: Design data schema (if needed)
+4. Reviewer: Review and approve design
+5. Engineer: Implement with patterns
+6. Test Engineer: Create comprehensive tests
+7. DevOps: Prepare infrastructure
+8. Writer: Document for users
+9. Memory Curator: Capture learnings
+10. Prompt Writer: Optimize any AI interactions (if needed)
 ```
 
 ### Handling Complex Problems
@@ -206,14 +236,23 @@ Agents adopt specific expertise:
 ## Configuration Requirements
 
 ### MCP Servers Required
-1. **datetime**: Timestamp management
-2. **memory**: Knowledge graph
-3. **codebase**: Code analysis
-4. **search**: Information retrieval
-5. **editFiles**: File manipulation
-6. **runTests**: Test execution
-7. **git tools**: Version control
-8. Standard tools per agent
+
+**Global Servers** (configured in `mcp.global.json`):
+1. **sequentialthinking**: Extended reasoning capabilities (ultrathink modes)
+2. **context7**: Documentation and library context
+3. **deepwiki**: GitHub repository documentation
+4. **git**: Git operations and repository analysis
+5. **time**: Timestamp management and timezone handling
+
+**Workspace Servers** (configured in `mcp.workspace.json`):
+6. **memory**: Knowledge graph and pattern storage
+
+**Standard VS Code Tools** (available per agent):
+- File operations (read, write, search)
+- Terminal commands
+- Code analysis
+- Test execution
+- Extensions management
 
 ### Environment Setup
 ```bash
@@ -223,11 +262,8 @@ export TZ="Europe/Warsaw"
 # Configure user
 export CURRENT_USER="bohdan-shulha"
 
-# Memory server settings
-export MEMORY_ENDPOINT="http://localhost:8080"
-
-# Enable extended thinking
-export ENABLE_ULTRATHINK=true
+# Memory server stores data in workspace
+# .vscode/memory.json (auto-configured)
 ```
 
 ## Best Practices
@@ -407,4 +443,4 @@ If you prefer manual installation:
 
 *System designed by @bohdan-shulha*
 *Incorporating Sonnet-4 advanced capabilities*
-*Last updated: 2025-01-23 15:45:42 UTC*
+*Last updated: 2025-07-24 10:20:14 UTC*
