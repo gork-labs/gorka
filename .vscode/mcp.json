@@ -49,16 +49,5 @@
       }
     }
   },
-  "inputs": [],
-  "$gorka": {
-    "servers": [
-      "context7",
-      "deepwiki",
-      "git",
-      "memory",
-      "sequentialthinking",
-      "time"
-    ],
-    "inputs": []
-  }
+  "inputs": []
 }

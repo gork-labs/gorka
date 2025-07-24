@@ -1,0 +1,28 @@
+{
+  "servers": [
+    "context7",
+    "deepwiki",
+    "git",
+    "memory",
+    "sequentialthinking",
+    "time"
+  ],
+  "inputs": [],
+  "chatmodes": [
+    "Software Architect - Gorka.chatmode.md",
+    "Database Architect - Gorka.chatmode.md",
+    "Security Engineer - Gorka.chatmode.md",
+    "Technical Writer - Gorka.chatmode.md",
+    "Test Engineer - Gorka.chatmode.md",
+    "DevOps Engineer - Gorka.chatmode.md",
+    "Software Engineer - Gorka.chatmode.md",
+    "Memory Curator - Gorka.chatmode.md",
+    "Prompt Writer - Gorka.chatmode.md",
+    "Design Reviewer - Gorka.chatmode.md"
+  ],
+  "instructions": [
+    "DOCUMENTATION_STANDARDS_GORKA.instructions.md",
+    "DATETIME_HANDLING_GORKA.instructions.md",
+    "MEMORY_USAGE_GUIDELINES_GORKA.instructions.md"
+  ]
+}

@@ -97,19 +97,157 @@ ensure_files_available() {
     return 0
 }
 
-# Function to merge JSON files with gorka metadata tracking
+# Function to get gorka metadata file path based on scope
+get_gorka_metadata_file() {
+    local scope="$1"
+    
+    case "$scope" in
+        "global")
+            case "$(uname)" in
+                "Darwin")  # macOS
+                    echo "$HOME/Library/Application Support/Code/User/gorka.json"
+                    ;;
+                "Linux")
+                    echo "$HOME/.config/Code/User/gorka.json"
+                    ;;
+                *)
+                    print_error "Unsupported operating system"
+                    return 1
+                    ;;
+            esac
+            ;;
+        "workspace")
+            echo ".vscode/gorka.json"
+            ;;
+        *)
+            print_error "Invalid scope: $scope. Use 'global' or 'workspace'"
+            return 1
+            ;;
+    esac
+}
+
+# Function to read gorka metadata
+read_gorka_metadata() {
+    local scope="$1"
+    local gorka_file
+    
+    gorka_file=$(get_gorka_metadata_file "$scope")
+    if [ $? -ne 0 ]; then
+        return 1
+    fi
+    
+    # Initialize empty metadata if file doesn't exist
+    if [ ! -f "$gorka_file" ]; then
+        echo '{"servers": [], "inputs": [], "chatmodes": [], "instructions": []}' > "$gorka_file"
+    fi
+    
+    cat "$gorka_file"
+}
+
+# Function to update gorka metadata
+update_gorka_metadata() {
+    local scope="$1"
+    local component_type="$2"
+    local component_list="$3"
+    local operation="$4"  # "add" or "set"
+    
+    local gorka_file
+    gorka_file=$(get_gorka_metadata_file "$scope")
+    if [ $? -ne 0 ]; then
+        return 1
+    fi
+    
+    # Ensure the file exists
+    read_gorka_metadata "$scope" >/dev/null
+    
+    case "$operation" in
+        "add")
+            # Add components to existing list
+            jq --argjson new_items "$(echo "$component_list" | jq -R -s 'split("\n") | map(select(length > 0))')" \
+               --arg type "$component_type" \
+               '.[$type] = (.[$type] // [] | . + $new_items | unique | sort)' \
+               "$gorka_file" > "$gorka_file.tmp" && mv "$gorka_file.tmp" "$gorka_file"
+            ;;
+        "set")
+            # Replace the entire list
+            jq --argjson new_items "$(echo "$component_list" | jq -R -s 'split("\n") | map(select(length > 0))')" \
+               --arg type "$component_type" \
+               '.[$type] = $new_items' \
+               "$gorka_file" > "$gorka_file.tmp" && mv "$gorka_file.tmp" "$gorka_file"
+            ;;
+        *)
+            print_error "Invalid operation: $operation. Use 'add' or 'set'"
+            return 1
+            ;;
+    esac
+}
+
+# Function to remove component from gorka metadata
+remove_from_gorka_metadata() {
+    local scope="$1"
+    local component_type="$2"
+    local component_name="$3"
+    
+    local gorka_file
+    gorka_file=$(get_gorka_metadata_file "$scope")
+    if [ $? -ne 0 ]; then
+        return 1
+    fi
+    
+    if [ ! -f "$gorka_file" ]; then
+        print_error "Gorka metadata file not found: $gorka_file"
+        return 1
+    fi
+    
+    jq --arg type "$component_type" \
+       --arg name "$component_name" \
+       '.[$type] = (.[$type] // [] | map(select(. != $name)))' \
+       "$gorka_file" > "$gorka_file.tmp" && mv "$gorka_file.tmp" "$gorka_file"
+}
+
+# Function to check if component is gorka-managed
+is_gorka_managed() {
+    local scope="$1"
+    local component_type="$2"
+    local component_name="$3"
+    
+    local gorka_file
+    gorka_file=$(get_gorka_metadata_file "$scope")
+    if [ $? -ne 0 ]; then
+        return 1
+    fi
+    
+    if [ ! -f "$gorka_file" ]; then
+        return 1
+    fi
+    
+    jq -e --arg type "$component_type" \
+          --arg name "$component_name" \
+          '.[$type] // [] | index($name)' \
+          "$gorka_file" >/dev/null 2>&1
+}
+
+# Function to merge JSON files with separate gorka metadata tracking
 merge_mcp_json() {
     local source_file="$1"
     local target_file="$2"
+    local scope="$3"
+    local chatmodes_list="$4"
+    local instructions_list="$5"
+
+    # Ensure target directory exists
+    mkdir -p "$(dirname "$target_file")"
 
     if [ -f "$target_file" ]; then
-        # Get gorka-managed servers and inputs from target
-        gorka_managed_servers=$(jq -r '."$gorka".servers // [] | .[]' "$target_file" 2>/dev/null || echo "")
-        gorka_managed_inputs=$(jq -r '."$gorka".inputs // [] | .[]' "$target_file" 2>/dev/null || echo "")
+        # Read existing gorka metadata to check for conflicts
+        local metadata
+        metadata=$(read_gorka_metadata "$scope")
+        
+        local gorka_managed_servers
+        gorka_managed_servers=$(echo "$metadata" | jq -r '.servers // [] | .[]' 2>/dev/null || echo "")
 
-        # Get new servers and inputs from source
+        # Get new servers from source
         new_servers=$(jq -r '.servers // {} | keys[]' "$source_file" 2>/dev/null || echo "")
-        new_inputs=$(jq -r '.inputs // [] | .[]' "$source_file" 2>/dev/null || echo "")
 
         # Check for conflicts with non-gorka managed items
         for server in $new_servers; do
@@ -123,39 +261,37 @@ merge_mcp_json() {
             fi
         done
 
-        # Build the updated gorka metadata
-        updated_gorka_servers=$(echo -e "$gorka_managed_servers\n$new_servers" | grep -v '^$' | sort -u)
-        updated_gorka_inputs=$(echo -e "$gorka_managed_inputs\n$new_inputs" | grep -v '^$' | sort -u)
-
-        # Create temporary file with merged content
+        # Merge MCP configuration (pure configuration, no metadata)
         jq --slurpfile source <(cat "$source_file") \
-           --argjson gorka_servers "$(echo "$updated_gorka_servers" | jq -R -s 'split("\n") | map(select(length > 0))')" \
-           --argjson gorka_inputs "$(echo "$updated_gorka_inputs" | jq -R -s 'split("\n") | map(select(length > 0))')" \
            '
            . as $target |
            $source[0] as $src |
            $target |
            .servers = (.servers // {}) + ($src.servers // {}) |
-           .inputs = (.inputs // []) + ($src.inputs // []) |
-           ."$gorka" = {
-             "servers": $gorka_servers,
-             "inputs": $gorka_inputs
-           }
+           .inputs = (.inputs // []) + ($src.inputs // [])
            ' "$target_file" > "$target_file.tmp"
 
         mv "$target_file.tmp" "$target_file"
-        print_success "Successfully merged MCP configuration with existing file."
+        print_success "Successfully merged MCP configuration."
     else
-        # Create new file with gorka metadata
-        new_servers=$(jq -r '.servers // {} | keys[]' "$source_file" 2>/dev/null || echo "")
-        new_inputs=$(jq -r '.inputs // [] | .[]' "$source_file" 2>/dev/null || echo "")
-
-        jq --argjson gorka_servers "$(echo "$new_servers" | jq -R -s 'split("\n") | map(select(length > 0))')" \
-           --argjson gorka_inputs "$(echo "$new_inputs" | jq -R -s 'split("\n") | map(select(length > 0))')" \
-           '. + {"$gorka": {"servers": $gorka_servers, "inputs": $gorka_inputs}}' \
-           "$source_file" > "$target_file"
-
-        print_success "Created new MCP configuration file with gorka metadata."
+        # Create new file (ensure no metadata is included)
+        jq 'del(."$gorka")' "$source_file" > "$target_file"
+        print_success "Created new MCP configuration file."
+    fi
+    
+    # Update gorka metadata separately
+    local all_servers
+    local all_inputs
+    all_servers=$(jq -r '.servers // {} | keys[]' "$target_file" 2>/dev/null | tr '\n' '\n')
+    all_inputs=$(jq -r '.inputs // [] | .[]' "$target_file" 2>/dev/null | tr '\n' '\n')
+    
+    # Update metadata for all component types
+    update_gorka_metadata "$scope" "servers" "$all_servers" "set"
+    update_gorka_metadata "$scope" "inputs" "$all_inputs" "set"
+    update_gorka_metadata "$scope" "chatmodes" "$chatmodes_list" "set"
+    
+    if [ "$scope" = "workspace" ]; then
+        update_gorka_metadata "$scope" "instructions" "$instructions_list" "set"
     fi
 }
 
@@ -191,7 +327,20 @@ install_global() {
     fi
 
     print_info "Merging global MCP configuration..."
-    merge_mcp_json "$FILES_DIR/mcp.global.json" "$VSCODE_USER_DIR/mcp.json"
+    
+    # Build lists of chatmodes and instructions being installed
+    chatmodes_list=""
+    instructions_list=""
+    
+    if [ -d "$FILES_DIR/chatmodes" ]; then
+        chatmodes_list=$(find "$FILES_DIR/chatmodes" -name "*.md" -exec basename {} \; | tr '\n' '\n')
+    fi
+    
+    if [ -d "$FILES_DIR/instructions" ]; then
+        instructions_list=$(find "$FILES_DIR/instructions" -name "*.md" -exec basename {} \; | tr '\n' '\n')
+    fi
+    
+    merge_mcp_json "$FILES_DIR/mcp.global.json" "$VSCODE_USER_DIR/mcp.json" "global" "$chatmodes_list" "$instructions_list"
 
     # Copy chatmodes directory to VS Code user directory
     print_info "Copying chatmodes to VS Code user directory..."
@@ -218,10 +367,23 @@ install_global() {
 
         # For global installation with workspace, we want both global and workspace configurations
         print_info "Merging global MCP configuration..."
-        merge_mcp_json "$FILES_DIR/mcp.global.json" "$vscode_dir/mcp.json"
+        
+        # Build lists of chatmodes and instructions being installed
+        chatmodes_list=""
+        instructions_list=""
+        
+        if [ -d "$FILES_DIR/chatmodes" ]; then
+            chatmodes_list=$(find "$FILES_DIR/chatmodes" -name "*.md" -exec basename {} \; | tr '\n' '\n')
+        fi
+        
+        if [ -d "$FILES_DIR/instructions" ]; then
+            instructions_list=$(find "$FILES_DIR/instructions" -name "*.md" -exec basename {} \; | tr '\n' '\n')
+        fi
+        
+        merge_mcp_json "$FILES_DIR/mcp.global.json" "$vscode_dir/mcp.json" "workspace" "$chatmodes_list" "$instructions_list"
 
         print_info "Merging workspace MCP configuration..."
-        merge_mcp_json "$workspace_config" "$vscode_dir/mcp.json"
+        merge_mcp_json "$workspace_config" "$vscode_dir/mcp.json" "workspace" "$chatmodes_list" "$instructions_list"
         print_success "Workspace MCP configuration installed to: .vscode/mcp.json"
 
         # Create memory.json file for the memory server
@@ -271,10 +433,23 @@ install_workspace() {
 
     # For workspace installation, we want both global and workspace configurations
     print_info "Merging global MCP configuration..."
-    merge_mcp_json "$FILES_DIR/mcp.global.json" "$vscode_dir/mcp.json"
+    
+    # Build lists of chatmodes and instructions being installed
+    chatmodes_list=""
+    instructions_list=""
+    
+    if [ -d "$FILES_DIR/chatmodes" ]; then
+        chatmodes_list=$(find "$FILES_DIR/chatmodes" -name "*.md" -exec basename {} \; | tr '\n' '\n')
+    fi
+    
+    if [ -d "$FILES_DIR/instructions" ]; then
+        instructions_list=$(find "$FILES_DIR/instructions" -name "*.md" -exec basename {} \; | tr '\n' '\n')
+    fi
+    
+    merge_mcp_json "$FILES_DIR/mcp.global.json" "$vscode_dir/mcp.json" "workspace" "$chatmodes_list" "$instructions_list"
 
     print_info "Merging workspace MCP configuration..."
-    merge_mcp_json "$workspace_config" "$vscode_dir/mcp.json"
+    merge_mcp_json "$workspace_config" "$vscode_dir/mcp.json" "workspace" "$chatmodes_list" "$instructions_list"
 
     # Create memory.json file for the memory server
     print_info "Creating memory.json file..."
@@ -321,6 +496,442 @@ clean_cache() {
     fi
 }
 
+# Function to get current components status
+get_current_components() {
+    local target_type="$1"  # "global" or "workspace"
+    
+    case "$target_type" in
+        "global")
+            case "$(uname)" in
+                "Darwin")  # macOS
+                    VSCODE_USER_DIR="$HOME/Library/Application Support/Code/User"
+                    ;;
+                "Linux")
+                    VSCODE_USER_DIR="$HOME/.config/Code/User"
+                    ;;
+                *)
+                    print_error "Unsupported operating system"
+                    return 1
+                    ;;
+            esac
+            local chatmodes_dir="$VSCODE_USER_DIR/chatmodes"
+            ;;
+        "workspace")
+            local chatmodes_dir=".github/chatmodes"
+            local instructions_dir=".github/instructions"
+            ;;
+    esac
+    
+    echo "=== Current $target_type Components ==="
+    
+    # Read gorka metadata
+    local metadata
+    metadata=$(read_gorka_metadata "$target_type" 2>/dev/null)
+    
+    if [ $? -eq 0 ] && [ -n "$metadata" ]; then
+        echo ""
+        echo "MCP Servers (gorka-managed):"
+        echo "$metadata" | jq -r '.servers // [] | .[]' 2>/dev/null | while read server; do
+            if [ -n "$server" ]; then
+                echo "  ✓ $server"
+            fi
+        done
+        
+        echo ""
+        echo "MCP Inputs (gorka-managed):"
+        echo "$metadata" | jq -r '.inputs // [] | .[]' 2>/dev/null | while read input; do
+            if [ -n "$input" ]; then
+                echo "  ✓ $input"
+            fi
+        done
+        
+        echo ""
+        echo "Chatmodes (gorka-managed):"
+        echo "$metadata" | jq -r '.chatmodes // [] | .[]' 2>/dev/null | while read chatmode; do
+            if [ -n "$chatmode" ]; then
+                if [ -f "$chatmodes_dir/$chatmode" ]; then
+                    echo "  ✓ $chatmode"
+                else
+                    echo "  ✗ $chatmode (missing file)"
+                fi
+            fi
+        done
+        
+        if [ "$target_type" = "workspace" ]; then
+            echo ""
+            echo "Instructions (gorka-managed):"
+            echo "$metadata" | jq -r '.instructions // [] | .[]' 2>/dev/null | while read instruction; do
+                if [ -n "$instruction" ]; then
+                    if [ -f "$instructions_dir/$instruction" ]; then
+                        echo "  ✓ $instruction"
+                    else
+                        echo "  ✗ $instruction (missing file)"
+                    fi
+                fi
+            done
+        fi
+    else
+        echo "No gorka metadata found for $target_type scope"
+        echo "Run 'gorka update sync' to initialize."
+    fi
+    echo ""
+}
+
+# Function to list available components from repository
+get_available_components() {
+    print_step "Checking available components from repository..."
+    
+    FILES_DIR=$(ensure_files_available)
+    if [ $? -ne 0 ]; then
+        print_error "Failed to ensure required files are available"
+        return 1
+    fi
+    
+    echo "=== Available Components ==="
+    
+    echo ""
+    echo "MCP Servers (global):"
+    if [ -f "$FILES_DIR/mcp.global.json" ]; then
+        jq -r '.servers // {} | keys[]' "$FILES_DIR/mcp.global.json" 2>/dev/null | while read server; do
+            if [ -n "$server" ]; then
+                echo "  • $server"
+            fi
+        done
+    fi
+    
+    echo ""
+    echo "MCP Servers (workspace):"
+    if [ -f "$FILES_DIR/mcp.workspace.json" ]; then
+        jq -r '.servers // {} | keys[]' "$FILES_DIR/mcp.workspace.json" 2>/dev/null | while read server; do
+            if [ -n "$server" ]; then
+                echo "  • $server"
+            fi
+        done
+    fi
+    
+    echo ""
+    echo "Chatmodes:"
+    if [ -d "$FILES_DIR/chatmodes" ]; then
+        find "$FILES_DIR/chatmodes" -name "*.md" -exec basename {} \; | while read chatmode; do
+            if [ -n "$chatmode" ]; then
+                echo "  • $chatmode"
+            fi
+        done
+    fi
+    
+    echo ""
+    echo "Instructions:"
+    if [ -d "$FILES_DIR/instructions" ]; then
+        find "$FILES_DIR/instructions" -name "*.md" -exec basename {} \; | while read instruction; do
+            if [ -n "$instruction" ]; then
+                echo "  • $instruction"
+            fi
+        done
+    fi
+    echo ""
+}
+
+# Function to sync components
+sync_components() {
+    local target_type="$1"  # "global", "workspace", or "both"
+    
+    print_step "Syncing components with repository..."
+    
+    case "$target_type" in
+        "global")
+            install_global
+            ;;
+        "workspace")
+            install_workspace
+            ;;
+        "both"|"")
+            install_global
+            ;;
+        *)
+            print_error "Invalid target type: $target_type"
+            print_info "Valid options: global, workspace, both"
+            return 1
+            ;;
+    esac
+    
+    print_success "Sync completed successfully!"
+}
+
+# Function to remove gorka-managed component
+remove_component() {
+    local component_type="$1"
+    local component_name="$2"
+    local target_scope="$3"  # "global" or "workspace"
+    
+    if [ -z "$component_type" ] || [ -z "$component_name" ]; then
+        print_error "Usage: gorka update remove <type> <name> [global|workspace]"
+        print_info "Types: server, input, chatmode, instruction"
+        return 1
+    fi
+    
+    case "$target_scope" in
+        "global")
+            case "$(uname)" in
+                "Darwin")  # macOS
+                    VSCODE_USER_DIR="$HOME/Library/Application Support/Code/User"
+                    ;;
+                "Linux")
+                    VSCODE_USER_DIR="$HOME/.config/Code/User"
+                    ;;
+                *)
+                    print_error "Unsupported operating system"
+                    return 1
+                    ;;
+            esac
+            local mcp_file="$VSCODE_USER_DIR/mcp.json"
+            local chatmodes_dir="$VSCODE_USER_DIR/chatmodes"
+            local instructions_dir=""  # Global doesn't have instructions
+            ;;
+        "workspace"|"")
+            local mcp_file=".vscode/mcp.json"
+            local chatmodes_dir=".github/chatmodes"
+            local instructions_dir=".github/instructions"
+            target_scope="workspace"  # Default to workspace
+            ;;
+        *)
+            print_error "Invalid scope: $target_scope"
+            print_info "Valid scopes: global, workspace"
+            return 1
+            ;;
+    esac
+    
+    print_step "Removing $component_type '$component_name' from $target_scope configuration..."
+    
+    case "$component_type" in
+        "server")
+            # Check if server is gorka-managed
+            if ! is_gorka_managed "$target_scope" "servers" "$component_name"; then
+                print_error "Server '$component_name' is not managed by gorka or doesn't exist"
+                return 1
+            fi
+            
+            # Remove server from mcp.json
+            if [ -f "$mcp_file" ]; then
+                jq --arg server "$component_name" 'del(.servers[$server])' "$mcp_file" > "$mcp_file.tmp" && mv "$mcp_file.tmp" "$mcp_file"
+            fi
+            
+            # Remove from gorka metadata
+            remove_from_gorka_metadata "$target_scope" "servers" "$component_name"
+            
+            print_success "Removed server '$component_name'"
+            ;;
+            
+        "input")
+            # Check if input is gorka-managed
+            if ! is_gorka_managed "$target_scope" "inputs" "$component_name"; then
+                print_error "Input '$component_name' is not managed by gorka or doesn't exist"
+                return 1
+            fi
+            
+            # Remove input from mcp.json
+            if [ -f "$mcp_file" ]; then
+                jq --arg input "$component_name" '.inputs = (.inputs // [] | map(select(. != $input)))' "$mcp_file" > "$mcp_file.tmp" && mv "$mcp_file.tmp" "$mcp_file"
+            fi
+            
+            # Remove from gorka metadata
+            remove_from_gorka_metadata "$target_scope" "inputs" "$component_name"
+            
+            print_success "Removed input '$component_name'"
+            ;;
+            
+        "chatmode")
+            # Check if chatmode is gorka-managed
+            if ! is_gorka_managed "$target_scope" "chatmodes" "$component_name"; then
+                print_error "Chatmode '$component_name' is not managed by gorka or doesn't exist"
+                return 1
+            fi
+            
+            # Remove chatmode file
+            if [ -f "$chatmodes_dir/$component_name" ]; then
+                rm "$chatmodes_dir/$component_name"
+                print_info "Removed chatmode file: $chatmodes_dir/$component_name"
+            fi
+            
+            # Remove from gorka metadata
+            remove_from_gorka_metadata "$target_scope" "chatmodes" "$component_name"
+            
+            print_success "Removed chatmode '$component_name'"
+            ;;
+            
+        "instruction")
+            if [ "$target_scope" = "global" ]; then
+                print_error "Instructions are not available in global scope"
+                return 1
+            fi
+            
+            # Check if instruction is gorka-managed
+            if ! is_gorka_managed "$target_scope" "instructions" "$component_name"; then
+                print_error "Instruction '$component_name' is not managed by gorka or doesn't exist"
+                return 1
+            fi
+            
+            # Remove instruction file
+            if [ -f "$instructions_dir/$component_name" ]; then
+                rm "$instructions_dir/$component_name"
+                print_info "Removed instruction file: $instructions_dir/$component_name"
+            fi
+            
+            # Remove from gorka metadata
+            remove_from_gorka_metadata "$target_scope" "instructions" "$component_name"
+            
+            print_success "Removed instruction '$component_name'"
+            ;;
+            
+        *)
+            print_error "Invalid component type: $component_type"
+            print_info "Valid types: server, input, chatmode, instruction"
+            return 1
+            ;;
+    esac
+}
+
+# Function to clean orphaned components
+clean_orphans() {
+    local target_scope="$1"  # "global", "workspace", or "both"
+    
+    print_step "Cleaning orphaned gorka-managed components..."
+    
+    FILES_DIR=$(ensure_files_available)
+    if [ $? -ne 0 ]; then
+        print_error "Failed to ensure required files are available"
+        return 1
+    fi
+    
+    local cleaned_count=0
+    
+    # Helper function to clean orphans for a specific scope
+    clean_orphans_for_scope() {
+        local scope="$1"
+        local mcp_file="$2"
+        local chatmodes_dir="$3"
+        local instructions_dir="$4"
+        
+        print_info "Checking $scope scope..."
+        
+        # Read current metadata
+        local metadata
+        metadata=$(read_gorka_metadata "$scope" 2>/dev/null)
+        if [ $? -ne 0 ]; then
+            print_warning "No gorka metadata found for $scope scope"
+            return 0
+        fi
+        
+        # Get available components from repository
+        local available_servers=""
+        local available_chatmodes=""
+        local available_instructions=""
+        
+        if [ "$scope" = "global" ]; then
+            available_servers=$(jq -r '.servers // {} | keys[]' "$FILES_DIR/mcp.global.json" 2>/dev/null || echo "")
+        else
+            available_servers=$(jq -r '.servers // {} | keys[]' "$FILES_DIR/mcp.workspace.json" 2>/dev/null || echo "")
+        fi
+        
+        if [ -d "$FILES_DIR/chatmodes" ]; then
+            available_chatmodes=$(find "$FILES_DIR/chatmodes" -name "*.md" -exec basename {} \; | tr '\n' '\n')
+        fi
+        
+        if [ -d "$FILES_DIR/instructions" ] && [ "$scope" = "workspace" ]; then
+            available_instructions=$(find "$FILES_DIR/instructions" -name "*.md" -exec basename {} \; | tr '\n' '\n')
+        fi
+        
+        # Check for orphaned servers
+        echo "$metadata" | jq -r '.servers // [] | .[]' 2>/dev/null | while read server; do
+            if [ -n "$server" ] && ! echo "$available_servers" | grep -q "^$server$"; then
+                print_info "Removing orphaned server: $server"
+                
+                # Remove from MCP file
+                if [ -f "$mcp_file" ]; then
+                    jq --arg server "$server" 'del(.servers[$server])' "$mcp_file" > "$mcp_file.tmp" && mv "$mcp_file.tmp" "$mcp_file"
+                fi
+                
+                # Remove from gorka metadata
+                remove_from_gorka_metadata "$scope" "servers" "$server"
+                cleaned_count=$((cleaned_count + 1))
+            fi
+        done
+        
+        # Check for orphaned chatmodes
+        echo "$metadata" | jq -r '.chatmodes // [] | .[]' 2>/dev/null | while read chatmode; do
+            if [ -n "$chatmode" ] && ! echo "$available_chatmodes" | grep -q "^$chatmode$"; then
+                print_info "Removing orphaned chatmode: $chatmode"
+                if [ -f "$chatmodes_dir/$chatmode" ]; then
+                    rm "$chatmodes_dir/$chatmode"
+                fi
+                remove_from_gorka_metadata "$scope" "chatmodes" "$chatmode"
+                cleaned_count=$((cleaned_count + 1))
+            fi
+        done
+        
+        # Check for orphaned instructions (workspace only)
+        if [ "$scope" = "workspace" ]; then
+            echo "$metadata" | jq -r '.instructions // [] | .[]' 2>/dev/null | while read instruction; do
+                if [ -n "$instruction" ] && ! echo "$available_instructions" | grep -q "^$instruction$"; then
+                    print_info "Removing orphaned instruction: $instruction"
+                    if [ -f "$instructions_dir/$instruction" ]; then
+                        rm "$instructions_dir/$instruction"
+                    fi
+                    remove_from_gorka_metadata "$scope" "instructions" "$instruction"
+                    cleaned_count=$((cleaned_count + 1))
+                fi
+            done
+        fi
+    }
+    
+    case "$target_scope" in
+        "global")
+            case "$(uname)" in
+                "Darwin")  # macOS
+                    VSCODE_USER_DIR="$HOME/Library/Application Support/Code/User"
+                    ;;
+                "Linux")
+                    VSCODE_USER_DIR="$HOME/.config/Code/User"
+                    ;;
+                *)
+                    print_error "Unsupported operating system"
+                    return 1
+                    ;;
+            esac
+            clean_orphans_for_scope "global" "$VSCODE_USER_DIR/mcp.json" "$VSCODE_USER_DIR/chatmodes" ""
+            ;;
+        "workspace")
+            clean_orphans_for_scope "workspace" ".vscode/mcp.json" ".github/chatmodes" ".github/instructions"
+            ;;
+        "both"|"")
+            case "$(uname)" in
+                "Darwin")  # macOS
+                    VSCODE_USER_DIR="$HOME/Library/Application Support/Code/User"
+                    ;;
+                "Linux")
+                    VSCODE_USER_DIR="$HOME/.config/Code/User"
+                    ;;
+                *)
+                    print_error "Unsupported operating system"
+                    return 1
+                    ;;
+            esac
+            clean_orphans_for_scope "global" "$VSCODE_USER_DIR/mcp.json" "$VSCODE_USER_DIR/chatmodes" ""
+            clean_orphans_for_scope "workspace" ".vscode/mcp.json" ".github/chatmodes" ".github/instructions"
+            ;;
+        *)
+            print_error "Invalid scope: $target_scope"
+            print_info "Valid scopes: global, workspace, both"
+            return 1
+            ;;
+    esac
+    
+    if [ $cleaned_count -eq 0 ]; then
+        print_success "No orphaned components found"
+    else
+        print_success "Cleaned $cleaned_count orphaned component(s)"
+    fi
+}
+
 # Main script logic
 case "$1" in
     "install")
@@ -338,7 +949,96 @@ case "$1" in
                 echo "Commands:"
                 echo "  gorka install          - Install workspace MCP configuration + copy chatmodes/instructions to .github directory"
                 echo "  gorka install --global - Install global MCP configuration and chatmodes to VS Code user folder + workspace MCP if .vscode exists"
+                echo "  gorka update           - Manage installed components"
                 echo "  gorka clean            - Clean cached repository files"
+                exit 1
+                ;;
+        esac
+        ;;
+    "update")
+        case "$2" in
+            "list")
+                case "$3" in
+                    "global")
+                        get_current_components "global"
+                        ;;
+                    "workspace")
+                        get_current_components "workspace"
+                        ;;
+                    "available")
+                        get_available_components
+                        ;;
+                    ""|"both")
+                        get_current_components "global"
+                        get_current_components "workspace"
+                        ;;
+                    *)
+                        echo "Usage: gorka update list [global|workspace|available|both]"
+                        exit 1
+                        ;;
+                esac
+                ;;
+            "sync")
+                case "$3" in
+                    "global")
+                        sync_components "global"
+                        ;;
+                    "workspace")
+                        sync_components "workspace"
+                        ;;
+                    ""|"both")
+                        sync_components "both"
+                        ;;
+                    *)
+                        echo "Usage: gorka update sync [global|workspace|both]"
+                        exit 1
+                        ;;
+                esac
+                ;;
+            "remove")
+                remove_component "$3" "$4" "$5"
+                ;;
+            "clean-orphans")
+                case "$3" in
+                    "global")
+                        clean_orphans "global"
+                        ;;
+                    "workspace")
+                        clean_orphans "workspace"
+                        ;;
+                    ""|"both")
+                        clean_orphans "both"
+                        ;;
+                    *)
+                        echo "Usage: gorka update clean-orphans [global|workspace|both]"
+                        exit 1
+                        ;;
+                esac
+                ;;
+            "")
+                echo "Usage: gorka update <command> [options]"
+                echo ""
+                echo "Update Commands:"
+                echo "  gorka update list [global|workspace|available|both]     - Show status of installed components"
+                echo "  gorka update sync [global|workspace|both]               - Sync with latest repository"
+                echo "  gorka update remove <type> <name> [global|workspace]    - Remove gorka-managed component"
+                echo "  gorka update clean-orphans [global|workspace|both]      - Remove orphaned components"
+                echo ""
+                echo "Component Types:"
+                echo "  server       - MCP server"
+                echo "  input        - MCP input"
+                echo "  chatmode     - Chatmode file"
+                echo "  instruction  - Instruction file (workspace only)"
+                echo ""
+                echo "Examples:"
+                echo "  gorka update list"
+                echo "  gorka update sync workspace"
+                echo "  gorka update remove server memory workspace"
+                echo "  gorka update clean-orphans"
+                ;;
+            *)
+                echo "Unknown update command: $2"
+                echo "Run 'gorka update' for usage information."
                 exit 1
                 ;;
         esac
@@ -352,6 +1052,7 @@ case "$1" in
         echo "Commands:"
         echo "  gorka install          - Install workspace MCP configuration + copy chatmodes/instructions to .github directory"
         echo "  gorka install --global - Install global MCP configuration and chatmodes to VS Code user folder + workspace MCP if .vscode exists"
+        echo "  gorka update           - Manage installed components (run 'gorka update' for details)"
         echo "  gorka clean            - Clean cached repository files"
         exit 1
         ;;
