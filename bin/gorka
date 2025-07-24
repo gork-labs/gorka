@@ -9,36 +9,65 @@ set -e
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 AGENTS_DIR="$(dirname "$SCRIPT_DIR")"
 
+# Colors for output
+RED='\033[0;31m'
+GREEN='\033[0;32m'
+YELLOW='\033[1;33m'
+BLUE='\033[0;34m'
+CYAN='\033[0;36m'
+NC='\033[0m' # No Color
+
+# Function to print colored output
+print_info() {
+    echo -e "${BLUE}[INFO]${NC} $1"
+}
+
+print_success() {
+    echo -e "${GREEN}[SUCCESS]${NC} $1"
+}
+
+print_warning() {
+    echo -e "${YELLOW}[WARNING]${NC} $1"
+}
+
+print_error() {
+    echo -e "${RED}[ERROR]${NC} $1"
+}
+
+print_step() {
+    echo -e "${CYAN}[STEP]${NC} $1"
+}
+
 # Function to merge JSON files with gorka metadata tracking
 merge_mcp_json() {
     local source_file="$1"
     local target_file="$2"
-    
+
     if [ -f "$target_file" ]; then
         # Get gorka-managed servers and inputs from target
         gorka_managed_servers=$(jq -r '."$gorka".servers // [] | .[]' "$target_file" 2>/dev/null || echo "")
         gorka_managed_inputs=$(jq -r '."$gorka".inputs // [] | .[]' "$target_file" 2>/dev/null || echo "")
-        
+
         # Get new servers and inputs from source
         new_servers=$(jq -r '.servers // {} | keys[]' "$source_file" 2>/dev/null || echo "")
         new_inputs=$(jq -r '.inputs // [] | .[]' "$source_file" 2>/dev/null || echo "")
-        
+
         # Check for conflicts with non-gorka managed items
         for server in $new_servers; do
             # Check if server exists but is not gorka-managed
             if jq -e --arg server "$server" '.servers | has($server)' "$target_file" >/dev/null 2>&1; then
                 if ! echo "$gorka_managed_servers" | grep -q "^$server$"; then
-                    echo "Error: Server '$server' already exists in $target_file and is not managed by gorka"
-                    echo "Please resolve conflicts manually or remove the server before proceeding."
+                    print_error "Server '$server' already exists in $target_file and is not managed by gorka"
+                    print_error "Please resolve conflicts manually or remove the server before proceeding."
                     exit 1
                 fi
             fi
         done
-        
+
         # Build the updated gorka metadata
         updated_gorka_servers=$(echo -e "$gorka_managed_servers\n$new_servers" | grep -v '^$' | sort -u)
         updated_gorka_inputs=$(echo -e "$gorka_managed_inputs\n$new_inputs" | grep -v '^$' | sort -u)
-        
+
         # Create temporary file with merged content
         jq --slurpfile source <(cat "$source_file") \
            --argjson gorka_servers "$(echo "$updated_gorka_servers" | jq -R -s 'split("\n") | map(select(length > 0))')" \
@@ -54,27 +83,27 @@ merge_mcp_json() {
              "inputs": $gorka_inputs
            }
            ' "$target_file" > "$target_file.tmp"
-        
+
         mv "$target_file.tmp" "$target_file"
-        echo "Successfully merged MCP configuration with existing file."
+        print_success "Successfully merged MCP configuration with existing file."
     else
         # Create new file with gorka metadata
         new_servers=$(jq -r '.servers // {} | keys[]' "$source_file" 2>/dev/null || echo "")
         new_inputs=$(jq -r '.inputs // [] | .[]' "$source_file" 2>/dev/null || echo "")
-        
+
         jq --argjson gorka_servers "$(echo "$new_servers" | jq -R -s 'split("\n") | map(select(length > 0))')" \
            --argjson gorka_inputs "$(echo "$new_inputs" | jq -R -s 'split("\n") | map(select(length > 0))')" \
            '. + {"$gorka": {"servers": $gorka_servers, "inputs": $gorka_inputs}}' \
            "$source_file" > "$target_file"
-        
-        echo "Created new MCP configuration file with gorka metadata."
+
+        print_success "Created new MCP configuration file with gorka metadata."
     fi
 }
 
 # Function to install global configuration
 install_global() {
-    echo "Installing global configuration..."
-    
+    print_step "Installing global configuration..."
+
     # Determine VS Code user folder based on OS
     case "$(uname)" in
         "Darwin")  # macOS
@@ -84,127 +113,161 @@ install_global() {
             VSCODE_USER_DIR="$HOME/.config/Code/User"
             ;;
         *)
-            echo "Error: Unsupported operating system"
+            print_error "Unsupported operating system"
             exit 1
             ;;
     esac
-    
+
     if [ ! -d "$VSCODE_USER_DIR" ]; then
-        echo "Error: VS Code user directory not found at $VSCODE_USER_DIR"
-        echo "Please ensure VS Code is installed and has been run at least once."
+        print_error "VS Code user directory not found at $VSCODE_USER_DIR"
+        print_error "Please ensure VS Code is installed and has been run at least once."
         exit 1
     fi
-    
-    # Copy and merge mcp.global.json
+
+    # Copy and merge mcp.global.json to VS Code user directory
     if [ ! -f "$AGENTS_DIR/mcp.global.json" ]; then
-        echo "Error: mcp.global.json not found in $AGENTS_DIR"
+        print_error "mcp.global.json not found in $AGENTS_DIR"
         exit 1
     fi
-    
-    echo "Merging MCP configuration..."
+
+    print_info "Merging global MCP configuration..."
     merge_mcp_json "$AGENTS_DIR/mcp.global.json" "$VSCODE_USER_DIR/mcp.json"
-    
-    # Copy prompts directory
-    echo "Copying prompts..."
+
+    # Copy prompts directory to VS Code user directory
+    print_info "Copying prompts to VS Code user directory..."
     if [ ! -d "$AGENTS_DIR/prompts" ]; then
-        echo "Error: prompts directory not found in $AGENTS_DIR"
+        print_error "prompts directory not found in $AGENTS_DIR"
         exit 1
     fi
-    
+
     # Create prompts directory if it doesn't exist
     mkdir -p "$VSCODE_USER_DIR/prompts"
-    
+
     # Copy all prompt files
     cp -r "$AGENTS_DIR/prompts/"* "$VSCODE_USER_DIR/prompts/"
-    
-    echo "Global installation completed successfully!"
-    echo "Configuration installed to: $VSCODE_USER_DIR"
+
+    # Also install .vscode/mcp.json in current directory if .vscode exists
+    local current_dir="$(pwd)"
+    local vscode_dir="$current_dir/.vscode"
+
+    if [ -d "$vscode_dir" ]; then
+        print_info "Found .vscode directory, also installing workspace MCP configuration..."
+        if [ -f "$AGENTS_DIR/mcp.workspace.json" ]; then
+            # Check if workspace file is empty and handle accordingly
+            if [ ! -s "$AGENTS_DIR/mcp.workspace.json" ]; then
+                print_warning "mcp.workspace.json is empty. Creating minimal configuration."
+                echo '{"servers": {}, "inputs": []}' > "$AGENTS_DIR/mcp.workspace.json"
+            fi
+
+            print_info "Merging workspace MCP configuration..."
+            merge_mcp_json "$AGENTS_DIR/mcp.workspace.json" "$vscode_dir/mcp.json"
+            print_success "Workspace MCP configuration installed to: $vscode_dir/mcp.json"
+
+            # Create memory.json file for the memory server
+            print_info "Creating memory.json file..."
+            touch "$vscode_dir/memory.json"
+            print_success "Memory file created at: $vscode_dir/memory.json"
+        fi
+    fi
+
+    print_success "Global installation completed successfully!"
+    print_info "Configuration installed to: $VSCODE_USER_DIR"
 }
 
 # Function to install workspace configuration
 install_workspace() {
-    echo "Installing workspace configuration..."
-    
+    print_step "Installing workspace configuration..."
+
     local current_dir="$(pwd)"
     local vscode_dir="$current_dir/.vscode"
-    
+    local github_dir="$current_dir/.github"
+
     # Create .vscode directory if it doesn't exist
     if [ ! -d "$vscode_dir" ]; then
-        echo "Creating .vscode directory..."
+        print_info "Creating .vscode directory..."
         mkdir -p "$vscode_dir"
     fi
-    
+
+    # Create .github directory if it doesn't exist
+    if [ ! -d "$github_dir" ]; then
+        print_info "Creating .github directory..."
+        mkdir -p "$github_dir"
+    fi
+
+    # Install MCP configuration to .vscode
     if [ ! -f "$AGENTS_DIR/mcp.workspace.json" ]; then
-        echo "Error: mcp.workspace.json not found in $AGENTS_DIR"
+        print_error "mcp.workspace.json not found in $AGENTS_DIR"
         exit 1
     fi
-    
+
     # Check if workspace file is empty and handle accordingly
     if [ ! -s "$AGENTS_DIR/mcp.workspace.json" ]; then
-        echo "Warning: mcp.workspace.json is empty. Creating minimal configuration."
+        print_warning "mcp.workspace.json is empty. Creating minimal configuration."
         echo '{"servers": {}, "inputs": []}' > "$AGENTS_DIR/mcp.workspace.json"
     fi
-    
-    echo "Merging workspace MCP configuration..."
-    merge_mcp_json "$AGENTS_DIR/mcp.workspace.json" "$vscode_dir/mcp.json"
-    
-    echo "Workspace installation completed successfully!"
-    echo "Configuration installed to: $vscode_dir/mcp.json"
-}
 
-# Function to install both global and workspace (if .vscode exists)
-install_both() {
-    echo "Installing global and workspace configurations..."
-    echo ""
-    
-    # Always install global
-    install_global
-    echo ""
-    
-    # Check if .vscode exists, if so install workspace
-    local current_dir="$(pwd)"
-    local vscode_dir="$current_dir/.vscode"
-    
-    if [ -d "$vscode_dir" ]; then
-        echo "Found .vscode directory, installing workspace configuration..."
-        install_workspace
+    print_info "Merging workspace MCP configuration..."
+    merge_mcp_json "$AGENTS_DIR/mcp.workspace.json" "$vscode_dir/mcp.json"
+
+    # Create memory.json file for the memory server
+    print_info "Creating memory.json file..."
+    touch "$vscode_dir/memory.json"
+    print_success "Memory file created at: $vscode_dir/memory.json"
+
+    # Copy prompts and instructions to .github directory
+    print_info "Copying prompts and instructions to .github directory..."
+
+    if [ -d "$AGENTS_DIR/prompts" ]; then
+        print_info "Copying prompts..."
+        mkdir -p "$github_dir/prompts"
+        cp -r "$AGENTS_DIR/prompts/"* "$github_dir/prompts/"
+        print_success "Prompts copied to: $github_dir/prompts"
     else
-        echo "No .vscode directory found, skipping workspace installation."
-        echo "Run 'gorka install workspace' from a workspace root to install workspace configuration."
+        print_warning "prompts directory not found in $AGENTS_DIR"
     fi
+
+    # Copy instruction files from instructions directory
+    if [ -d "$AGENTS_DIR/instructions" ]; then
+        print_info "Copying instruction files..."
+        mkdir -p "$github_dir/instructions"
+        cp -r "$AGENTS_DIR/instructions/"* "$github_dir/instructions/"
+        print_success "Instructions copied to: $github_dir/instructions"
+    else
+        print_warning "instructions directory not found in $AGENTS_DIR"
+    fi
+
+    print_success "Workspace installation completed successfully!"
+    print_info "MCP configuration installed to: $vscode_dir/mcp.json"
+    print_info "Prompts and instructions installed to: $github_dir/"
 }
 
 # Main script logic
 case "$1" in
     "install")
         case "$2" in
-            "global")
+            "--global")
                 install_global
                 ;;
-            "workspace")
+            "")
+                # Default behavior: workspace installation
                 install_workspace
                 ;;
-            "")
-                install_both
-                ;;
             *)
-                echo "Usage: gorka install [global|workspace]"
+                echo "Usage: gorka install [--global]"
                 echo ""
                 echo "Commands:"
-                echo "  gorka install           - Install global configuration and workspace (if .vscode exists)"
-                echo "  gorka install global    - Install global MCP configuration and prompts to VS Code user folder"
-                echo "  gorka install workspace - Install workspace MCP configuration to current directory (creates .vscode if needed)"
+                echo "  gorka install          - Install workspace MCP configuration + copy prompts/instructions to .github directory"
+                echo "  gorka install --global - Install global MCP configuration and prompts to VS Code user folder + workspace MCP if .vscode exists"
                 exit 1
                 ;;
         esac
         ;;
     *)
-        echo "Usage: gorka install [global|workspace]"
+        echo "Usage: gorka install [--global]"
         echo ""
         echo "Commands:"
-        echo "  gorka install           - Install global configuration and workspace (if .vscode exists)"
-        echo "  gorka install global    - Install global MCP configuration and prompts to VS Code user folder"
-        echo "  gorka install workspace - Install workspace MCP configuration to current directory (creates .vscode if needed)"
+        echo "  gorka install          - Install workspace MCP configuration + copy prompts/instructions to .github directory"
+        echo "  gorka install --global - Install global MCP configuration and prompts to VS Code user folder + workspace MCP if .vscode exists"
         exit 1
         ;;
 esac

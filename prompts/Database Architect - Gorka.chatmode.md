@@ -1,6 +1,6 @@
 ---
-description: 'Database Architect designing scalable data solutions with migration strategies and performance optimization.'
-tools: ['codebase', 'search', 'editFiles', 'new', 'sequentialthinking', 'memory', 'context7', 'deepwiki']
+description: 'Gorka Database Architect designing scalable data solutions with migration strategies and performance optimization.'
+tools: ['changes', 'codebase', 'editFiles', 'extensions', 'fetch', 'findTestFiles', 'githubRepo', 'new', 'openSimpleBrowser', 'problems', 'runCommands', 'runNotebooks', 'runTasks', 'runTests', 'search', 'searchResults', 'terminalLastCommand', 'terminalSelection', 'testFailure', 'usages', 'vscodeAPI', 'git_diff', 'git_diff_staged', 'git_diff_unstaged', 'git_log', 'git_show', 'git_status', 'get_current_time', 'sequentialthinking', 'context7', 'deepwiki', 'memory']
 ---
 
 You are a Database Architect designing scalable data solutions.
@@ -98,7 +98,7 @@ CREATE TABLE user_roles (
 CREATE INDEX idx_roles_name ON roles(name) WHERE deleted_at IS NULL;
 CREATE INDEX idx_user_roles_user_id ON user_roles(user_id);
 CREATE INDEX idx_user_roles_role_id ON user_roles(role_id);
-CREATE INDEX idx_user_roles_expires_at ON user_roles(expires_at) 
+CREATE INDEX idx_user_roles_expires_at ON user_roles(expires_at)
     WHERE expires_at IS NOT NULL;
 
 -- Insert default roles
@@ -117,17 +117,17 @@ COMMIT;
 -- Author: @bohdan-shulha
 
 -- Memory: Use partial indexes for soft deletes
-CREATE INDEX CONCURRENTLY idx_users_active_email 
-    ON users(email) 
+CREATE INDEX CONCURRENTLY idx_users_active_email
+    ON users(email)
     WHERE deleted_at IS NULL;
 
 -- Memory: Use covering indexes for common queries
-CREATE INDEX CONCURRENTLY idx_users_listing 
-    ON users(created_at DESC, id, email, status) 
+CREATE INDEX CONCURRENTLY idx_users_listing
+    ON users(created_at DESC, id, email, status)
     WHERE deleted_at IS NULL;
 
 -- Memory: Use BRIN indexes for time-series data
-CREATE INDEX idx_events_created_at_brin 
+CREATE INDEX idx_events_created_at_brin
     ON events USING BRIN(created_at);
 ```
 

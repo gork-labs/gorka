@@ -7,6 +7,18 @@ author: "@bohdan-shulha"
 
 # Production Coding Agent System
 
+## Quick Installation
+
+**One-liner installation:**
+```bash
+curl -fsSL https://raw.githubusercontent.com/bohdan-gork/agents/main/setup.sh | bash
+```
+
+Then run:
+```bash
+gorka install
+```
+
 ## Overview
 
 This is a comprehensive agent system designed for software development teams, incorporating advanced Sonnet-4 capabilities including extended thinking modes (ultrathink), multi-perspective analysis, and iterative refinement patterns.
@@ -55,7 +67,7 @@ graph TB
 
 ## Available Agents
 
-### 1. Software Architect (`software-architect.chatmode.md`)
+### 1. Software Architect (`Software Architect - Gorka.chatmode.md`)
 - **Purpose**: Design comprehensive system architectures
 - **Key Features**:
   - Multi-perspective analysis (ultrathink)
@@ -64,7 +76,7 @@ graph TB
   - Pattern recognition and reuse
 - **Outputs**: Design documents in `docs/architecture/`
 
-### 2. Software Engineer (`software-engineer.chatmode.md`)
+### 2. Software Engineer (`Software Engineer - Gorka.chatmode.md`)
 - **Purpose**: Implement high-quality, maintainable code
 - **Key Features**:
   - Pattern-based implementation
@@ -73,7 +85,7 @@ graph TB
   - Test-driven development
 - **Outputs**: Production code with >80% test coverage
 
-### 3. Design Reviewer (`design-reviewer.chatmode.md`)
+### 3. Design Reviewer (`Design Reviewer - Gorka.chatmode.md`)
 - **Purpose**: Conduct thorough technical reviews
 - **Key Features**:
   - Document modification authority
@@ -82,7 +94,7 @@ graph TB
   - Human collaboration support
 - **Outputs**: Updated documents with review sections
 
-### 4. Test Engineer (`test-engineer.chatmode.md`)
+### 4. Test Engineer (`Test Engineer - Gorka.chatmode.md`)
 - **Purpose**: Ensure quality through comprehensive testing
 - **Key Features**:
   - Multi-level test strategies
@@ -91,7 +103,7 @@ graph TB
   - Test pattern documentation
 - **Outputs**: Test suites, strategies, and quality reports
 
-### 5. DevOps Engineer (`devops-engineer.chatmode.md`)
+### 5. DevOps Engineer (`DevOps Engineer - Gorka.chatmode.md`)
 - **Purpose**: Manage infrastructure and operations
 - **Key Features**:
   - Infrastructure as Code
@@ -100,7 +112,7 @@ graph TB
   - Monitoring and alerting
 - **Outputs**: Infrastructure code, runbooks, monitoring
 
-### 6. Technical Writer (`technical-writer.chatmode.md`)
+### 6. Technical Writer (`Technical Writer - Gorka.chatmode.md`)
 - **Purpose**: Create clear, comprehensive documentation
 - **Key Features**:
   - Multi-audience adaptation
@@ -109,7 +121,7 @@ graph TB
   - Documentation testing
 - **Outputs**: User guides, API docs, tutorials
 
-### 7. Memory Curator (`memory-review.chatmode.md`)
+### 7. Memory Curator (`Memory Curator - Gorka.chatmode.md`)
 - **Purpose**: Maintain knowledge graph quality
 - **Key Features**:
   - Systematic entity review
@@ -120,13 +132,13 @@ graph TB
 
 ## Shared Guidelines
 
-### Time Management (`TIME_MANAGEMENT.instructions.md`)
+### Time Management (`TIME_MANAGEMENT_GORKA.instructions.md`)
 - Always use datetime MCP tool
 - Never hardcode timestamps
 - Track durations with start/end times
 - Use Europe/Warsaw timezone
 
-### Memory Usage (`MEMORY_USAGE_GUIDELINES.instructions.md`)
+### Memory Usage (`MEMORY_USAGE_GUIDELINES_GORKA.instructions.md`)
 - Consistent naming conventions
 - Proper entity types
 - Query before create pattern
@@ -296,35 +308,83 @@ export ENABLE_ULTRATHINK=true
 - Monthly: System metrics
 - Quarterly: Pattern analysis
 
+## Installation
+
+### Quick Installation (Recommended)
+
+Install gorka CLI tool and the agent system with a single command:
+```bash
+curl -fsSL https://raw.githubusercontent.com/bohdan-gork/agents/main/setup.sh | bash
+```
+
+Then install the configurations:
+```bash
+# Install globally for all projects
+gorka install global
+
+# Or install for current workspace only
+gorka install workspace
+
+# Or install both (global + workspace if .vscode exists)
+gorka install
+```
+
+### Manual Installation
+
+If you prefer manual installation:
+
+1. **Download the gorka CLI**:
+   ```bash
+   curl -fsSL https://raw.githubusercontent.com/bohdan-gork/agents/main/bin/gorka -o ~/.local/bin/gorka
+   chmod +x ~/.local/bin/gorka
+   ```
+
+2. **Clone the repository**:
+   ```bash
+   git clone https://github.com/bohdan-gork/agents.git
+   cd agents
+   ```
+
+3. **Install configurations**:
+   ```bash
+   ./bin/gorka install
+   ```
+
+### What Gets Installed
+
+- **Global installation** (`gorka install global`):
+  - MCP server configurations to VS Code user settings
+  - Prompt templates to VS Code user folder
+  - Available across all your projects
+
+- **Workspace installation** (`gorka install workspace`):
+  - Workspace-specific MCP configurations
+  - Memory server for project context
+  - Created in `.vscode/mcp.json`
+
 ## Getting Started
 
-1. **Install Agent Files**
-   ```bash
-   cp *.chatmode.md ~/.config/claude/agents/
-   ```
+1. **Test the Installation**
+   - Open VS Code in any project
+   - Check that MCP servers are connected
+   - Try using an agent prompt
 
-2. **Configure MCP Servers**
-   ```bash
-   # Configure all required servers
-   mcp-setup datetime memory codebase
-   ```
-
-3. **Set Environment**
+2. **Configure Your Environment**
    ```bash
    export TZ="Europe/Warsaw"
-   export CURRENT_USER="bohdan-shulha"
+   export CURRENT_USER="your-username"
    ```
 
-4. **Test Basic Flow**
-   - Ask architect to design a simple feature
-   - Have engineer implement it
-   - Run tests
-   - Review with reviewer
+3. **Test Basic Workflow**
+   - Ask software architect to design a simple feature
+   - Have software engineer implement it
+   - Run tests with test engineer
+   - Review with design reviewer
 
-5. **Build Knowledge**
+4. **Build Knowledge**
    - Start documenting patterns
    - Create relationships
-   - Run regular reviews
+   - Run regular memory reviews
 
 ## Future Enhancements
 

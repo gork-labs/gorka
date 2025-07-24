@@ -1,4 +1,9 @@
 ---
+applyTo: '**'
+description: 'Shared Time Management Instructions.'
+---
+
+---
 title: "Shared Time Management Instructions"
 date: "2025-01-23"
 last_updated: "2025-01-23 16:02:04 UTC"
@@ -37,12 +42,12 @@ author: "@bohdan-shulha"
    ```javascript
    // Track start
    const startTime = await datetime.get_current_time({ timezone: "Europe/Warsaw" });
-   
+
    // ... perform work ...
-   
+
    // Track end
    const endTime = await datetime.get_current_time({ timezone: "Europe/Warsaw" });
-   
+
    // Store both, never hardcode duration
    observations: [
      `Started: ${startTime}`,

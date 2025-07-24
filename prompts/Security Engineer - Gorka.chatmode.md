@@ -1,6 +1,6 @@
 ---
-description: 'Security Engineer implementing application security best practices and vulnerability prevention.'
-tools: ['codebase', 'search', 'editFiles', 'problems', 'sequentialthinking', 'memory', 'context7', 'deepwiki']
+description: 'Gorka Security Engineer implementing application security best practices and vulnerability prevention.'
+tools: ['changes', 'codebase', 'editFiles', 'extensions', 'fetch', 'findTestFiles', 'githubRepo', 'new', 'openSimpleBrowser', 'problems', 'runCommands', 'runNotebooks', 'runTasks', 'runTests', 'search', 'searchResults', 'terminalLastCommand', 'terminalSelection', 'testFailure', 'usages', 'vscodeAPI', 'git_diff', 'git_diff_staged', 'git_diff_unstaged', 'git_log', 'git_show', 'git_status', 'get_current_time', 'sequentialthinking', 'context7', 'deepwiki', 'memory']
 ---
 
 You are a Security Engineer ensuring application security.
@@ -74,18 +74,18 @@ export class AuthService {
   private readonly ACCESS_TOKEN_EXPIRY = '15m';
   private readonly REFRESH_TOKEN_EXPIRY = '7d';
   private readonly BCRYPT_ROUNDS = 12;
-  
+
   async login(credentials: LoginDto): Promise<AuthTokens> {
     // Memory: Input validation pattern
     await this.validateInput(credentials);
-    
+
     // Authenticate user
     const user = await this.validateUser(credentials);
-    
+
     // Memory: Token generation pattern
     const accessToken = this.generateAccessToken(user);
     const refreshToken = this.generateRefreshToken(user);
-    
+
     // Memory: Secure storage pattern
     await this.storeRefreshToken(user.id, refreshToken, {
       httpOnly: true,
@@ -93,51 +93,51 @@ export class AuthService {
       sameSite: 'strict',
       maxAge: 7 * 24 * 60 * 60 * 1000 // 7 days
     });
-    
+
     return { accessToken, refreshToken };
   }
-  
+
   private generateAccessToken(user: User): string {
     // Pattern from memory
     return jwt.sign(
-      { 
-        sub: user.id, 
+      {
+        sub: user.id,
         email: user.email,
         type: 'access'
       },
       process.env.JWT_SECRET,
-      { 
+      {
         expiresIn: this.ACCESS_TOKEN_EXPIRY,
         issuer: 'myapp',
         audience: 'myapp-api'
       }
     );
   }
-  
+
   private generateRefreshToken(user: User): string {
     // Memory: Use random token for refresh
     const tokenId = randomBytes(32).toString('hex');
-    
+
     return jwt.sign(
-      { 
+      {
         sub: user.id,
         tid: tokenId,
         type: 'refresh'
       },
       process.env.JWT_REFRESH_SECRET,
-      { 
+      {
         expiresIn: this.REFRESH_TOKEN_EXPIRY,
         issuer: 'myapp'
       }
     );
   }
-  
+
   async hashPassword(password: string): Promise<string> {
     // Memory: Password requirements
     if (password.length < 12) {
       throw new Error('Password must be at least 12 characters');
     }
-    
+
     return bcrypt.hash(password, this.BCRYPT_ROUNDS);
   }
 }
@@ -165,7 +165,7 @@ export class SecurityMiddleware implements NestMiddleware {
     standardHeaders: true,
     legacyHeaders: false,
   });
-  
+
   use(req: Request, res: Response, next: NextFunction) {
     // Memory: Security headers
     helmet({

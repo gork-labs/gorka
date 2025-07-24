@@ -1,4 +1,9 @@
 ---
+applyTo: '**'
+description: 'Comprehensive Memory Usage Guidelines.'
+---
+
+---
 title: "Comprehensive Memory Usage Guidelines"
 date: "2025-01-23"
 last_updated: "2025-01-23 16:02:04 UTC"
