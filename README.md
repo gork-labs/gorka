@@ -422,6 +422,25 @@ export CURRENT_USER="bohdan-shulha"
 
 ## Installation
 
+### Prerequisites
+
+Before installing Gorka, ensure you have the following requirements:
+
+#### Required Software
+- **Visual Studio Code**: Latest version
+- **Git**: For repository operations
+- **Node.js**: For MCP server functionality
+- **uv**: Python package manager ([installation guide](https://docs.astral.sh/uv/))
+
+#### Essential VS Code Extensions
+- **[GitHub Copilot](https://marketplace.visualstudio.com/items?itemName=GitHub.copilot)**: Core AI assistance
+- **[GitHub Copilot Chat](https://marketplace.visualstudio.com/items?itemName=GitHub.copilot-chat)**: Interactive AI conversations
+
+#### Recommended Configuration
+- **GitHub Copilot Pro Subscription**: For optimal performance and features
+- **Claude 4 Sonnet**: Best AI model compatibility with Gorka's sequential thinking
+- **Operating System**: macOS or Linux (Windows support via WSL)
+
 ### Quick Installation (Recommended)
 
 Install gorka CLI tool and the agent system with a single command:
