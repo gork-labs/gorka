@@ -439,6 +439,12 @@ If you prefer manual installation:
    - Predictive patterns
    - Automated optimization
 
+## Sponsors
+
+We're grateful for the support of our sponsors who make this project possible:
+
+- **[MakeADir](https://makeadir.com)** - No-code platform for building online directories in minutes
+
 ---
 
 *System designed by @bohdan-shulha*
