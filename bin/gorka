@@ -26,23 +26,23 @@ NC='\033[0m' # No Color
 
 # Function to print colored output
 print_info() {
-    echo -e "${BLUE}[INFO]${NC} $1"
+    echo -e "${BLUE}[INFO]${NC} $1" >&2
 }
 
 print_success() {
-    echo -e "${GREEN}[SUCCESS]${NC} $1"
+    echo -e "${GREEN}[SUCCESS]${NC} $1" >&2
 }
 
 print_warning() {
-    echo -e "${YELLOW}[WARNING]${NC} $1"
+    echo -e "${YELLOW}[WARNING]${NC} $1" >&2
 }
 
 print_error() {
-    echo -e "${RED}[ERROR]${NC} $1"
+    echo -e "${RED}[ERROR]${NC} $1" >&2
 }
 
 print_step() {
-    echo -e "${CYAN}[STEP]${NC} $1"
+    echo -e "${CYAN}[STEP]${NC} $1" >&2
 }
 
 # Function to ensure cache directory exists and files are available
@@ -207,9 +207,21 @@ install_global() {
 
     if [ -d "$vscode_dir" ]; then
         print_info "Found .vscode directory, also installing workspace MCP configuration..."
+        
+        # Check if workspace file exists and use it, otherwise create minimal config
+        local workspace_config="$FILES_DIR/mcp.workspace.json"
+        if [ ! -f "$workspace_config" ] || [ ! -s "$workspace_config" ]; then
+            print_warning "mcp.workspace.json not found or empty. Creating minimal configuration."
+            workspace_config="/tmp/gorka_workspace_config.json"
+            echo '{"servers": {}, "inputs": []}' > "$workspace_config"
+        fi
 
+        # For global installation with workspace, we want both global and workspace configurations
+        print_info "Merging global MCP configuration..."
+        merge_mcp_json "$FILES_DIR/mcp.global.json" "$vscode_dir/mcp.json"
+        
         print_info "Merging workspace MCP configuration..."
-        merge_mcp_json "$FILES_DIR/mcp.workspace.json" "$vscode_dir/mcp.json"
+        merge_mcp_json "$workspace_config" "$vscode_dir/mcp.json"
         print_success "Workspace MCP configuration installed to: $vscode_dir/mcp.json"
 
         # Create memory.json file for the memory server
