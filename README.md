@@ -7,6 +7,17 @@ author: "@bohdan-shulha"
 
 # Production Coding Agent System
 
+## What is "Gorka"?
+
+The name "Gorka" has an interesting origin story:
+
+- It all started with **Go OpenAPI** framework implementation (in another repository - [gork-labs/gork](https://github.com/gork-labs/gork))
+- "Go OpenAPI" shortens to **"Gork"**
+- **"Gorka"** is **"Gork"** + **"Agents"** = **Gork**-**A**gents
+- Interestingly, "Gorka" also means **"hill"** in several languages, which fits the idea of building something substantial and elevated
+
+Gorka is a project within **Gork Labs** - a comprehensive agent-powered development system that shares the naming heritage but serves a different purpose than the original Go OpenAPI framework.
+
 ## Quick Installation
 
 **One-liner installation:**
@@ -67,7 +78,7 @@ graph TB
 
 ## Available Agents
 
-### 1. Software Architect (`chatmodes/Software Architect - Gorka.chatmode.md`)
+### 1. [Software Architect](chatmodes/Software%20Architect%20-%20Gorka.chatmode.md)
 - **Purpose**: Design comprehensive system architectures
 - **Key Features**:
   - Multi-perspective analysis (ultrathink)
@@ -76,7 +87,7 @@ graph TB
   - Pattern recognition and reuse
 - **Outputs**: Design documents in `docs/architecture/`
 
-### 2. Software Engineer (`chatmodes/Software Engineer - Gorka.chatmode.md`)
+### 2. [Software Engineer](chatmodes/Software%20Engineer%20-%20Gorka.chatmode.md)
 - **Purpose**: Implement high-quality, maintainable code
 - **Key Features**:
   - Pattern-based implementation
@@ -85,7 +96,7 @@ graph TB
   - Test-driven development
 - **Outputs**: Production code with >80% test coverage
 
-### 3. Design Reviewer (`chatmodes/Design Reviewer - Gorka.chatmode.md`)
+### 3. [Design Reviewer](chatmodes/Design%20Reviewer%20-%20Gorka.chatmode.md)
 - **Purpose**: Conduct thorough technical reviews
 - **Key Features**:
   - Document modification authority
@@ -94,7 +105,7 @@ graph TB
   - Human collaboration support
 - **Outputs**: Updated documents with review sections
 
-### 4. Test Engineer (`chatmodes/Test Engineer - Gorka.chatmode.md`)
+### 4. [Test Engineer](chatmodes/Test%20Engineer%20-%20Gorka.chatmode.md)
 - **Purpose**: Ensure quality through comprehensive testing
 - **Key Features**:
   - Multi-level test strategies
@@ -103,7 +114,7 @@ graph TB
   - Test pattern documentation
 - **Outputs**: Test suites, strategies, and quality reports
 
-### 5. DevOps Engineer (`chatmodes/DevOps Engineer - Gorka.chatmode.md`)
+### 5. [DevOps Engineer](chatmodes/DevOps%20Engineer%20-%20Gorka.chatmode.md)
 - **Purpose**: Manage infrastructure and operations
 - **Key Features**:
   - Infrastructure as Code
@@ -112,7 +123,7 @@ graph TB
   - Monitoring and alerting
 - **Outputs**: Infrastructure code, runbooks, monitoring
 
-### 6. Technical Writer (`chatmodes/Technical Writer - Gorka.chatmode.md`)
+### 6. [Technical Writer](chatmodes/Technical%20Writer%20-%20Gorka.chatmode.md)
 - **Purpose**: Create clear, comprehensive documentation
 - **Key Features**:
   - Multi-audience adaptation
@@ -121,7 +132,7 @@ graph TB
   - Documentation testing
 - **Outputs**: User guides, API docs, tutorials
 
-### 7. Memory Curator (`chatmodes/Memory Curator - Gorka.chatmode.md`)
+### 7. [Memory Curator](chatmodes/Memory%20Curator%20-%20Gorka.chatmode.md)
 - **Purpose**: Maintain knowledge graph quality
 - **Key Features**:
   - Systematic entity review
@@ -130,7 +141,7 @@ graph TB
   - Domain insights
 - **Outputs**: Review reports, cleaned knowledge graph
 
-### 8. Database Architect (`chatmodes/Database Architect - Gorka.chatmode.md`)
+### 8. [Database Architect](chatmodes/Database%20Architect%20-%20Gorka.chatmode.md)
 - **Purpose**: Design scalable data solutions
 - **Key Features**:
   - Schema design and optimization
@@ -139,7 +150,7 @@ graph TB
   - Data integrity assurance
 - **Outputs**: Database schemas, migration scripts, performance optimizations
 
-### 9. Security Engineer (`chatmodes/Security Engineer - Gorka.chatmode.md`)
+### 9. [Security Engineer](chatmodes/Security%20Engineer%20-%20Gorka.chatmode.md)
 - **Purpose**: Implement application security best practices
 - **Key Features**:
   - Vulnerability assessment
@@ -148,7 +159,7 @@ graph TB
   - OWASP compliance
 - **Outputs**: Security configurations, vulnerability fixes, security documentation
 
-### 10. Prompt Writer (`chatmodes/Prompt Writer - Gorka.chatmode.md`)
+### 10. [Prompt Writer](chatmodes/Prompt%20Writer%20-%20Gorka.chatmode.md)
 - **Purpose**: Craft optimal prompts using advanced Sonnet-4 techniques
 - **Key Features**:
   - Extended thinking modes (ultrathink)
