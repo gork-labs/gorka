@@ -48,7 +48,7 @@ print_step() {
 # Function to ensure cache directory exists and files are available
 ensure_files_available() {
     # If files exist locally (development setup), use them
-    if [ -f "$AGENTS_DIR/mcp.global.json" ] && [ -d "$AGENTS_DIR/prompts" ]; then
+    if [ -f "$AGENTS_DIR/mcp.global.json" ] && [ -d "$AGENTS_DIR/chatmodes" ]; then
         print_info "Using local development files from $AGENTS_DIR"
         echo "$AGENTS_DIR"
         return 0
@@ -62,7 +62,7 @@ ensure_files_available() {
         mkdir -p "$CACHE_DIR"
 
         if command -v git >/dev/null 2>&1; then
-            if git clone "https://github.com/${GITHUB_REPO}.git" "$repo_dir"; then
+            if git clone "https://github.com/${GITHUB_REPO}.git" "$repo_dir" >/dev/null 2>&1; then
                 print_success "Repository cloned successfully"
             else
                 print_error "Failed to clone repository from https://github.com/${GITHUB_REPO}.git"
@@ -76,7 +76,7 @@ ensure_files_available() {
         print_info "Updating repository cache..."
 
         if command -v git >/dev/null 2>&1; then
-            if (cd "$repo_dir" && git pull origin "$GITHUB_BRANCH"); then
+            if (cd "$repo_dir" && git pull origin "$GITHUB_BRANCH" >/dev/null 2>&1); then
                 print_success "Repository updated successfully"
             else
                 print_warning "Failed to update repository. Using cached version."
@@ -87,7 +87,7 @@ ensure_files_available() {
     fi
 
     # Verify required files exist in the cloned repository
-    if [ ! -f "$repo_dir/mcp.global.json" ] || [ ! -d "$repo_dir/prompts" ]; then
+    if [ ! -f "$repo_dir/mcp.global.json" ] || [ ! -d "$repo_dir/chatmodes" ]; then
         print_error "Required files not found in cloned repository"
         return 1
     fi
@@ -193,13 +193,13 @@ install_global() {
     print_info "Merging global MCP configuration..."
     merge_mcp_json "$FILES_DIR/mcp.global.json" "$VSCODE_USER_DIR/mcp.json"
 
-    # Copy prompts directory to VS Code user directory
-    print_info "Copying prompts to VS Code user directory..."
-    # Create prompts directory if it doesn't exist
-    mkdir -p "$VSCODE_USER_DIR/prompts"
+    # Copy chatmodes directory to VS Code user directory
+    print_info "Copying chatmodes to VS Code user directory..."
+    # Create chatmodes directory if it doesn't exist
+    mkdir -p "$VSCODE_USER_DIR/chatmodes"
 
-    # Copy all prompt files
-    cp -r "$FILES_DIR/prompts/"* "$VSCODE_USER_DIR/prompts/"
+    # Copy all chatmode files
+    cp -r "$FILES_DIR/chatmodes/"* "$VSCODE_USER_DIR/chatmodes/"
 
     # Also install .vscode/mcp.json in current directory if .vscode exists
     local current_dir="$(pwd)"
@@ -207,7 +207,7 @@ install_global() {
 
     if [ -d "$vscode_dir" ]; then
         print_info "Found .vscode directory, also installing workspace MCP configuration..."
-        
+
         # Check if workspace file exists and use it, otherwise create minimal config
         local workspace_config="$FILES_DIR/mcp.workspace.json"
         if [ ! -f "$workspace_config" ] || [ ! -s "$workspace_config" ]; then
@@ -219,7 +219,7 @@ install_global() {
         # For global installation with workspace, we want both global and workspace configurations
         print_info "Merging global MCP configuration..."
         merge_mcp_json "$FILES_DIR/mcp.global.json" "$vscode_dir/mcp.json"
-        
+
         print_info "Merging workspace MCP configuration..."
         merge_mcp_json "$workspace_config" "$vscode_dir/mcp.json"
         print_success "Workspace MCP configuration installed to: $vscode_dir/mcp.json"
@@ -272,7 +272,7 @@ install_workspace() {
     # For workspace installation, we want both global and workspace configurations
     print_info "Merging global MCP configuration..."
     merge_mcp_json "$FILES_DIR/mcp.global.json" "$vscode_dir/mcp.json"
-    
+
     print_info "Merging workspace MCP configuration..."
     merge_mcp_json "$workspace_config" "$vscode_dir/mcp.json"
 
@@ -281,16 +281,16 @@ install_workspace() {
     touch "$vscode_dir/memory.json"
     print_success "Memory file created at: $vscode_dir/memory.json"
 
-    # Copy prompts and instructions to .github directory
-    print_info "Copying prompts and instructions to .github directory..."
+    # Copy chatmodes and instructions to .github directory
+    print_info "Copying chatmodes and instructions to .github directory..."
 
-    if [ -d "$FILES_DIR/prompts" ]; then
-        print_info "Copying prompts..."
-        mkdir -p "$github_dir/prompts"
-        cp -r "$FILES_DIR/prompts/"* "$github_dir/prompts/"
-        print_success "Prompts copied to: $github_dir/prompts"
+    if [ -d "$FILES_DIR/chatmodes" ]; then
+        print_info "Copying chatmodes..."
+        mkdir -p "$github_dir/chatmodes"
+        cp -r "$FILES_DIR/chatmodes/"* "$github_dir/chatmodes/"
+        print_success "Chatmodes copied to: $github_dir/chatmodes"
     else
-        print_warning "prompts directory not found in $FILES_DIR"
+        print_warning "chatmodes directory not found in $FILES_DIR"
     fi
 
     # Copy instruction files from instructions directory
@@ -305,7 +305,7 @@ install_workspace() {
 
     print_success "Workspace installation completed successfully!"
     print_info "MCP configuration installed to: $vscode_dir/mcp.json"
-    print_info "Prompts and instructions installed to: $github_dir/"
+    print_info "Chatmodes and instructions installed to: $github_dir/"
 }
 
 # Function to clean cache
@@ -336,8 +336,8 @@ case "$1" in
                 echo "Usage: gorka install [--global]"
                 echo ""
                 echo "Commands:"
-                echo "  gorka install          - Install workspace MCP configuration + copy prompts/instructions to .github directory"
-                echo "  gorka install --global - Install global MCP configuration and prompts to VS Code user folder + workspace MCP if .vscode exists"
+                echo "  gorka install          - Install workspace MCP configuration + copy chatmodes/instructions to .github directory"
+                echo "  gorka install --global - Install global MCP configuration and chatmodes to VS Code user folder + workspace MCP if .vscode exists"
                 echo "  gorka clean            - Clean cached repository files"
                 exit 1
                 ;;
@@ -350,8 +350,8 @@ case "$1" in
         echo "Usage: gorka <command> [options]"
         echo ""
         echo "Commands:"
-        echo "  gorka install          - Install workspace MCP configuration + copy prompts/instructions to .github directory"
-        echo "  gorka install --global - Install global MCP configuration and prompts to VS Code user folder + workspace MCP if .vscode exists"
+        echo "  gorka install          - Install workspace MCP configuration + copy chatmodes/instructions to .github directory"
+        echo "  gorka install --global - Install global MCP configuration and chatmodes to VS Code user folder + workspace MCP if .vscode exists"
         echo "  gorka clean            - Clean cached repository files"
         exit 1
         ;;
