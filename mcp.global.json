@@ -1,0 +1,42 @@
+{
+	"servers": {
+		"sequentialthinking": {
+			"type": "stdio",
+			"command": "npx",
+			"args": [
+				"-y",
+				"@modelcontextprotocol/server-sequential-thinking@latest"
+			],
+			"gallery": true
+		},
+		"context7": {
+			"type": "stdio",
+			"command": "npx",
+			"args": [
+				"-y",
+				"@upstash/context7-mcp@latest"
+			],
+			"gallery": true
+		},
+		"deepwiki": {
+			"type": "http",
+			"url": "https://mcp.deepwiki.com/sse",
+			"gallery": true
+		},
+		"git": {
+			"command": "uvx",
+			"args": [
+				"mcp-server-git"
+			],
+			"type": "stdio"
+		},
+		"time": {
+			"command": "uvx",
+			"args": [
+				"mcp-server-time"
+			],
+			"type": "stdio"
+		}
+	},
+	"inputs": []
+}
