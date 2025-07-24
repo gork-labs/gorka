@@ -222,12 +222,12 @@ install_global() {
 
         print_info "Merging workspace MCP configuration..."
         merge_mcp_json "$workspace_config" "$vscode_dir/mcp.json"
-        print_success "Workspace MCP configuration installed to: $vscode_dir/mcp.json"
+        print_success "Workspace MCP configuration installed to: .vscode/mcp.json"
 
         # Create memory.json file for the memory server
         print_info "Creating memory.json file..."
         touch "$vscode_dir/memory.json"
-        print_success "Memory file created at: $vscode_dir/memory.json"
+        print_success "Memory file created at: .vscode/memory.json"
     fi
 
     print_success "Global installation completed successfully!"
@@ -279,7 +279,7 @@ install_workspace() {
     # Create memory.json file for the memory server
     print_info "Creating memory.json file..."
     touch "$vscode_dir/memory.json"
-    print_success "Memory file created at: $vscode_dir/memory.json"
+    print_success "Memory file created at: .vscode/memory.json"
 
     # Copy chatmodes and instructions to .github directory
     print_info "Copying chatmodes and instructions to .github directory..."
@@ -288,7 +288,7 @@ install_workspace() {
         print_info "Copying chatmodes..."
         mkdir -p "$github_dir/chatmodes"
         cp -r "$FILES_DIR/chatmodes/"* "$github_dir/chatmodes/"
-        print_success "Chatmodes copied to: $github_dir/chatmodes"
+        print_success "Chatmodes copied to: .github/chatmodes"
     else
         print_warning "chatmodes directory not found in $FILES_DIR"
     fi
@@ -298,14 +298,14 @@ install_workspace() {
         print_info "Copying instruction files..."
         mkdir -p "$github_dir/instructions"
         cp -r "$FILES_DIR/instructions/"* "$github_dir/instructions/"
-        print_success "Instructions copied to: $github_dir/instructions"
+        print_success "Instructions copied to: .github/instructions"
     else
         print_warning "instructions directory not found in $FILES_DIR"
     fi
 
     print_success "Workspace installation completed successfully!"
-    print_info "MCP configuration installed to: $vscode_dir/mcp.json"
-    print_info "Chatmodes and instructions installed to: $github_dir/"
+    print_info "MCP configuration installed to: .vscode/mcp.json"
+    print_info "Chatmodes and instructions installed to: .github/"
 }
 
 # Function to clean cache
