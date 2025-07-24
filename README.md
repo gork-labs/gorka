@@ -11,24 +11,56 @@ author: "@bohdan-shulha"
 
 The name "Gorka" has an interesting origin story:
 
-- It all started with **Go OpenAPI** framework implementation (in another repository - [gork-labs/gork](https://github.com/gork-labs/gork))
-- "Go OpenAPI" shortens to **"Gork"**
+- It all started with OpenAPI-targeted **Go Framework** implementation (in another repository - [gork-labs/gork](https://github.com/gork-labs/gork))
+- "Go Framework" shortens to **"Gork"**
 - **"Gorka"** is **"Gork"** + **"Agents"** = **Gork**-**A**gents
 - Interestingly, "Gorka" also means **"hill"** in several languages, which fits the idea of building something substantial and elevated
 
-Gorka is a project within **Gork Labs** - a comprehensive agent-powered development system that shares the naming heritage but serves a different purpose than the original Go OpenAPI framework.
+Gorka is a project within **Gork Labs** - a comprehensive agent-powered development system that shares the naming heritage but serves a different purpose than the original Go Framework.
 
-## Quick Installation
+## Table of Contents
 
-**One-liner installation:**
-```bash
-curl -fsSL https://raw.githubusercontent.com/gork-labs/gorka/main/setup.sh | bash
-```
-
-Then run:
-```bash
-gorka install
-```
+- [Overview](#overview)
+  - [🧠 Core Innovation: Sequential Thinking](#-core-innovation-sequential-thinking)
+- [System Architecture](#system-architecture)
+  - [Core Foundations](#core-foundations)
+  - [Agent Specializations](#agent-specializations)
+  - [Integration Features](#integration-features)
+- [Available Agents](#available-agents)
+  - [1. Software Architect](#1-software-architect)
+  - [2. Software Engineer](#2-software-engineer)
+  - [3. Design Reviewer](#3-design-reviewer)
+  - [4. Test Engineer](#4-test-engineer)
+  - [5. DevOps Engineer](#5-devops-engineer)
+  - [6. Technical Writer](#6-technical-writer)
+  - [7. Memory Curator](#7-memory-curator)
+  - [8. Database Architect](#8-database-architect)
+  - [9. Security Engineer](#9-security-engineer)
+  - [10. Prompt Writer](#10-prompt-writer)
+- [Shared Guidelines](#shared-guidelines)
+- [Advanced Features](#advanced-features)
+  - [1. Extended Thinking Modes](#1-extended-thinking-modes)
+  - [2. Multi-Perspective Analysis](#2-multi-perspective-analysis)
+  - [3. Iterative Refinement ("Revving")](#3-iterative-refinement-revving)
+  - [4. Role-Based Prompting](#4-role-based-prompting)
+- [Usage Patterns](#usage-patterns)
+- [Configuration Requirements](#configuration-requirements)
+  - [MCP Servers Required](#mcp-servers-required)
+  - [Environment Setup](#environment-setup)
+- [Best Practices](#best-practices)
+- [Performance Optimization](#performance-optimization)
+- [Troubleshooting](#troubleshooting)
+- [Metrics and Monitoring](#metrics-and-monitoring)
+- [Installation](#installation)
+  - [Prerequisites](#prerequisites)
+  - [Quick Installation (Recommended)](#quick-installation-recommended)
+  - [Manual Installation](#manual-installation)
+  - [What Gets Installed](#what-gets-installed)
+  - [System Management](#system-management)
+- [Getting Started](#getting-started)
+- [Key Documentation](#key-documentation)
+- [Future Enhancements](#future-enhancements)
+- [Sponsors](#sponsors)
 
 ## Overview
 
