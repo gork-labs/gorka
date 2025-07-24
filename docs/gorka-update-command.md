@@ -2,18 +2,18 @@
 title: "Gorka Update Command Reference"
 author: "@bohdan-shulha"
 date: "2025-07-24"
-last_updated: "2025-07-24T15:32:17+02:00"
+last_updated: "2025-07-24T15:50:26+02:00"
 timezone: "Europe/Warsaw"
 status: "approved"
-version: "2.1.0"
+version: "2.4.0"
 reviewers: []
 tags: ["cli", "gorka", "mcp", "management"]
 document_type: "guide"
 ---
 
 # Gorka Update Command Reference
-*Last updated: 2025-07-24T15:32:17+02:00 (Europe/Warsaw)*
-*Version: 2.1.0*
+*Last updated: 2025-07-24T15:50:26+02:00 (Europe/Warsaw)*
+*Version: 2.4.0*
 *Status: APPROVED*
 
 ## Document History
@@ -22,6 +22,9 @@ document_type: "guide"
 | 1.0.0 | 2025-07-24 | 15:16:46 | @bohdan-shulha | Approved | Initial implementation |
 | 2.0.0 | 2025-07-24 | 15:25:26 | @bohdan-shulha | Approved | Refactored to separate gorka.json metadata files |
 | 2.1.0 | 2025-07-24 | 15:32:17 | @bohdan-shulha | Approved | Removed legacy mcp.json metadata support |
+| 2.2.0 | 2025-07-24 | 15:36:37 | @bohdan-shulha | Approved | Added self-upgrade as top-level command |
+| 2.3.0 | 2025-07-24 | 15:46:56 | @bohdan-shulha | Approved | Moved self-upgrade docs to separate file |
+| 2.4.0 | 2025-07-24 | 15:50:26 | @bohdan-shulha | Approved | Removed all self-upgrade references |
 
 ## Overview
 
@@ -154,7 +157,7 @@ gorka update clean-orphans workspace
 - **Examples**: Input configurations for MCP servers
 
 ### Chatmodes
-- **Location**: 
+- **Location**:
   - Global: `~/Library/Application Support/Code/User/chatmodes/` (macOS)
   - Workspace: `.github/chatmodes/`
 - **Tracking**: `gorka.json` files, `"chatmodes"` array
