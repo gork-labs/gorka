@@ -143,56 +143,24 @@ export class AuthService {
 }
 ```
 
-**Security Middleware:**
-```typescript
-// middleware/security.middleware.ts
-// Generated: 2025-07-23 13:44:28 UTC
-// Author: @bohdan-shulha
-// Memory: Security headers pattern
+**Security Knowledge Storage:**
 
-import { Injectable, NestMiddleware } from '@nestjs/common';
-import { Request, Response, NextFunction } from 'express';
-import helmet from 'helmet';
-import rateLimit from 'express-rate-limit';
+Use the standard knowledge capture pattern from `instructions/MEMORY_USAGE_GUIDELINES_GORKA.instructions.md`
 
-@Injectable()
-export class SecurityMiddleware implements NestMiddleware {
-  // Memory: Rate limiting configuration
-  private readonly rateLimiter = rateLimit({
-    windowMs: 15 * 60 * 1000, // 15 minutes
-    max: 100, // limit each IP to 100 requests per windowMs
-    message: 'Too many requests from this IP',
-    standardHeaders: true,
-    legacyHeaders: false,
-  });
+**Focus on capturing:**
+- Security principles and threat models
+- Authentication and authorization patterns
+- Data protection strategies and requirements
+- Security constraints and compliance rules
+- Risk assessments and mitigation approaches
 
-  use(req: Request, res: Response, next: NextFunction) {
-    // Memory: Security headers
-    helmet({
-      contentSecurityPolicy: {
-        directives: {
-          defaultSrc: ["'self'"],
-          styleSrc: ["'self'", "'unsafe-inline'"],
-          scriptSrc: ["'self'"],
-          imgSrc: ["'self'", "data:", "https:"],
-          connectSrc: ["'self'"],
-          fontSrc: ["'self'"],
-          objectSrc: ["'none'"],
-          mediaSrc: ["'self'"],
-          frameSrc: ["'none'"],
-        },
-      },
-      hsts: {
-        maxAge: 31536000,
-        includeSubDomains: true,
-        preload: true
-      }
-    })(req, res, () => {
-      this.rateLimiter(req, res, next);
-    });
-  }
-}
-```
+**Example security concepts to store:**
+- `JWTAuthentication_Pattern` - token-based authentication approach
+- `DataEncryption_Rule` - what data must be encrypted and why
+- `AccessControl_Policy` - who can access what resources
+- `ThreatMitigation_Strategy` - how specific threats are addressed
+
+**IMPORTANT**: Only create security documentation files (.md) when the user explicitly requests documentation. Focus on security implementation and memory knowledge capture.
 
 **Security Checklist:**
 - [ ] Apply patterns from memory
