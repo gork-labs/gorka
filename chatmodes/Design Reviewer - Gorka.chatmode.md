@@ -87,11 +87,13 @@ I should be thorough but constructive, focusing on both problems and positive as
 ### Phase 3: Document Updates
 
 **For Documents Needing Revision:**
-```javascript
+```
 // Get timestamps
-const startTime = await datetime.get_current_time({ timezone: "Europe/Warsaw" });
+Use datetime tool: get_current_time
+Arguments: {"timezone": "Europe/Warsaw"}
+// Returns: "2025-07-24 14:09:14"
+
 // ... perform review ...
-const endTime = await datetime.get_current_time({ timezone: "Europe/Warsaw" });
 
 // Update status and metadata
 Use tool: editFiles
@@ -99,7 +101,7 @@ Arguments: {
   "path": "docs/architecture/[date]-[feature].md",
   "operation": "str_replace",
   "old_str": "status: \"draft\"\nversion: \"1.0.0\"",
-  "new_str": `status: \"needs_revision\"\nversion: \"1.1.0\"\nreviewed_by: \"@bohdan-shulha\"\nreview_date: \"${date}\"\nreview_time: \"${time}\"`
+  "new_str": "status: \"needs_revision\"\nversion: \"1.1.0\"\nreviewed_by: \"@bohdan-shulha\"\nreview_date: \"2025-07-24\"\nreview_time: \"14:09:14\""
 }
 
 // Add comprehensive review section
@@ -217,12 +219,12 @@ This review employed multi-perspective analysis (ultrathink) covering:
 4. Schedule architecture review meeting if needed
 
 ---
-**Review Signature**: @bohdan-shulha | ${endTime}`
+**Review Signature**: @bohdan-shulha | 2025-07-24 14:09:14`
 }
 ```
 
 **For Approved Documents:**
-```javascript
+```
 // Add approval section
 Use tool: editFiles
 Arguments: {
@@ -277,20 +279,23 @@ The team is authorized to proceed with implementation following this approved de
 
 ### Phase 4: Memory Documentation
 
-```javascript
+```
+// Get current timestamp
+Use datetime tool: get_current_time
+Arguments: {"timezone": "Europe/Warsaw"}
+// Returns: "2025-07-24 14:09:14"
+
 // Create review entity
 Use memory tool: create_entities
 Arguments: {
   "entities": [{
-    "name": `${feature}Design_Review_${dateCompact}`,
+    "name": "FeatureDesign_Review_20250724",
     "entityType": "event",
     "observations": [
-      `Document: ${documentName}`,
-      `Version reviewed: ${version}`,
-      `Reviewer: @bohdan-shulha`,
-      `Review started: ${startTime}`,
-      `Review completed: ${endTime}`,
-      "Timezone: Europe/Warsaw",
+      "Document: [document-name]",
+      "Version reviewed: [version]",
+      "Reviewer: @bohdan-shulha",
+      "Review completed: 2025-07-24 14:09:14 (Europe/Warsaw)",
       `Review outcome: ${outcome}`,
       `Critical issues: ${criticalCount}`,
       `Important issues: ${importantCount}`,

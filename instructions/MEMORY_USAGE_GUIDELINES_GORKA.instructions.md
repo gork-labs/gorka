@@ -5,8 +5,8 @@ description: 'Comprehensive Memory Usage Guidelines.'
 
 ---
 title: "Comprehensive Memory Usage Guidelines"
-date: "2025-01-23"
-last_updated: "2025-01-23 16:02:04 UTC"
+date: "2025-07-24"
+last_updated: "2025-07-24 14:09:14 UTC"
 author: "@bohdan-shulha"
 ---
 
@@ -42,7 +42,7 @@ Creates relationships between entities.
 }
 ```
 
-### search_entities
+### search_nodes
 Searches for entities by query string.
 ```json
 {
@@ -153,15 +153,15 @@ Always check for existing entities before creating new ones:
 
 ```
 // 1. Search for exact name
-Use memory tool: search_entities
+Use memory tool: search_nodes
 Arguments: {"query": "ExactEntityName"}
 
 // 2. Search for variations
-Use memory tool: search_entities
+Use memory tool: search_nodes
 Arguments: {"query": "entity OR variation OR synonym"}
 
 // 3. Search for related concepts
-Use memory tool: search_entities
+Use memory tool: search_nodes
 Arguments: {"query": "domain terms"}
 
 // 4. Get details if found
@@ -171,6 +171,35 @@ Arguments: {"names": ["found_entities"]}
 // 5. Only create if not found or significantly different
 ```
 
+## 4.1. Validation Patterns
+
+### Entity Uniqueness Validation
+```
+// Before creating any entity, validate uniqueness:
+Use memory tool: search_nodes
+Arguments: {"query": "ExactEntityName"}
+
+// If results found, check if truly different:
+Use memory tool: open_nodes
+Arguments: {"names": ["found_entity_names"]}
+
+// Only proceed if:
+// - No exact match found, OR
+// - Found entities serve different purposes, OR
+// - New entity adds significant unique value
+```
+
+### Relationship Validation
+```
+// Before creating relationships, verify both entities exist:
+Use memory tool: open_nodes
+Arguments: {"names": ["Entity1", "Entity2"]}
+
+// Verify relationship doesn't already exist
+Use memory tool: search_nodes
+Arguments: {"query": "Entity1 AND Entity2"}
+```
+
 ## 5. Domain-Focused Entity Patterns
 
 ### Business Entity
@@ -178,7 +207,7 @@ Arguments: {"names": ["found_entities"]}
 // Get timestamp first
 Use datetime tool: get_current_time
 Arguments: {"timezone": "Europe/Warsaw"}
-// Returns: "2025-01-23 16:45:30"
+// Returns: "2025-07-24 14:09:14"
 
 Use memory tool: create_entities
 Arguments: {
@@ -187,7 +216,7 @@ Arguments: {
     "entityType": "object",
     "observations": [
       "Domain entity: Represents system users",
-      "Knowledge captured: 2025-01-23 16:45:30 (Europe/Warsaw)",
+      "Knowledge captured: 2025-07-24 14:09:14 (Europe/Warsaw)",
       "User types: Admin, DirectoryOwner, RegularUser, Guest",
       "Key attributes: email (unique), profile, preferences, roles",
       "Business invariants: Email must be verified before full access",
@@ -209,7 +238,7 @@ Arguments: {
     "entityType": "process",
     "observations": [
       "Business process: How users search for listings",
-      "Knowledge captured: 2025-01-23 16:45:30 (Europe/Warsaw)",
+      "Knowledge captured: 2025-07-24 14:09:14 (Europe/Warsaw)",
       "Process triggers: User enters search query or applies filters",
       "Input requirements: Optional query text, optional filters, pagination params",
       "Process steps: Parse query, apply filters, rank results, apply permissions",
@@ -232,8 +261,8 @@ Arguments: {
     "entityType": "concept",
     "observations": [
       "Decision: Use Elasticsearch for listing search functionality",
-      "Decision date: 2025-01-23",
-      "Captured: 16:45:30 (Europe/Warsaw)",
+      "Decision date: 2025-07-24",
+      "Captured: 14:09:14 (Europe/Warsaw)",
       "Author: @bohdan-shulha",
       "Status: Approved",
       "Problem context: Need faceted search, fuzzy matching, and geo queries",
@@ -257,7 +286,7 @@ Arguments: {
     "entityType": "system",
     "observations": [
       "System capability: User authentication and session management",
-      "Knowledge captured: 2025-01-23 16:45:30 (Europe/Warsaw)",
+      "Knowledge captured: 2025-07-24 14:09:14 (Europe/Warsaw)",
       "Authentication methods: Email/password, OAuth2 (Google, GitHub), API keys",
       "Token strategy: Short-lived access tokens with refresh tokens",
       "Session properties: 15-minute access tokens, 7-day refresh tokens",
@@ -280,7 +309,7 @@ Arguments: {
     "entityType": "concept",
     "observations": [
       "Business rule: Determines who can view listings",
-      "Rule captured: 2025-01-23 16:45:30 (Europe/Warsaw)",
+      "Rule captured: 2025-07-24 14:09:14 (Europe/Warsaw)",
       "Rule statement: Listing visibility depends on status and user role",
       "Public listings: Visible to all users including guests",
       "Private listings: Visible only to owner and invited users",
@@ -332,6 +361,59 @@ System Capabilities:
 8. **Focus on Why**: Capture the reasoning behind decisions, not just the outcomes
 
 ## 8. Knowledge Capture Timing
+
+### Error Handling Patterns
+
+**Tool Call Failure Recovery:**
+```
+// Always check tool call results and retry if needed
+Use memory tool: create_entities
+Arguments: {
+  "entities": [{
+    "name": "NewEntity_Concept",
+    "entityType": "concept",
+    "observations": ["Initial observation"]
+  }]
+}
+
+// If creation fails, search to see if entity exists:
+Use memory tool: search_nodes
+Arguments: {"query": "NewEntity_Concept"}
+
+// If not found, simplify and retry:
+Use memory tool: create_entities
+Arguments: {
+  "entities": [{
+    "name": "NewEntity_Concept",
+    "entityType": "concept",
+    "observations": ["Simplified observation"]
+  }]
+}
+```
+
+**Bulk Operations Patterns:**
+```
+// For multiple related entities, create in batches of 3-5:
+Use memory tool: create_entities
+Arguments: {
+  "entities": [
+    {"name": "Entity1_Type", "entityType": "concept", "observations": ["..."]},
+    {"name": "Entity2_Type", "entityType": "concept", "observations": ["..."]},
+    {"name": "Entity3_Type", "entityType": "concept", "observations": ["..."]}
+  ]
+}
+
+// For relationships, batch related ones together:
+Use memory tool: create_relations
+Arguments: {
+  "relations": [
+    {"from": "Entity1_Type", "to": "Entity2_Type", "relationType": "uses"},
+    {"from": "Entity1_Type", "to": "Entity3_Type", "relationType": "implements"}
+  ]
+}
+```
+
+## 9. Knowledge Capture Timing
 
 ### When to Store Knowledge
 
@@ -415,7 +497,7 @@ System Capabilities:
 
 ### Example Workflow
 
-```
+//
 // Step 1: Discover a domain entity while reading code
 // IMMEDIATELY:
 Use memory tool: create_entities
@@ -425,7 +507,7 @@ Arguments: {
     "entityType": "object",
     "observations": [
       "Domain entity: Represents customer orders",
-      "Knowledge captured: 2025-01-23 16:45:30 (Europe/Warsaw)",
+      "Knowledge captured: 2025-07-24 14:09:14 (Europe/Warsaw)",
       "Initial understanding: Contains items and pricing"
     ]
   }]
