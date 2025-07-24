@@ -1,7 +1,7 @@
 ---
 title: "Production Coding Agent System Documentation"
 date: "2025-07-24"
-last_updated: "2025-07-24T16:05:17+02:00"
+last_updated: "2025-07-24T17:01:29+02:00"
 author: "@bohdan-shulha"
 ---
 
@@ -22,6 +22,16 @@ Gorka is a project within **Gork Labs** - a comprehensive agent-powered developm
 
 - [Overview](#overview)
   - [🧠 Core Innovation: Sequential Thinking](#-core-innovation-sequential-thinking)
+- [🚀 Quick Links](#-quick-links)
+  - [New Users](#new-users)
+  - [Developers](#developers)
+  - [Administrators](#administrators)
+- [Installation](#installation)
+  - [Prerequisites](#prerequisites)
+  - [Quick Installation (Recommended)](#quick-installation-recommended)
+  - [Manual Installation](#manual-installation)
+  - [What Gets Installed](#what-gets-installed)
+  - [System Management](#system-management)
 - [System Architecture](#system-architecture)
   - [Core Foundations](#core-foundations)
   - [Agent Specializations](#agent-specializations)
@@ -51,12 +61,6 @@ Gorka is a project within **Gork Labs** - a comprehensive agent-powered developm
 - [Performance Optimization](#performance-optimization)
 - [Troubleshooting](#troubleshooting)
 - [Metrics and Monitoring](#metrics-and-monitoring)
-- [Installation](#installation)
-  - [Prerequisites](#prerequisites)
-  - [Quick Installation (Recommended)](#quick-installation-recommended)
-  - [Manual Installation](#manual-installation)
-  - [What Gets Installed](#what-gets-installed)
-  - [System Management](#system-management)
 - [Getting Started](#getting-started)
 - [Key Documentation](#key-documentation)
 - [Future Enhancements](#future-enhancements)
@@ -73,6 +77,26 @@ Every complex task now requires structured thinking using the `mcp_sequentialthi
 - **13-15+ thoughts** for complex architecture decisions
 - **Progressive insight building** with revision capabilities
 - **Multi-perspective analysis** for comprehensive solutions
+
+## 🚀 Quick Links
+
+### New Users
+- **[Installation Guide](#installation)** - Get started with Gorka in minutes
+- **[Complete Documentation](docs/README.md)** - Comprehensive guides and references
+- **[User Onboarding Guide](docs/guides/user-onboarding-guide.md)** - Step-by-step introduction
+- **[Sequential Thinking Guide](docs/guides/sequential-thinking-guide.md)** - Understanding Gorka's thinking requirements
+
+### Developers
+- **[Available Agents](#available-agents)** - Choose the right agent for your task
+- **[Usage Patterns](#usage-patterns)** - Common workflows and best practices
+- **[Shared Guidelines](#shared-guidelines)** - Essential standards and conventions
+- **[Advanced Features](#advanced-features)** - Extended capabilities and techniques
+
+### Administrators
+- **[System Management](#system-management)** - CLI tools and maintenance
+- **[Configuration Requirements](#configuration-requirements)** - MCP servers and environment setup
+- **[System Maintenance Guide](docs/guides/system-maintenance-guide.md)** - Keep Gorka running optimally
+- **[CLI Reference](docs/cli/gorka-cli-reference.md)** - Complete command documentation
 
 ## System Architecture
 
@@ -151,6 +175,114 @@ graph TB
 - **📦 Component Management**: Add, remove, and sync agent configurations
 - **🌐 Global & Workspace Scopes**: Install for single projects or system-wide
 - **🔍 Metadata Tracking**: Comprehensive component lifecycle management
+
+## Installation
+
+### Prerequisites
+
+Before installing Gorka, ensure you have the following requirements:
+
+#### Required Software
+- **Visual Studio Code**: Latest version
+- **Git**: For repository operations
+- **Node.js**: For MCP server functionality
+- **uv**: Python package manager ([installation guide](https://docs.astral.sh/uv/))
+
+#### Essential VS Code Extensions
+- **[GitHub Copilot](https://marketplace.visualstudio.com/items?itemName=GitHub.copilot)**: Core AI assistance
+- **[GitHub Copilot Chat](https://marketplace.visualstudio.com/items?itemName=GitHub.copilot-chat)**: Interactive AI conversations
+
+#### Recommended Configuration
+- **GitHub Copilot Pro Subscription**: For optimal performance and features
+- **Claude 4 Sonnet**: Best AI model compatibility with Gorka's sequential thinking
+- **Operating System**: macOS or Linux (Windows support via WSL)
+
+### Quick Installation (Recommended)
+
+Install gorka CLI tool and the agent system with a single command:
+```bash
+curl -fsSL https://raw.githubusercontent.com/gork-labs/gorka/main/setup.sh | bash
+```
+
+**Force reinstall** (if you need to update or fix an existing installation):
+```bash
+bash <(curl -fsSL https://raw.githubusercontent.com/gork-labs/gorka/main/setup.sh) --force
+```
+
+Then install the configurations:
+```bash
+# Install globally for all projects
+gorka install --global
+
+# Or install for current workspace only
+gorka install
+
+# Check what's installed
+gorka update list
+
+# Keep system updated
+gorka self-upgrade          # Upgrade gorka binary itself
+gorka update sync           # Update components to latest
+```
+
+### Manual Installation
+
+If you prefer manual installation:
+
+1. **Download the gorka CLI**:
+   ```bash
+   curl -fsSL https://raw.githubusercontent.com/gork-labs/gorka/main/bin/gorka -o ~/.local/bin/gorka
+   chmod +x ~/.local/bin/gorka
+   ```
+
+2. **Clone the repository**:
+   ```bash
+   git clone https://github.com/gork-labs/gorka.git
+   cd gorka
+   ```
+
+3. **Install configurations**:
+   ```bash
+   ./bin/gorka install
+   ```
+
+### What Gets Installed
+
+- **Global installation** (`gorka install --global`):
+  - MCP server configurations to VS Code user settings
+  - Prompt templates to VS Code user folder
+  - Available across all your projects
+  - Metadata tracked in separate `gorka.json` files
+
+- **Workspace installation** (`gorka install`):
+  - Workspace-specific MCP configurations
+  - Memory server for project context
+  - Created in `.vscode/mcp.json`
+  - Instructions copied to `.github/instructions/`
+
+### System Management
+
+The gorka system includes comprehensive management tools:
+
+```bash
+# List installed components
+gorka update list               # Show all components
+gorka update list available     # Show available from repository
+
+# Sync with latest repository
+gorka update sync              # Update everything
+gorka update sync workspace    # Update workspace only
+
+# Remove components
+gorka update remove server memory workspace
+gorka update remove chatmode "Old Agent.md"
+
+# Clean up orphaned components
+gorka update clean-orphans     # Remove components no longer in repo
+
+# Upgrade gorka itself
+gorka self-upgrade             # Safe binary update with backup
+```
 
 ## Available Agents
 
@@ -452,114 +584,6 @@ export CURRENT_USER="bohdan-shulha"
 - Monthly: System metrics
 - Quarterly: Pattern analysis
 
-## Installation
-
-### Prerequisites
-
-Before installing Gorka, ensure you have the following requirements:
-
-#### Required Software
-- **Visual Studio Code**: Latest version
-- **Git**: For repository operations
-- **Node.js**: For MCP server functionality
-- **uv**: Python package manager ([installation guide](https://docs.astral.sh/uv/))
-
-#### Essential VS Code Extensions
-- **[GitHub Copilot](https://marketplace.visualstudio.com/items?itemName=GitHub.copilot)**: Core AI assistance
-- **[GitHub Copilot Chat](https://marketplace.visualstudio.com/items?itemName=GitHub.copilot-chat)**: Interactive AI conversations
-
-#### Recommended Configuration
-- **GitHub Copilot Pro Subscription**: For optimal performance and features
-- **Claude 4 Sonnet**: Best AI model compatibility with Gorka's sequential thinking
-- **Operating System**: macOS or Linux (Windows support via WSL)
-
-### Quick Installation (Recommended)
-
-Install gorka CLI tool and the agent system with a single command:
-```bash
-curl -fsSL https://raw.githubusercontent.com/gork-labs/gorka/main/setup.sh | bash
-```
-
-**Force reinstall** (if you need to update or fix an existing installation):
-```bash
-bash <(curl -fsSL https://raw.githubusercontent.com/gork-labs/gorka/main/setup.sh) --force
-```
-
-Then install the configurations:
-```bash
-# Install globally for all projects
-gorka install --global
-
-# Or install for current workspace only
-gorka install
-
-# Check what's installed
-gorka update list
-
-# Keep system updated
-gorka self-upgrade          # Upgrade gorka binary itself
-gorka update sync           # Update components to latest
-```
-
-### Manual Installation
-
-If you prefer manual installation:
-
-1. **Download the gorka CLI**:
-   ```bash
-   curl -fsSL https://raw.githubusercontent.com/gork-labs/gorka/main/bin/gorka -o ~/.local/bin/gorka
-   chmod +x ~/.local/bin/gorka
-   ```
-
-2. **Clone the repository**:
-   ```bash
-   git clone https://github.com/gork-labs/gorka.git
-   cd gorka
-   ```
-
-3. **Install configurations**:
-   ```bash
-   ./bin/gorka install
-   ```
-
-### What Gets Installed
-
-- **Global installation** (`gorka install --global`):
-  - MCP server configurations to VS Code user settings
-  - Prompt templates to VS Code user folder
-  - Available across all your projects
-  - Metadata tracked in separate `gorka.json` files
-
-- **Workspace installation** (`gorka install`):
-  - Workspace-specific MCP configurations
-  - Memory server for project context
-  - Created in `.vscode/mcp.json`
-  - Instructions copied to `.github/instructions/`
-
-### System Management
-
-The gorka system includes comprehensive management tools:
-
-```bash
-# List installed components
-gorka update list               # Show all components
-gorka update list available     # Show available from repository
-
-# Sync with latest repository
-gorka update sync              # Update everything
-gorka update sync workspace    # Update workspace only
-
-# Remove components
-gorka update remove server memory workspace
-gorka update remove chatmode "Old Agent.md"
-
-# Clean up orphaned components
-gorka update clean-orphans     # Remove components no longer in repo
-
-# Upgrade gorka itself
-gorka self-upgrade             # Safe binary update with backup
-```
-
 ## Getting Started
 
 1. **Test the Installation**
@@ -594,12 +618,13 @@ gorka self-upgrade             # Safe binary update with backup
 
 ## Key Documentation
 
+- **[📖 Complete Documentation Index](docs/README.md)**: Navigate all Gorka documentation
 - **[Documentation Standards](instructions/DOCUMENTATION_STANDARDS_GORKA.instructions.md)**: Comprehensive guidelines for all documentation
 - **[Sequential Thinking Guide](instructions/THINKING_PROCESS_GORKA.instructions.md)**: Detailed thinking process requirements
 - **[DateTime Handling](instructions/DATETIME_HANDLING_GORKA.instructions.md)**: Time management guidelines
 - **[Memory Usage](instructions/MEMORY_USAGE_GUIDELINES_GORKA.instructions.md)**: Knowledge graph best practices
-- **[CLI Reference](docs/gorka-update-command.md)**: Complete gorka command reference
-- **[Self-Upgrade Guide](docs/gorka-self-upgrade-command.md)**: Binary upgrade documentation
+- **[CLI Reference](docs/cli/gorka-cli-reference.md)**: Complete gorka command reference
+- **[Self-Upgrade Guide](docs/cli/gorka-self-upgrade-command.md)**: Binary upgrade documentation
 
 ## Future Enhancements
 
@@ -630,4 +655,4 @@ We're grateful for the support of our sponsors who make this project possible:
 
 *System designed by @bohdan-shulha*
 *Incorporating Sonnet-4 advanced capabilities*
-*Last updated: 2025-07-24T16:05:17+02:00*
+*Last updated: 2025-07-24T17:01:29+02:00*
