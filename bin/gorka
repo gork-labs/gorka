@@ -9,6 +9,13 @@ set -e
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 AGENTS_DIR="$(dirname "$SCRIPT_DIR")"
 
+# GitHub repository configuration
+GITHUB_REPO="gork-labs/gorka"
+GITHUB_BRANCH="main"
+
+# Local cache directory for downloaded files
+CACHE_DIR="$HOME/.local/share/gorka"
+
 # Colors for output
 RED='\033[0;31m'
 GREEN='\033[0;32m'
@@ -36,6 +43,58 @@ print_error() {
 
 print_step() {
     echo -e "${CYAN}[STEP]${NC} $1"
+}
+
+# Function to ensure cache directory exists and files are available
+ensure_files_available() {
+    # If files exist locally (development setup), use them
+    if [ -f "$AGENTS_DIR/mcp.global.json" ] && [ -f "$AGENTS_DIR/mcp.workspace.json" ] && [ -d "$AGENTS_DIR/prompts" ]; then
+        print_info "Using local development files from $AGENTS_DIR"
+        echo "$AGENTS_DIR"
+        return 0
+    fi
+
+    # Otherwise, use cache directory and clone/pull repository
+    local repo_dir="$CACHE_DIR/repo"
+
+    if [ ! -d "$repo_dir" ]; then
+        print_info "Cloning repository to cache..."
+        mkdir -p "$CACHE_DIR"
+
+        if command -v git >/dev/null 2>&1; then
+            if git clone "https://github.com/${GITHUB_REPO}.git" "$repo_dir"; then
+                print_success "Repository cloned successfully"
+            else
+                print_error "Failed to clone repository from https://github.com/${GITHUB_REPO}.git"
+                return 1
+            fi
+        else
+            print_error "Git is not available. Please install git."
+            return 1
+        fi
+    else
+        print_info "Updating repository cache..."
+
+        if command -v git >/dev/null 2>&1; then
+            if (cd "$repo_dir" && git pull origin "$GITHUB_BRANCH"); then
+                print_success "Repository updated successfully"
+            else
+                print_warning "Failed to update repository. Using cached version."
+            fi
+        else
+            print_warning "Git is not available. Using cached version."
+        fi
+    fi
+
+    # Verify required files exist in the cloned repository
+    if [ ! -f "$repo_dir/mcp.global.json" ] || [ ! -f "$repo_dir/mcp.workspace.json" ] || [ ! -d "$repo_dir/prompts" ]; then
+        print_error "Required files not found in cloned repository"
+        return 1
+    fi
+
+    print_success "All required files are available from repository"
+    echo "$repo_dir"
+    return 0
 }
 
 # Function to merge JSON files with gorka metadata tracking
@@ -124,27 +183,23 @@ install_global() {
         exit 1
     fi
 
-    # Copy and merge mcp.global.json to VS Code user directory
-    if [ ! -f "$AGENTS_DIR/mcp.global.json" ]; then
-        print_error "mcp.global.json not found in $AGENTS_DIR"
+    # Ensure files are available (either locally or from repository)
+    FILES_DIR=$(ensure_files_available)
+    if [ $? -ne 0 ]; then
+        print_error "Failed to ensure required files are available"
         exit 1
     fi
 
     print_info "Merging global MCP configuration..."
-    merge_mcp_json "$AGENTS_DIR/mcp.global.json" "$VSCODE_USER_DIR/mcp.json"
+    merge_mcp_json "$FILES_DIR/mcp.global.json" "$VSCODE_USER_DIR/mcp.json"
 
     # Copy prompts directory to VS Code user directory
     print_info "Copying prompts to VS Code user directory..."
-    if [ ! -d "$AGENTS_DIR/prompts" ]; then
-        print_error "prompts directory not found in $AGENTS_DIR"
-        exit 1
-    fi
-
     # Create prompts directory if it doesn't exist
     mkdir -p "$VSCODE_USER_DIR/prompts"
 
     # Copy all prompt files
-    cp -r "$AGENTS_DIR/prompts/"* "$VSCODE_USER_DIR/prompts/"
+    cp -r "$FILES_DIR/prompts/"* "$VSCODE_USER_DIR/prompts/"
 
     # Also install .vscode/mcp.json in current directory if .vscode exists
     local current_dir="$(pwd)"
@@ -152,22 +207,20 @@ install_global() {
 
     if [ -d "$vscode_dir" ]; then
         print_info "Found .vscode directory, also installing workspace MCP configuration..."
-        if [ -f "$AGENTS_DIR/mcp.workspace.json" ]; then
-            # Check if workspace file is empty and handle accordingly
-            if [ ! -s "$AGENTS_DIR/mcp.workspace.json" ]; then
-                print_warning "mcp.workspace.json is empty. Creating minimal configuration."
-                echo '{"servers": {}, "inputs": []}' > "$AGENTS_DIR/mcp.workspace.json"
-            fi
-
-            print_info "Merging workspace MCP configuration..."
-            merge_mcp_json "$AGENTS_DIR/mcp.workspace.json" "$vscode_dir/mcp.json"
-            print_success "Workspace MCP configuration installed to: $vscode_dir/mcp.json"
-
-            # Create memory.json file for the memory server
-            print_info "Creating memory.json file..."
-            touch "$vscode_dir/memory.json"
-            print_success "Memory file created at: $vscode_dir/memory.json"
+        # Check if workspace file is empty and handle accordingly
+        if [ ! -s "$FILES_DIR/mcp.workspace.json" ]; then
+            print_warning "mcp.workspace.json is empty. Creating minimal configuration."
+            echo '{"servers": {}, "inputs": []}' > "$FILES_DIR/mcp.workspace.json"
         fi
+
+        print_info "Merging workspace MCP configuration..."
+        merge_mcp_json "$FILES_DIR/mcp.workspace.json" "$vscode_dir/mcp.json"
+        print_success "Workspace MCP configuration installed to: $vscode_dir/mcp.json"
+
+        # Create memory.json file for the memory server
+        print_info "Creating memory.json file..."
+        touch "$vscode_dir/memory.json"
+        print_success "Memory file created at: $vscode_dir/memory.json"
     fi
 
     print_success "Global installation completed successfully!"
@@ -194,20 +247,21 @@ install_workspace() {
         mkdir -p "$github_dir"
     fi
 
-    # Install MCP configuration to .vscode
-    if [ ! -f "$AGENTS_DIR/mcp.workspace.json" ]; then
-        print_error "mcp.workspace.json not found in $AGENTS_DIR"
+    # Ensure files are available (either locally or from repository)
+    FILES_DIR=$(ensure_files_available)
+    if [ $? -ne 0 ]; then
+        print_error "Failed to ensure required files are available"
         exit 1
     fi
 
     # Check if workspace file is empty and handle accordingly
-    if [ ! -s "$AGENTS_DIR/mcp.workspace.json" ]; then
+    if [ ! -s "$FILES_DIR/mcp.workspace.json" ]; then
         print_warning "mcp.workspace.json is empty. Creating minimal configuration."
-        echo '{"servers": {}, "inputs": []}' > "$AGENTS_DIR/mcp.workspace.json"
+        echo '{"servers": {}, "inputs": []}' > "$FILES_DIR/mcp.workspace.json"
     fi
 
     print_info "Merging workspace MCP configuration..."
-    merge_mcp_json "$AGENTS_DIR/mcp.workspace.json" "$vscode_dir/mcp.json"
+    merge_mcp_json "$FILES_DIR/mcp.workspace.json" "$vscode_dir/mcp.json"
 
     # Create memory.json file for the memory server
     print_info "Creating memory.json file..."
@@ -217,28 +271,41 @@ install_workspace() {
     # Copy prompts and instructions to .github directory
     print_info "Copying prompts and instructions to .github directory..."
 
-    if [ -d "$AGENTS_DIR/prompts" ]; then
+    if [ -d "$FILES_DIR/prompts" ]; then
         print_info "Copying prompts..."
         mkdir -p "$github_dir/prompts"
-        cp -r "$AGENTS_DIR/prompts/"* "$github_dir/prompts/"
+        cp -r "$FILES_DIR/prompts/"* "$github_dir/prompts/"
         print_success "Prompts copied to: $github_dir/prompts"
     else
-        print_warning "prompts directory not found in $AGENTS_DIR"
+        print_warning "prompts directory not found in $FILES_DIR"
     fi
 
     # Copy instruction files from instructions directory
-    if [ -d "$AGENTS_DIR/instructions" ]; then
+    if [ -d "$FILES_DIR/instructions" ]; then
         print_info "Copying instruction files..."
         mkdir -p "$github_dir/instructions"
-        cp -r "$AGENTS_DIR/instructions/"* "$github_dir/instructions/"
+        cp -r "$FILES_DIR/instructions/"* "$github_dir/instructions/"
         print_success "Instructions copied to: $github_dir/instructions"
     else
-        print_warning "instructions directory not found in $AGENTS_DIR"
+        print_warning "instructions directory not found in $FILES_DIR"
     fi
 
     print_success "Workspace installation completed successfully!"
     print_info "MCP configuration installed to: $vscode_dir/mcp.json"
     print_info "Prompts and instructions installed to: $github_dir/"
+}
+
+# Function to clean cache
+clean_cache() {
+    print_step "Cleaning cache..."
+
+    if [ -d "$CACHE_DIR" ]; then
+        print_info "Removing cache directory: $CACHE_DIR"
+        rm -rf "$CACHE_DIR"
+        print_success "Cache cleaned successfully!"
+    else
+        print_info "Cache directory does not exist, nothing to clean."
+    fi
 }
 
 # Main script logic
@@ -258,16 +325,21 @@ case "$1" in
                 echo "Commands:"
                 echo "  gorka install          - Install workspace MCP configuration + copy prompts/instructions to .github directory"
                 echo "  gorka install --global - Install global MCP configuration and prompts to VS Code user folder + workspace MCP if .vscode exists"
+                echo "  gorka clean            - Clean cached repository files"
                 exit 1
                 ;;
         esac
         ;;
+    "clean")
+        clean_cache
+        ;;
     *)
-        echo "Usage: gorka install [--global]"
+        echo "Usage: gorka <command> [options]"
         echo ""
         echo "Commands:"
         echo "  gorka install          - Install workspace MCP configuration + copy prompts/instructions to .github directory"
         echo "  gorka install --global - Install global MCP configuration and prompts to VS Code user folder + workspace MCP if .vscode exists"
+        echo "  gorka clean            - Clean cached repository files"
         exit 1
         ;;
 esac
