@@ -48,7 +48,7 @@ print_step() {
 # Function to ensure cache directory exists and files are available
 ensure_files_available() {
     # If files exist locally (development setup), use them
-    if [ -f "$AGENTS_DIR/mcp.global.json" ] && [ -f "$AGENTS_DIR/mcp.workspace.json" ] && [ -d "$AGENTS_DIR/prompts" ]; then
+    if [ -f "$AGENTS_DIR/mcp.global.json" ] && [ -d "$AGENTS_DIR/prompts" ]; then
         print_info "Using local development files from $AGENTS_DIR"
         echo "$AGENTS_DIR"
         return 0
@@ -87,7 +87,7 @@ ensure_files_available() {
     fi
 
     # Verify required files exist in the cloned repository
-    if [ ! -f "$repo_dir/mcp.global.json" ] || [ ! -f "$repo_dir/mcp.workspace.json" ] || [ ! -d "$repo_dir/prompts" ]; then
+    if [ ! -f "$repo_dir/mcp.global.json" ] || [ ! -d "$repo_dir/prompts" ]; then
         print_error "Required files not found in cloned repository"
         return 1
     fi
@@ -207,11 +207,6 @@ install_global() {
 
     if [ -d "$vscode_dir" ]; then
         print_info "Found .vscode directory, also installing workspace MCP configuration..."
-        # Check if workspace file is empty and handle accordingly
-        if [ ! -s "$FILES_DIR/mcp.workspace.json" ]; then
-            print_warning "mcp.workspace.json is empty. Creating minimal configuration."
-            echo '{"servers": {}, "inputs": []}' > "$FILES_DIR/mcp.workspace.json"
-        fi
 
         print_info "Merging workspace MCP configuration..."
         merge_mcp_json "$FILES_DIR/mcp.workspace.json" "$vscode_dir/mcp.json"
@@ -254,14 +249,20 @@ install_workspace() {
         exit 1
     fi
 
-    # Check if workspace file is empty and handle accordingly
-    if [ ! -s "$FILES_DIR/mcp.workspace.json" ]; then
-        print_warning "mcp.workspace.json is empty. Creating minimal configuration."
-        echo '{"servers": {}, "inputs": []}' > "$FILES_DIR/mcp.workspace.json"
+    # Check if workspace file exists and use it, otherwise create minimal config
+    local workspace_config="$FILES_DIR/mcp.workspace.json"
+    if [ ! -f "$workspace_config" ] || [ ! -s "$workspace_config" ]; then
+        print_warning "mcp.workspace.json not found or empty. Creating minimal configuration."
+        workspace_config="/tmp/gorka_workspace_config.json"
+        echo '{"servers": {}, "inputs": []}' > "$workspace_config"
     fi
 
+    # For workspace installation, we want both global and workspace configurations
+    print_info "Merging global MCP configuration..."
+    merge_mcp_json "$FILES_DIR/mcp.global.json" "$vscode_dir/mcp.json"
+    
     print_info "Merging workspace MCP configuration..."
-    merge_mcp_json "$FILES_DIR/mcp.workspace.json" "$vscode_dir/mcp.json"
+    merge_mcp_json "$workspace_config" "$vscode_dir/mcp.json"
 
     # Create memory.json file for the memory server
     print_info "Creating memory.json file..."
