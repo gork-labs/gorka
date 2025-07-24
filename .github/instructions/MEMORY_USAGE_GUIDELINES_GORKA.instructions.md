@@ -6,11 +6,129 @@ description: 'Comprehensive Memory Usage Guidelines.'
 ---
 title: "Comprehensive Memory Usage Guidelines"
 date: "2025-07-24"
-last_updated: "2025-07-24 14:09:14 UTC"
+last_updated: "2025-07-24T19:03:01+02:00"
 author: "@bohdan-shulha"
 ---
 
 # Memory MCP Usage Guide
+
+## 🚨 CRITICAL: What NOT to Store in Memory
+
+**NEVER store implementation details that will become outdated quickly!**
+
+### ❌ BAD Example (DO NOT DO THIS):
+```json
+{
+  "name": "FreightRateTypeInfoIcon_Implementation",
+  "entityType": "system",
+  "observations": [
+    "Location: /Users/developer/Projects/ClientApp/webapp-staff/src/pages/admin/logistics/freight-rates/form/",
+    "Pattern used: Built-in tc-select-search tooltip functionality",
+    "Files modified: freight-rate-form.component.html, freight-rate-form.component.ts",
+    "Tooltip text: 'The associated carrier must have a type in order to assign a type'",
+    "Integration: Uses Material Design matTooltip with fa-info-circle icon"
+  ]
+}
+```
+
+**Problems with this memory:**
+- ❌ File paths that change when project restructures
+- ❌ Implementation details (matTooltip, fa-info-circle) that change with UI library updates
+- ❌ Specific tooltip text that may be updated
+- ❌ Component names that may be refactored
+- ❌ No lasting business value
+
+### ✅ GOOD Example (DO THIS INSTEAD):
+```json
+{
+  "name": "FreightRateTypeValidation_Rule",
+  "entityType": "concept",
+  "observations": [
+    "Business rule: Freight rate type assignment requires carrier type configuration",
+    "Validation trigger: When user selects freight rate type",
+    "Business logic: Cannot assign rate type unless carrier has matching type configured",
+    "User guidance: System provides contextual help when type dependencies exist",
+    "Error prevention: Form validation prevents invalid type combinations",
+    "Knowledge captured: 2025-07-24T18:25:04+02:00"
+  ]
+}
+```
+
+**Why this is better:**
+- ✅ Captures lasting business rule
+- ✅ Focuses on WHAT and WHY, not HOW
+- ✅ Will remain true regardless of UI changes
+- ✅ Helps understand domain logic
+- ✅ Valuable for future feature development
+
+### What TO Store vs. What NOT to Store
+
+| ✅ Store (Domain Knowledge) | ❌ Don't Store (Implementation Details) |
+|---|---|
+| Business rules and constraints | File paths and directory structures |
+| Domain concepts and relationships | CSS classes and HTML elements |
+| Process flows and workflows | Framework-specific code (Angular, React) |
+| System behaviors and capabilities | Library-specific implementations (Material, Bootstrap) |
+| Data validation rules | Variable names and method signatures |
+| User access patterns | Database schema details |
+| Integration requirements | Configuration file contents |
+| Business logic and calculations | Specific UI component implementations |
+
+### Memory Storage Criteria
+
+**Ask yourself before storing:**
+1. **Will this be true in 6 months?** If not, don't store it.
+2. **Does this help understand the business domain?** If not, don't store it.
+3. **Would this help a new team member understand WHAT the system does?** If yes, store it.
+4. **Is this about HOW we implemented something?** If yes, don't store it.
+5. **Will this become outdated when we refactor code?** If yes, don't store it.
+
+**Golden Rule: Store WHAT the system does and WHY, never HOW it's implemented.**
+
+## 1.1 Standard Knowledge Capture Pattern
+
+**Use this pattern when storing domain knowledge:**
+
+```javascript
+// Get current timestamp first
+Use datetime tool: get_current_time
+Arguments: {"timezone": "Europe/Warsaw"}
+
+// Store domain knowledge (not implementation details)
+Use memory tool: create_entities
+Arguments: {
+  "entities": [{
+    "name": "[DomainConcept]_[Type]",  // Use appropriate suffix: _Rule, _Pattern, _Process, etc.
+    "entityType": "concept",           // Usually "concept" for domain knowledge
+    "observations": [
+      "[Primary purpose/rule]: [What this concept represents]",
+      "[Business context]: [Why this exists]",
+      "[Key behaviors]: [What it does]",
+      "[Constraints/rules]: [What limitations apply]",
+      "[Integration points]: [How it connects to other concepts]",
+      `Knowledge captured: ${timestamp}`,
+      "Author: @bohdan-shulha"
+    ]
+  }]
+}
+
+// Create relationships to other domain concepts
+Use memory tool: create_relations
+Arguments: {
+  "relations": [{
+    "from": "[DomainConcept]_[Type]",
+    "to": "[RelatedConcept]_[Type]",
+    "relationType": "[validates|enables|requires|governs|etc.]"
+  }]
+}
+```
+
+**Focus on capturing:**
+- Business rules and constraints
+- Domain relationships and dependencies
+- System behaviors and capabilities
+- Process flows and decision points
+- Why decisions were made (business context)
 
 ## 1. Available Memory Tools
 
@@ -351,14 +469,18 @@ System Capabilities:
 
 ## 7. Best Practices
 
+**🚨 MOST IMPORTANT: Follow the "What NOT to Store" guidelines above!**
+
 1. **Capture Domain Knowledge**: Focus on what the system does, not how it's implemented
 2. **Business Language**: Use terms from the business domain, not technical jargon
 3. **Behavior Over Structure**: Describe system behavior and rules rather than code structure
 4. **Timeless Facts**: Record facts that remain true regardless of implementation changes
 5. **Relationships Matter**: Emphasize how domain concepts relate to each other
 6. **Context is Key**: Always provide business context for decisions and rules
-7. **Avoid Implementation Details**: No file paths, class names, or code snippets
+7. **Avoid Implementation Details**: No file paths, class names, code snippets, or UI specifics
 8. **Focus on Why**: Capture the reasoning behind decisions, not just the outcomes
+9. **Ask "Will this be true in 6 months?"**: If no, don't store it
+10. **Store WHAT and WHY, never HOW**: Implementation details become outdated quickly
 
 ## 8. Knowledge Capture Timing
 
@@ -413,9 +535,42 @@ Arguments: {
 }
 ```
 
-## 9. Knowledge Capture Timing
+## 9. Agent-Specific Memory Guidelines
 
-### When to Store Knowledge
+### Software Engineers
+- ❌ **DON'T**: Store component names, file paths, CSS classes, framework details
+- ✅ **DO**: Store business rules implemented, validation logic, data requirements
+- **Focus**: What business value was delivered, not how code was written
+
+### Security Engineers
+- ❌ **DON'T**: Store specific library implementations, configuration details
+- ✅ **DO**: Store security principles, threat models, protection strategies
+- **Focus**: Security requirements and patterns, not implementation specifics
+
+### DevOps Engineers
+- ❌ **DON'T**: Store specific deployment scripts, configuration files, server details
+- ✅ **DO**: Store operational patterns, incident response procedures, capacity planning
+- **Focus**: Operational knowledge and system behavior, not infrastructure specifics
+
+### Database Architects
+- ❌ **DON'T**: Store specific SQL queries, table schemas, migration scripts
+- ✅ **DO**: Store data modeling principles, performance patterns, integrity rules
+- **Focus**: Data relationships and business rules, not implementation details
+
+### Test Engineers
+- ❌ **DON'T**: Store specific test code, test tool configurations, file names
+- ✅ **DO**: Store testing strategies, quality patterns, risk assessments
+- **Focus**: What needs testing and why, not how tests are implemented
+
+### All Agents
+**Golden Rules:**
+1. If it contains file paths → DON'T store
+2. If it will change when code changes → DON'T store
+3. If it helps understand business domain → DO store
+4. If it's about WHY something exists → DO store
+5. When in doubt → DON'T store
+
+## 10. Knowledge Capture Timing
 
 **MANDATORY: Capture knowledge as you discover it, not at the end of the session**
 

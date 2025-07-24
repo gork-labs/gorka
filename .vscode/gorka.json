@@ -22,6 +22,8 @@
   ],
   "instructions": [
     "DOCUMENTATION_STANDARDS_GORKA.instructions.md",
+    "FILE_EDITING_BEST_PRACTICES_GORKA.instructions.md",
+    "TOOLS_FIRST_GUIDELINES_GORKA.instructions.md",
     "THINKING_PROCESS_GORKA.instructions.md",
     "DATETIME_HANDLING_GORKA.instructions.md",
     "MEMORY_USAGE_GUIDELINES_GORKA.instructions.md"
