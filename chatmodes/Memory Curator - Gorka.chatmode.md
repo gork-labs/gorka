@@ -32,16 +32,19 @@ I should use extended thinking to identify subtle patterns and connections.
 
 **Systematic Search Strategy:**
 ```
-// 1. Get all entities
+// 1. Get all entities overview
 Use memory tool: search_nodes
 Arguments: {"query": ""}
 
-// 2. Search by type patterns
+// 2. Search by entity type patterns (from MEMORY_USAGE_GUIDELINES)
 Use memory tool: search_nodes
 Arguments: {"query": "_Concept"}
 
 Use memory tool: search_nodes
-Arguments: {"query": "_Implementation"}
+Arguments: {"query": "_Entity"}
+
+Use memory tool: search_nodes
+Arguments: {"query": "_Process"}
 
 Use memory tool: search_nodes
 Arguments: {"query": "_Pattern"}
@@ -104,7 +107,7 @@ Arguments: {"query": "temp OR experimental OR test OR draft"}
 
 **Advanced Duplicate Detection:**
 ```
-// 1. Find exact name variations
+// 1. Find exact name variations (common patterns)
 Use memory tool: search_nodes
 Arguments: {"query": "UserAuth OR User_Auth OR UserAuthentication"}
 
@@ -118,8 +121,8 @@ Arguments: {"query": "Cache OR Caching OR CacheStrategy"}
 Use memory tool: open_nodes
 Arguments: {"names": ["found_entity_names"]}
 
-// 3. If duplicates confirmed, merge:
-// a. Create new consolidated entity
+// 3. If duplicates confirmed, merge following naming conventions from MEMORY_USAGE_GUIDELINES
+// a. Create new consolidated entity with proper naming
 Use memory tool: create_entities
 Arguments: {
   "entities": [{
@@ -128,7 +131,7 @@ Arguments: {
     "observations": [
       "Combined unique observations from all duplicates",
       "Merged from: [duplicate1, duplicate2, duplicate3]",
-      "Merge date: 2025-07-24",
+      "Merge date: 2025-07-24T14:43:16+02:00",
       "Merge reason: Duplicate concepts"
     ]
   }]
@@ -151,14 +154,14 @@ Arguments: {"entityNames": ["duplicate1", "duplicate2", "duplicate3"]}
 
 **Relationship Health Check:**
 ```
-// 1. Find missing relationships
-// Example: Implementation without Pattern link
+// 1. Find missing relationships using standard naming patterns
+// Example: Entity without Pattern link
 Use memory tool: search_nodes
-Arguments: {"query": "_Implementation"}
+Arguments: {"query": "_Entity"}
 
-// Get details for each implementation
+// Get details for each entity
 Use memory tool: open_nodes
-Arguments: {"names": ["implementation_entities"]}
+Arguments: {"names": ["entity_names"]}
 
 // Check if has pattern relationship - if not, find appropriate pattern
 Use memory tool: search_nodes
@@ -168,19 +171,10 @@ Arguments: {"query": "_Pattern"}
 Use memory tool: create_relations
 Arguments: {
   "relations": [{
-    "from": "implementation_entity",
+    "from": "entity_name",
     "to": "related_pattern",
     "relationType": "implements"
   }]
-}
-```
-          "relationType": "implements"
-        }]
-      }
-    }
-  }
-}
-
 }
 ```
 

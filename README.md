@@ -1,7 +1,7 @@
 ---
 title: "Production Coding Agent System Documentation"
 date: "2025-07-24"
-last_updated: "2025-07-24 10:20:14 UTC"
+last_updated: "2025-07-24T14:43:16+02:00"
 author: "@bohdan-shulha"
 ---
 
@@ -170,7 +170,7 @@ graph TB
 
 ## Shared Guidelines
 
-### Time Management (`instructions/TIME_MANAGEMENT_GORKA.instructions.md`)
+### DateTime Handling (`instructions/DATETIME_HANDLING_GORKA.instructions.md`)
 - Always use datetime MCP tool
 - Never hardcode timestamps
 - Track durations with start/end times
@@ -455,6 +455,28 @@ If you prefer manual installation:
    - Predictive patterns
    - Automated optimization
 
+## Quick Reference
+
+### File Location Patterns
+- Designs: `docs/architecture/YYYY-MM-DD-*.md`
+- Tests: `tests/[unit|integration|e2e]/`
+- Docs: `docs/[guides|api|tutorials]/`
+- Infrastructure: `infrastructure/[terraform|k8s]/`
+
+### Status Workflow
+```
+draft → under_review → needs_revision → under_review → approved
+                    ↓
+                 rejected
+```
+
+### Review Indicators
+- 🔴 Critical (must fix)
+- 🟡 Important (should fix)
+- 🟢 Suggestion (consider)
+- ✅ Approved
+- ❌ Rejected
+
 ## Sponsors
 
 We're grateful for the support of our sponsors who make this project possible:
@@ -465,4 +487,4 @@ We're grateful for the support of our sponsors who make this project possible:
 
 *System designed by @bohdan-shulha*
 *Incorporating Sonnet-4 advanced capabilities*
-*Last updated: 2025-07-24 10:20:14 UTC*
+*Last updated: 2025-07-24T14:43:16+02:00*
