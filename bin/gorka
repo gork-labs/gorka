@@ -48,7 +48,7 @@ print_step() {
 # Function to ensure cache directory exists and files are available
 ensure_files_available() {
     # If files exist locally (development setup), use them
-    if [ -f "$AGENTS_DIR/mcp.global.json" ] && [ -d "$AGENTS_DIR/chatmodes" ]; then
+    if [ -f "$AGENTS_DIR/mcp.json" ] && [ -d "$AGENTS_DIR/chatmodes" ]; then
         print_info "Using local development files from $AGENTS_DIR"
         echo "$AGENTS_DIR"
         return 0
@@ -87,7 +87,7 @@ ensure_files_available() {
     fi
 
     # Verify required files exist in the cloned repository
-    if [ ! -f "$repo_dir/mcp.global.json" ] || [ ! -d "$repo_dir/chatmodes" ]; then
+    if [ ! -f "$repo_dir/mcp.json" ] || [ ! -d "$repo_dir/chatmodes" ]; then
         print_error "Required files not found in cloned repository"
         return 1
     fi
@@ -296,109 +296,9 @@ merge_mcp_json() {
 }
 
 # Function to install global configuration
-install_global() {
-    print_step "Installing global configuration..."
-
-    # Determine VS Code user folder based on OS
-    case "$(uname)" in
-        "Darwin")  # macOS
-            VSCODE_USER_DIR="$HOME/Library/Application Support/Code/User"
-            ;;
-        "Linux")
-            VSCODE_USER_DIR="$HOME/.config/Code/User"
-            ;;
-        *)
-            print_error "Unsupported operating system"
-            exit 1
-            ;;
-    esac
-
-    if [ ! -d "$VSCODE_USER_DIR" ]; then
-        print_error "VS Code user directory not found at $VSCODE_USER_DIR"
-        print_error "Please ensure VS Code is installed and has been run at least once."
-        exit 1
-    fi
-
-    # Ensure files are available (either locally or from repository)
-    FILES_DIR=$(ensure_files_available)
-    if [ $? -ne 0 ]; then
-        print_error "Failed to ensure required files are available"
-        exit 1
-    fi
-
-    print_info "Merging global MCP configuration..."
-
-    # Build lists of chatmodes and instructions being installed
-    chatmodes_list=""
-    instructions_list=""
-
-    if [ -d "$FILES_DIR/chatmodes" ]; then
-        chatmodes_list=$(find "$FILES_DIR/chatmodes" -name "*.md" -exec basename {} \; | tr '\n' '\n')
-    fi
-
-    if [ -d "$FILES_DIR/instructions" ]; then
-        instructions_list=$(find "$FILES_DIR/instructions" -name "*.md" -exec basename {} \; | tr '\n' '\n')
-    fi
-
-    merge_mcp_json "$FILES_DIR/mcp.global.json" "$VSCODE_USER_DIR/mcp.json" "global" "$chatmodes_list" "$instructions_list"
-
-    # Copy chatmodes directory to VS Code user directory
-    print_info "Copying chatmodes to VS Code user directory..."
-    # Create chatmodes directory if it doesn't exist
-    mkdir -p "$VSCODE_USER_DIR/chatmodes"
-
-    # Copy all chatmode files
-    cp -r "$FILES_DIR/chatmodes/"* "$VSCODE_USER_DIR/chatmodes/"
-
-    # Also install .vscode/mcp.json in current directory if .vscode exists
-    local current_dir="$(pwd)"
-    local vscode_dir="$current_dir/.vscode"
-
-    if [ -d "$vscode_dir" ]; then
-        print_info "Found .vscode directory, also installing workspace MCP configuration..."
-
-        # Check if workspace file exists and use it, otherwise create minimal config
-        local workspace_config="$FILES_DIR/mcp.workspace.json"
-        if [ ! -f "$workspace_config" ] || [ ! -s "$workspace_config" ]; then
-            print_warning "mcp.workspace.json not found or empty. Creating minimal configuration."
-            workspace_config="/tmp/gorka_workspace_config.json"
-            echo '{"servers": {}, "inputs": []}' > "$workspace_config"
-        fi
-
-        # For global installation with workspace, we want both global and workspace configurations
-        print_info "Merging global MCP configuration..."
-
-        # Build lists of chatmodes and instructions being installed
-        chatmodes_list=""
-        instructions_list=""
-
-        if [ -d "$FILES_DIR/chatmodes" ]; then
-            chatmodes_list=$(find "$FILES_DIR/chatmodes" -name "*.md" -exec basename {} \; | tr '\n' '\n')
-        fi
-
-        if [ -d "$FILES_DIR/instructions" ]; then
-            instructions_list=$(find "$FILES_DIR/instructions" -name "*.md" -exec basename {} \; | tr '\n' '\n')
-        fi
-
-        merge_mcp_json "$FILES_DIR/mcp.global.json" "$vscode_dir/mcp.json" "workspace" "$chatmodes_list" "$instructions_list"
-
-        print_info "Merging workspace MCP configuration..."
-        merge_mcp_json "$workspace_config" "$vscode_dir/mcp.json" "workspace" "$chatmodes_list" "$instructions_list"
-        print_success "Workspace MCP configuration installed to: .vscode/mcp.json"
-
-        # Create memory.json file for the memory server
-        print_info "Creating memory.json file..."
-        touch "$vscode_dir/memory.json"
-        print_success "Memory file created at: .vscode/memory.json"
-    fi
-
-    print_success "Global installation completed successfully!"
-    print_info "Configuration installed to: $VSCODE_USER_DIR"
-}
-
 # Function to install workspace configuration
-install_workspace() {
-    print_step "Installing workspace configuration..."
+install() {
+    print_step "Installing Gorka agent system..."
 
     local current_dir="$(pwd)"
     local vscode_dir="$current_dir/.vscode"
@@ -423,64 +323,41 @@ install_workspace() {
         exit 1
     fi
 
-    # Check if workspace file exists and use it, otherwise create minimal config
-    local workspace_config="$FILES_DIR/mcp.workspace.json"
-    if [ ! -f "$workspace_config" ] || [ ! -s "$workspace_config" ]; then
-        print_warning "mcp.workspace.json not found or empty. Creating minimal configuration."
-        workspace_config="/tmp/gorka_workspace_config.json"
-        echo '{"servers": {}, "inputs": []}' > "$workspace_config"
+    # Check if mcp.json exists
+    if [ ! -f "$FILES_DIR/mcp.json" ]; then
+        print_error "MCP configuration file not found"
+        exit 1
     fi
-
-    # For workspace installation, we want both global and workspace configurations
-    print_info "Merging global MCP configuration..."
 
     # Build lists of chatmodes and instructions being installed
     chatmodes_list=""
     instructions_list=""
 
     if [ -d "$FILES_DIR/chatmodes" ]; then
+        print_info "Copying chatmodes to workspace .github directory..."
+        cp -r "$FILES_DIR/chatmodes" "$github_dir/"
+        print_success "Chatmodes copied to: .github/chatmodes"
         chatmodes_list=$(find "$FILES_DIR/chatmodes" -name "*.md" -exec basename {} \; | tr '\n' '\n')
     fi
 
     if [ -d "$FILES_DIR/instructions" ]; then
+        print_info "Copying instructions to workspace .github directory..."
+        cp -r "$FILES_DIR/instructions" "$github_dir/"
+        print_success "Instructions copied to: .github/instructions"
         instructions_list=$(find "$FILES_DIR/instructions" -name "*.md" -exec basename {} \; | tr '\n' '\n')
     fi
 
-    merge_mcp_json "$FILES_DIR/mcp.global.json" "$vscode_dir/mcp.json" "workspace" "$chatmodes_list" "$instructions_list"
-
-    print_info "Merging workspace MCP configuration..."
-    merge_mcp_json "$workspace_config" "$vscode_dir/mcp.json" "workspace" "$chatmodes_list" "$instructions_list"
+    # Install MCP configuration
+    print_info "Installing MCP configuration..."
+    merge_mcp_json "$FILES_DIR/mcp.json" "$vscode_dir/mcp.json" "workspace" "$chatmodes_list" "$instructions_list"
+    print_success "MCP configuration installed to: .vscode/mcp.json"
 
     # Create memory.json file for the memory server
     print_info "Creating memory.json file..."
     touch "$vscode_dir/memory.json"
     print_success "Memory file created at: .vscode/memory.json"
 
-    # Copy chatmodes and instructions to .github directory
-    print_info "Copying chatmodes and instructions to .github directory..."
-
-    if [ -d "$FILES_DIR/chatmodes" ]; then
-        print_info "Copying chatmodes..."
-        mkdir -p "$github_dir/chatmodes"
-        cp -r "$FILES_DIR/chatmodes/"* "$github_dir/chatmodes/"
-        print_success "Chatmodes copied to: .github/chatmodes"
-    else
-        print_warning "chatmodes directory not found in $FILES_DIR"
-    fi
-
-    # Copy instruction files from instructions directory
-    if [ -d "$FILES_DIR/instructions" ]; then
-        print_info "Copying instruction files..."
-        mkdir -p "$github_dir/instructions"
-        cp -r "$FILES_DIR/instructions/"* "$github_dir/instructions/"
-        print_success "Instructions copied to: .github/instructions"
-    else
-        print_warning "instructions directory not found in $FILES_DIR"
-    fi
-
-    print_success "Workspace installation completed successfully!"
-    print_info "MCP configuration installed to: .vscode/mcp.json"
-    print_info "Chatmodes and instructions installed to: .github/"
+    print_success "Installation completed successfully!"
 }
 
 # Function to clean cache
@@ -591,8 +468,8 @@ get_available_components() {
 
     echo ""
     echo "MCP Servers (global):"
-    if [ -f "$FILES_DIR/mcp.global.json" ]; then
-        jq -r '.servers // {} | keys[]' "$FILES_DIR/mcp.global.json" 2>/dev/null | while read server; do
+    if [ -f "$FILES_DIR/mcp.json" ]; then
+        jq -r '.servers // {} | keys[]' "$FILES_DIR/mcp.json" 2>/dev/null | while read server; do
             if [ -n "$server" ]; then
                 echo "  • $server"
             fi
@@ -633,27 +510,8 @@ get_available_components() {
 
 # Function to sync components
 sync_components() {
-    local target_type="$1"  # "global", "workspace", or "both"
-
     print_step "Syncing components with repository..."
-
-    case "$target_type" in
-        "global")
-            install_global
-            ;;
-        "workspace")
-            install_workspace
-            ;;
-        "both"|"")
-            install_global
-            ;;
-        *)
-            print_error "Invalid target type: $target_type"
-            print_info "Valid options: global, workspace, both"
-            return 1
-            ;;
-    esac
-
+    install
     print_success "Sync completed successfully!"
 }
 
@@ -827,7 +685,7 @@ clean_orphans() {
         local available_instructions=""
 
         if [ "$scope" = "global" ]; then
-            available_servers=$(jq -r '.servers // {} | keys[]' "$FILES_DIR/mcp.global.json" 2>/dev/null || echo "")
+            available_servers=$(jq -r '.servers // {} | keys[]' "$FILES_DIR/mcp.json" 2>/dev/null || echo "")
         else
             available_servers=$(jq -r '.servers // {} | keys[]' "$FILES_DIR/mcp.workspace.json" 2>/dev/null || echo "")
         fi
@@ -1026,23 +884,19 @@ self_upgrade() {
 case "$1" in
     "install")
         case "$2" in
-            "--global")
-                install_global
-                ;;
             "")
-                # Default behavior: workspace installation
-                install_workspace
+                # Install workspace configuration
+                install
                 ;;
             *)
-                echo "Usage: gorka install [--global]"
+                echo "Usage: gorka install"
                 echo ""
                 echo "Commands:"
-                echo "  gorka install          - Install workspace MCP configuration + copy chatmodes/instructions to .github directory"
-                echo "  gorka install --global - Install global MCP configuration and chatmodes to VS Code user folder + workspace MCP if .vscode exists"
-                echo "  gorka update           - Manage installed components"
-                echo "  gorka self-upgrade     - Upgrade gorka binary to latest version"
-                echo "  gorka help             - Show help message"
-                echo "  gorka clean            - Clean cached repository files"
+                echo "  gorka install - Install workspace MCP configuration + copy chatmodes/instructions to .github directory"
+                echo "  gorka update  - Manage installed components"
+                echo "  gorka self-upgrade - Upgrade gorka binary to latest version"
+                echo "  gorka help    - Show help message"
+                echo "  gorka clean   - Clean cached repository files"
                 exit 1
                 ;;
         esac
@@ -1051,81 +905,46 @@ case "$1" in
         case "$2" in
             "list")
                 case "$3" in
-                    "global")
-                        get_current_components "global"
-                        ;;
-                    "workspace")
+                    "")
                         get_current_components "workspace"
                         ;;
                     "available")
                         get_available_components
                         ;;
-                    ""|"both")
-                        get_current_components "global"
-                        get_current_components "workspace"
-                        ;;
                     *)
-                        echo "Usage: gorka update list [global|workspace|available|both]"
+                        echo "Usage: gorka update list [available]"
                         exit 1
                         ;;
                 esac
                 ;;
             "sync")
-                case "$3" in
-                    "global")
-                        sync_components "global"
-                        ;;
-                    "workspace")
-                        sync_components "workspace"
-                        ;;
-                    ""|"both")
-                        sync_components "both"
-                        ;;
-                    *)
-                        echo "Usage: gorka update sync [global|workspace|both]"
-                        exit 1
-                        ;;
-                esac
+                sync_components
                 ;;
             "remove")
-                remove_component "$3" "$4" "$5"
+                remove_component "$3" "$4" "workspace"
                 ;;
             "clean-orphans")
-                case "$3" in
-                    "global")
-                        clean_orphans "global"
-                        ;;
-                    "workspace")
-                        clean_orphans "workspace"
-                        ;;
-                    ""|"both")
-                        clean_orphans "both"
-                        ;;
-                    *)
-                        echo "Usage: gorka update clean-orphans [global|workspace|both]"
-                        exit 1
-                        ;;
-                esac
+                clean_orphans "workspace"
                 ;;
             "")
                 echo "Usage: gorka update <command> [options]"
                 echo ""
                 echo "Update Commands:"
-                echo "  gorka update list [global|workspace|available|both]     - Show status of installed components"
-                echo "  gorka update sync [global|workspace|both]               - Sync with latest repository"
+                echo "  gorka update list                                        - Show status of installed components"
+                echo "  gorka update sync                                        - Sync with latest repository"
                 echo "  gorka update remove <type> <name> [global|workspace]    - Remove gorka-managed component"
-                echo "  gorka update clean-orphans [global|workspace|both]      - Remove orphaned components"
+                echo "  gorka update clean-orphans                               - Remove orphaned components"
                 echo ""
                 echo "Component Types:"
                 echo "  server       - MCP server"
                 echo "  input        - MCP input"
                 echo "  chatmode     - Chatmode file"
-                echo "  instruction  - Instruction file (workspace only)"
+                echo "  instruction  - Instruction file"
                 echo ""
                 echo "Examples:"
                 echo "  gorka update list"
-                echo "  gorka update sync workspace"
-                echo "  gorka update remove server memory workspace"
+                echo "  gorka update sync"
+                echo "  gorka update remove server memory"
                 echo "  gorka update clean-orphans"
                 ;;
             *)
@@ -1143,7 +962,6 @@ case "$1" in
         echo ""
         echo "Commands:"
         echo "  gorka install          - Install workspace MCP configuration + copy chatmodes/instructions to .github directory"
-        echo "  gorka install --global - Install global MCP configuration and chatmodes to VS Code user folder + workspace MCP if .vscode exists"
         echo "  gorka update           - Manage installed components (run 'gorka update' for details)"
         echo "  gorka self-upgrade     - Upgrade gorka binary to latest version"
         echo "  gorka help             - Show this help message"
@@ -1157,7 +975,6 @@ case "$1" in
         echo ""
         echo "Commands:"
         echo "  gorka install          - Install workspace MCP configuration + copy chatmodes/instructions to .github directory"
-        echo "  gorka install --global - Install global MCP configuration and chatmodes to VS Code user folder + workspace MCP if .vscode exists"
         echo "  gorka update           - Manage installed components (run 'gorka update' for details)"
         echo "  gorka self-upgrade     - Upgrade gorka binary to latest version"
         echo "  gorka help             - Show this help message"
