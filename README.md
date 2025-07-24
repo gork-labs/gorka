@@ -353,6 +353,11 @@ Install gorka CLI tool and the agent system with a single command:
 curl -fsSL https://raw.githubusercontent.com/gork-labs/gorka/main/setup.sh | bash
 ```
 
+**Force reinstall** (if you need to update or fix an existing installation):
+```bash
+bash <(curl -fsSL https://raw.githubusercontent.com/gork-labs/gorka/main/setup.sh) --force
+```
+
 Then install the configurations:
 ```bash
 # Install globally for all projects

@@ -31,28 +31,30 @@ I should use extended thinking to identify subtle patterns and connections.
 ### Phase 1: Comprehensive Discovery (ultrathink)
 
 **Systematic Search Strategy:**
-```javascript
+```
 // 1. Get all entities
-Use memory tool: search_entities
+Use memory tool: search_nodes
 Arguments: {"query": ""}
 
 // 2. Search by type patterns
-const typePatterns = [
-  "_Concept", "_Implementation", "_Pattern", "_Decision",
-  "_Document", "_Review", "_Incident", "_Test"
-];
+Use memory tool: search_nodes
+Arguments: {"query": "_Concept"}
 
-for (const pattern of typePatterns) {
-  Use memory tool: search_entities
-  Arguments: {"query": pattern}
-}
+Use memory tool: search_nodes
+Arguments: {"query": "_Implementation"}
 
-// 3. Search by date patterns (last 30 days)
-Use memory tool: search_entities
-Arguments: {"query": "2025-01"}
+Use memory tool: search_nodes
+Arguments: {"query": "_Pattern"}
+
+Use memory tool: search_nodes
+Arguments: {"query": "_Decision"}
+
+// 3. Search by date patterns (current month)
+Use memory tool: search_nodes
+Arguments: {"query": "2025-07"}
 
 // 4. Search for temporary/experimental
-Use memory tool: search_entities
+Use memory tool: search_nodes
 Arguments: {"query": "temp OR experimental OR test OR draft"}
 ```
 
@@ -61,113 +63,117 @@ Arguments: {"query": "temp OR experimental OR test OR draft"}
 **Multi-Dimensional Analysis:**
 
 1. **Completeness Analysis**
-   ```javascript
+   ```
    // For each entity, check:
-   - Has sufficient observations (>5)?
-   - Includes timestamp?
-   - Has proper type?
-   - Contains actionable information?
+   // - Has sufficient observations (>5)?
+   // - Includes timestamp?
+   // - Has proper type?
+   // - Contains actionable information?
    ```
 
 2. **Relationship Analysis**
-   ```javascript
+   ```
    // Identify:
-   - Orphaned entities (no relationships)
-   - Broken relationships (missing targets)
-   - Missing obvious relationships
-   - Relationship density by domain
+   // - Orphaned entities (no relationships)
+   // - Broken relationships (missing targets)
+   // - Missing obvious relationships
+   // - Relationship density by domain
    ```
 
 3. **Freshness Analysis**
-   ```javascript
+   ```
    // Categorize by age:
-   - Active (updated <7 days)
-   - Recent (updated <30 days)
-   - Stale (updated <90 days)
-   - Obsolete (updated >90 days)
+   // - Active (updated <7 days)
+   // - Recent (updated <30 days)
+   // - Stale (updated <90 days)
+   // - Obsolete (updated >90 days)
    ```
 
 4. **Domain Coverage Analysis**
-   ```javascript
+   ```
    // Map entities to domains:
-   - Authentication/Security
-   - Data/Database
-   - API/Services
-   - Frontend/UI
-   - Infrastructure/DevOps
-   - Testing/Quality
+   // - Authentication/Security
+   // - Data/Database
+   // - API/Services
+   // - Frontend/UI
+   // - Infrastructure/DevOps
+   // - Testing/Quality
    ```
 
 ### Phase 3: Duplicate Detection and Merging
 
 **Advanced Duplicate Detection:**
-```javascript
+```
 // 1. Find exact name variations
-const variations = [
-  ["UserAuth", "User_Auth", "UserAuthentication"],
-  ["API", "Api", "RestAPI"],
-  ["Cache", "Caching", "CacheStrategy"]
-];
+Use memory tool: search_nodes
+Arguments: {"query": "UserAuth OR User_Auth OR UserAuthentication"}
 
-// 2. Semantic similarity check
-for (const group of variations) {
-  Use memory tool: search_entities
-  Arguments: {"query": group.join(" OR ")}
+Use memory tool: search_nodes
+Arguments: {"query": "API OR Api OR RestAPI"}
 
-  // Get details
-  Use memory tool: open_nodes
-  Arguments: {"names": foundEntities}
+Use memory tool: search_nodes
+Arguments: {"query": "Cache OR Caching OR CacheStrategy"}
 
-  // If duplicates confirmed, merge:
-  // a. Create new consolidated entity
-  Use memory tool: create_entities
-  Arguments: {
-    "entities": [{
-      "name": "ConsolidatedName_Type",
-      "entityType": "concept",
-      "observations": [
-        // Combined unique observations from all duplicates
-        // Include merge metadata
-        `Merged from: ${duplicateNames.join(", ")}`,
-        `Merge date: ${date}`,
-        `Merge reason: Duplicate concepts`
-      ]
-    }]
-  }
+// 2. Get details for comparison
+Use memory tool: open_nodes
+Arguments: {"names": ["found_entity_names"]}
 
-  // b. Recreate all relationships
-  Use memory tool: create_relations
-  Arguments: {
-    "relations": [
-      // All relationships from old entities
+// 3. If duplicates confirmed, merge:
+// a. Create new consolidated entity
+Use memory tool: create_entities
+Arguments: {
+  "entities": [{
+    "name": "ConsolidatedName_Type",
+    "entityType": "concept",
+    "observations": [
+      "Combined unique observations from all duplicates",
+      "Merged from: [duplicate1, duplicate2, duplicate3]",
+      "Merge date: 2025-07-24",
+      "Merge reason: Duplicate concepts"
     ]
-  }
-
-  // c. Delete old entities
-  Use memory tool: delete_entities
-  Arguments: {"names": duplicateNames}
+  }]
 }
+
+// b. Recreate all relationships
+Use memory tool: create_relations
+Arguments: {
+  "relations": [
+    // All relationships from old entities pointed to new entity
+  ]
+}
+
+// c. Delete old entities
+Use memory tool: delete_entities
+Arguments: {"entityNames": ["duplicate1", "duplicate2", "duplicate3"]}
 ```
 
 ### Phase 4: Relationship Optimization
 
 **Relationship Health Check:**
-```javascript
+```
 // 1. Find missing relationships
 // Example: Implementation without Pattern link
-const implementations = await search_entities("_Implementation");
-for (const impl of implementations) {
-  const details = await open_nodes([impl]);
-  // Check if has pattern relationship
-  if (!hasPatternRelationship(details)) {
-    // Find appropriate pattern
-    const pattern = findRelatedPattern(impl);
-    if (pattern) {
-      Use memory tool: create_relations
-      Arguments: {
-        "relations": [{
-          "from": impl,
-          "to": pattern,
+Use memory tool: search_nodes
+Arguments: {"query": "_Implementation"}
+
+// Get details for each implementation
+Use memory tool: open_nodes
+Arguments: {"names": ["implementation_entities"]}
+
+// Check if has pattern relationship - if not, find appropriate pattern
+Use memory tool: search_nodes
+Arguments: {"query": "_Pattern"}
+
+// Create missing relationships
+Use memory tool: create_relations
+Arguments: {
+  "relations": [{
+    "from": "implementation_entity",
+    "to": "related_pattern",
+    "relationType": "implements"
+  }]
+}
+```
           "relationType": "implements"
         }]
       }
@@ -175,10 +181,41 @@ for (const impl of implementations) {
   }
 }
 
+}
+```
+
+**Domain Clustering:**
+```
 // 2. Create domain clusters
 // Link related concepts within domains
-const authEntities = await search_entities("auth OR authentication OR jwt");
+Use memory tool: search_nodes
+Arguments: {"query": "auth OR authentication OR jwt"}
+
+// Get details for all auth-related entities
+Use memory tool: open_nodes
+Arguments: {"names": ["auth_entity_names"]}
+
 // Create cross-references between related auth concepts
+Use memory tool: create_relations
+Arguments: {
+  "relations": [
+    {"from": "AuthService_Implementation", "to": "JWTToken_Pattern", "relationType": "uses"},
+    {"from": "AuthService_Implementation", "to": "UserLogin_Process", "relationType": "enables"}
+  ]
+}
+```
+
+### Phase 5: Content Enhancement
+
+**Enrich Sparse Entities:**
+```
+// For entities with <5 observations
+Use memory tool: add_observations
+Arguments: {
+  "observations": [{
+    "entityName": "SparseEntity_Type",
+    "contents": [
+      "Purpose: [Inferred from name and relationships]",
 ```
 
 ### Phase 5: Content Enhancement
@@ -195,7 +232,7 @@ Arguments: {
       "Domain: [Category]",
       "Related to: [Connected entities]",
       "Status: Active/Archived",
-      `Enhanced: ${date} by memory review`
+      "Enhanced: 2025-07-24 by memory review"
     ]
   }]
 }
@@ -204,54 +241,60 @@ Arguments: {
 ### Phase 6: Cleanup Actions
 
 **Systematic Cleanup:**
-```javascript
+```
 // 1. Delete temporary entities >30 days
-const tempEntities = await search_entities("temp_ OR temporary_");
-const oldTemps = filterByAge(tempEntities, 30);
+Use memory tool: search_nodes
+Arguments: {"query": "temp_ OR temporary_"}
 
+// Get details to check dates
+Use memory tool: open_nodes
+Arguments: {"names": ["temp_entity_names"]}
+
+// Delete old temporary entities
 Use memory tool: delete_entities
-Arguments: {"names": oldTemps}
+Arguments: {"entityNames": ["old_temp_entities"]}
 
 // 2. Archive obsolete patterns
-const obsoletePatterns = await identifyObsoletePatterns();
-for (const pattern of obsoletePatterns) {
-  Use memory tool: add_observations
-  Arguments: {
-    "observations": [{
-      "entityName": pattern,
-      "contents": [
-        "Status: ARCHIVED",
-        `Archived date: ${date}`,
-        "Reason: Superseded by newer pattern",
-        "Replacement: [NewPattern_Pattern]"
-      ]
-    }]
-  }
+Use memory tool: search_nodes
+Arguments: {"query": "_Pattern"}
+
+// For obsolete patterns, add archive status
+Use memory tool: add_observations
+Arguments: {
+  "observations": [{
+    "entityName": "ObsoletePattern_Pattern",
+    "contents": [
+      "Status: ARCHIVED",
+      "Archived date: 2025-07-24",
+      "Reason: Superseded by newer pattern",
+      "Replacement: [NewPattern_Pattern]"
+    ]
+  }]
 }
 
 // 3. Clean broken relationships
-// Delete relationships where target doesn't exist
+// Manually identify and delete relationships where target doesn't exist
 ```
 
 ### Phase 7: Domain Discovery and Insights
 
 **Pattern Recognition (ultrathink):**
-```javascript
+```
 // Analyze entity clusters to discover:
-1. Core domains (most connected entities)
-2. Emerging patterns (new entity clusters)
-3. Knowledge gaps (sparse areas)
-4. Best practices (successful patterns)
+// 1. Core domains (most connected entities)
+// 2. Emerging patterns (new entity clusters)
+// 3. Knowledge gaps (sparse areas)
+// 4. Best practices (successful patterns)
 
 // Create insight entities
 Use memory tool: create_entities
 Arguments: {
   "entities": [{
-    "name": "DomainInsight_Authentication_20250123",
+    "name": "DomainInsight_Authentication_20250724",
     "entityType": "concept",
     "observations": [
       "Domain: Authentication",
-      `Analysis date: ${date}`,
+      "Analysis date: 2025-07-24",
       "Total entities: 47",
       "Core pattern: JWT with refresh tokens",
       "Common issues: Token expiry handling",
@@ -266,15 +309,17 @@ Arguments: {
 ### Phase 8: Review Report Generation
 
 **Comprehensive Review Report:**
-```javascript
+```
 // Get final timestamp
-const reviewEndTime = await datetime.get_current_time({ timezone: "Europe/Warsaw" });
+Use datetime tool: get_current_time
+Arguments: {"timezone": "Europe/Warsaw"}
+// Returns: "2025-07-24 14:09:14"
 
 // Create review summary entity
 Use memory tool: create_entities
 Arguments: {
   "entities": [{
-    "name": `MemoryReview_${date.replace(/-/g, "")}`,
+    "name": "MemoryReview_20250724",
     "entityType": "event",
     "observations": [
       `Review date: ${date}`,
