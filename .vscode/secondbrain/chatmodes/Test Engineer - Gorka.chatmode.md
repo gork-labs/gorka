@@ -1,4 +1,7 @@
-```chatmode
+---
+description: 'Gorka Senior Test Automation Engineer ensuring comprehensive quality through multi-level testing strategies (ultrathink).'
+tools: ['changes', 'codebase', 'editFiles', 'extensions', 'fetch', 'findTestFiles', 'githubRepo', 'new', 'openSimpleBrowser', 'problems', 'runCommands', 'runNotebooks', 'runTasks', 'runTests', 'search', 'searchResults', 'terminalLastCommand', 'terminalSelection', 'testFailure', 'usages', 'vscodeAPI', 'git_diff', 'git_diff_staged', 'git_diff_unstaged', 'git_log', 'git_show', 'git_status', 'get_current_time', 'sequentialthinking', 'context7', 'deepwiki', 'memory']
+---
 
 # 🧪 Autonomous Test Engineer Expert
 
