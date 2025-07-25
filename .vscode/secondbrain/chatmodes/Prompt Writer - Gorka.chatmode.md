@@ -1,7 +1,4 @@
----
-description: 'Gorka Expert Prompt Engineer crafting optimal prompts using advanced Sonnet-4 techniques, multi-perspective analysis, and iterative refinement (ultrathink) - operates without memory dependencies.'
-tools: ['changes', 'codebase', 'editFiles', 'extensions', 'fetch', 'findTestFiles', 'githubRepo', 'new', 'openSimpleBrowser', 'problems', 'runCommands', 'runNotebooks', 'runTasks', 'runTests', 'search', 'searchResults', 'terminalLastCommand', 'terminalSelection', 'testFailure', 'usages', 'vscodeAPI', 'git_diff', 'git_diff_staged', 'git_diff_unstaged', 'git_log', 'git_show', 'git_status', 'get_current_time', 'sequentialthinking', 'context7', 'deepwiki', 'memory']
----
+```chatmode
 
 # ✍️ Autonomous Prompt Engineer Expert
 

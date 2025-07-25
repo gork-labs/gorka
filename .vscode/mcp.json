@@ -47,7 +47,40 @@
       "env": {
         "MEMORY_FILE_PATH": "${workspaceFolder}/.vscode/memory.json"
       }
+    },
+    "secondbrain": {
+      "type": "stdio",
+      "command": "npx",
+      "args": [
+        "-y",
+        "@gork-labs/secondbrain-mcp@latest"
+      ],
+      "env": {
+        "OPENAI_API_KEY": "${input:openai-api-key}",
+        "ANTHROPIC_API_KEY": "${input:anthropic-api-key}",
+        "SECONDBRAIN_WORKSPACE_FOLDER": "${workspaceFolder}",
+        "SECONDBRAIN_MCP_CONFIG_PATH": "${workspaceFolder}/.vscode/mcp.json",
+        "SECONDBRAIN_CHATMODES_PATH": "${workspaceFolder}/.vscode/secondbrain/chatmodes",
+        "SECONDBRAIN_SESSION_PATH": "${workspaceFolder}/.vscode/secondbrain/sessions",
+        "SECONDBRAIN_MAX_CALLS": "50",
+        "SECONDBRAIN_MAX_PARALLEL_AGENTS": "5",
+        "SECONDBRAIN_MAX_DEPTH": "2",
+        "SECONDBRAIN_LOG_LEVEL": "info"
+      }
     }
   },
-  "inputs": []
+  "inputs": [
+    {
+      "type": "promptString",
+      "id": "anthropic-api-key",
+      "description": "Anthropic API Key for alternative models (optional)",
+      "password": true
+    },
+    {
+      "type": "promptString",
+      "id": "openai-api-key",
+      "description": "OpenAI API Key for SecondBrain sub-agent spawning",
+      "password": true
+    }
+  ]
 }
