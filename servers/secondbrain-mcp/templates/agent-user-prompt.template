@@ -1,0 +1,13 @@
+## Task
+{{task}}
+
+## Context
+{{context}}
+
+## Expected Deliverables
+{{expectedDeliverables}}
+
+## Urgency
+{{urgency}}
+
+Please provide your response in the exact JSON format specified in the system prompt.

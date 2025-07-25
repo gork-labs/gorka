@@ -1,0 +1,70 @@
+{
+  "name": "@gork-labs/secondbrain-mcp",
+  "version": "0.14.0",
+  "description": "Second Brain MCP Server - Agent team orchestration with dynamic tool discovery",
+  "main": "dist/index.js",
+  "bin": {
+    "secondbrain-mcp": "dist/index.js"
+  },
+  "type": "module",
+  "scripts": {
+    "build": "tsc && npm run copy-chatmodes && npm run copy-instructions && npm run copy-templates",
+    "copy-chatmodes": "mkdir -p chatmodes && npm run clean-frontmatter",
+    "clean-frontmatter": "for file in ../../chatmodes/*.chatmode.md; do sed '/^---$/,/^---$/d' \"$file\" > \"chatmodes/$(basename \"$file\")\"; done",
+    "copy-instructions": "mkdir -p instructions && cp ../../.github/instructions/*.instructions.md instructions/",
+    "copy-templates": "mkdir -p templates && cp src/templates/*.template templates/",
+    "generate-standalone-agents": "npm run build && mkdir -p standalone-agents && node dist/cli/generate-standalone-agents.js",
+    "clean": "rm -rf dist chatmodes instructions templates standalone-agents",
+    "dev": "tsc --watch",
+    "prebuild": "npm run clean",
+    "test": "vitest run",
+    "test:watch": "vitest",
+    "test:coverage": "vitest run --coverage",
+    "start": "node dist/index.js",
+    "lint": "eslint src/**/*.ts",
+    "type-check": "tsc --noEmit"
+  },
+  "keywords": [
+    "mcp",
+    "model-context-protocol",
+    "agent-orchestration",
+    "multi-agent",
+    "delegation",
+    "chatmodes",
+    "gorka"
+  ],
+  "author": "Bohdan Shulha <bv.shulha@gmail.com>",
+  "license": "MIT",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/gork-labs/gorka.git",
+    "directory": "servers/secondbrain-mcp"
+  },
+  "dependencies": {
+    "@modelcontextprotocol/sdk": "^1.0.0",
+    "zod": "^3.22.0",
+    "openai": "^4.0.0",
+    "@anthropic-ai/sdk": "^0.24.0",
+    "mustache": "^4.2.0"
+  },
+  "devDependencies": {
+    "@types/node": "^20.0.0",
+    "@types/mustache": "^4.2.0",
+    "@typescript-eslint/eslint-plugin": "^6.0.0",
+    "@typescript-eslint/parser": "^6.0.0",
+    "eslint": "^8.0.0",
+    "typescript": "^5.0.0",
+    "vitest": "^1.0.0",
+    "@vitest/coverage-v8": "^1.0.0"
+  },
+  "engines": {
+    "node": ">=18.0.0"
+  },
+  "files": [
+    "dist/",
+    "README.md",
+    "chatmodes/",
+    "instructions/",
+    "templates/"
+  ]
+}

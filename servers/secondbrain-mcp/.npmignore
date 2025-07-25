@@ -1,0 +1,34 @@
+# Source files (we include the built dist/ instead)
+src/
+tests/
+*.test.ts
+*.spec.ts
+
+# Development files
+.vscode/
+.env*
+.DS_Store
+node_modules/
+coverage/
+.nyc_output/
+
+# Build artifacts
+tsconfig.tsbuildinfo
+*.log
+*.tmp
+
+# Demo and development files
+demo-*.mjs
+demo-*.md
+
+# Git files
+.git/
+.gitignore
+
+# Configuration files for development
+vitest.config.ts
+eslint.config.js
+.eslintrc*
+
+# Documentation that's not needed in package
+docs/
