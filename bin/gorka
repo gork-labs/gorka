@@ -169,10 +169,10 @@ update_gorka_metadata() {
                "$gorka_file" > "$gorka_file.tmp" && mv "$gorka_file.tmp" "$gorka_file"
             ;;
         "set")
-            # Replace the entire list
+            # Replace the entire list (with deduplication)
             jq --argjson new_items "$(echo "$component_list" | jq -R -s 'split("\n") | map(select(length > 0))')" \
                --arg type "$component_type" \
-               '.[$type] = $new_items' \
+               '.[$type] = ($new_items | unique | sort)' \
                "$gorka_file" > "$gorka_file.tmp" && mv "$gorka_file.tmp" "$gorka_file"
             ;;
         *)
@@ -268,7 +268,7 @@ merge_mcp_json() {
            $source[0] as $src |
            $target |
            .servers = (.servers // {}) + ($src.servers // {}) |
-           .inputs = (.inputs // []) + ($src.inputs // [])
+           .inputs = ((.inputs // []) + ($src.inputs // []) | unique_by(.id))
            ' "$target_file" > "$target_file.tmp"
 
         mv "$target_file.tmp" "$target_file"
@@ -281,13 +281,14 @@ merge_mcp_json() {
 
     # Update gorka metadata separately
     local all_servers
-    local all_inputs
+    local all_input_ids
     all_servers=$(jq -r '.servers // {} | keys[]' "$target_file" 2>/dev/null | tr '\n' '\n')
-    all_inputs=$(jq -r '.inputs // [] | .[]' "$target_file" 2>/dev/null | tr '\n' '\n')
+    # Fix: Store only input IDs, not the full input objects
+    all_input_ids=$(jq -r '.inputs // [] | .[].id' "$target_file" 2>/dev/null | tr '\n' '\n')
 
     # Update metadata for all component types
     update_gorka_metadata "$scope" "servers" "$all_servers" "set"
-    update_gorka_metadata "$scope" "inputs" "$all_inputs" "set"
+    update_gorka_metadata "$scope" "inputs" "$all_input_ids" "set"
     update_gorka_metadata "$scope" "chatmodes" "$chatmodes_list" "set"
 
     if [ "$scope" = "workspace" ]; then
