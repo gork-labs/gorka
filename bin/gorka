@@ -267,7 +267,23 @@ merge_mcp_json() {
            . as $target |
            $source[0] as $src |
            $target |
-           .servers = (.servers // {}) + ($src.servers // {}) |
+           .servers = (
+               ($target.servers // {}) as $existing_servers |
+               ($src.servers // {}) as $new_servers |
+               $existing_servers + (
+                   $new_servers | to_entries | map(
+                       .key as $server_name |
+                       .value as $new_config |
+                       ($existing_servers[$server_name] // {}) as $existing_config |
+                       {
+                           key: $server_name,
+                           value: ($new_config + {
+                               env: (($existing_config.env // {}) + ($new_config.env // {}))
+                           })
+                       }
+                   ) | from_entries
+               )
+           ) |
            .inputs = ((.inputs // []) + ($src.inputs // []) | unique_by(.id))
            ' "$target_file" > "$target_file.tmp"
 

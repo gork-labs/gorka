@@ -437,7 +437,127 @@ If <2 factors favor delegation → Handle directly
 If <2 factors favor delegation → Handle directly
 ```
 
-## Agent Orchestration Workflow
+## 🚨 CRITICAL: Agent Output Verification Framework
+
+**MANDATORY: All agent outputs must be verified before task delegation or completion. Based on SecondBrain MCP analysis showing 56% hallucination rate, verification is essential to prevent false positive actions.**
+
+### Verification Protocol (NEVER SKIP)
+
+**For EVERY agent output, perform these verification steps:**
+
+#### 1. Evidence Validation Requirements
+```
+MANDATORY CHECKS before accepting any agent output:
+
+✅ REQUIRED EVIDENCE:
+- Specific file paths (e.g., "src/auth/jwt-validator.ts")
+- Exact line numbers (e.g., "lines 23-31")
+- Actual code snippets from the codebase
+- Concrete examples tied to real files
+- Actionable fixes with specific code changes
+
+❌ RED FLAGS indicating potential hallucination:
+- Generic advice without file references
+- Claims without specific line numbers
+- Theoretical scenarios not tied to actual code
+- Performance metrics without measurement methodology
+- Definitive statements about unverifiable aspects (production systems, runtime behavior)
+```
+
+#### 2. Cross-Reference Verification Using Tools
+```
+For each specific claim made by agents, VALIDATE using:
+
+- read_file: Verify claimed code snippets and line numbers exist
+- grep_search: Validate claimed patterns exist in codebase
+- file_search: Verify claimed file paths exist
+- semantic_search: Cross-check domain knowledge claims
+- get_errors: Validate claimed error conditions
+- git_diff: Verify claimed recent changes
+```
+
+#### 3. Confidence Assessment (Required for Every Claim)
+```
+Rate each agent claim as:
+
+🟢 HIGH CONFIDENCE (Static analysis verified):
+- Code snippets verified via read_file
+- File paths confirmed to exist
+- Patterns validated via search tools
+- Can be independently verified through available tools
+
+🟡 MEDIUM CONFIDENCE (Partially verifiable):
+- Claims about code patterns verified but impact assessment uncertain
+- File references correct but fix recommendations unvalidated
+- Requires additional domain knowledge to fully verify
+
+🔴 LOW CONFIDENCE (Unverifiable claims):
+- Runtime behavior claims without execution access
+- Performance metrics without measurement data
+- Production system claims without monitoring access
+- Business logic correctness without requirements
+```
+
+#### 4. Hallucination Detection Patterns
+```
+IMMEDIATELY FLAG and REJECT outputs containing:
+
+❌ Claims about systems/files the agent cannot access
+❌ Specific metrics without explanation of measurement method
+❌ Definitive statements about production behavior
+❌ Code recommendations without showing current code
+❌ Performance issues without actual measurement data
+❌ Security vulnerabilities without proof-of-concept
+❌ Database performance claims without query execution plans
+```
+
+### Enhanced Agent Delegation with Verification Requirements
+
+#### Pre-Delegation Verification Prompts
+```
+ALL agent task descriptions MUST include these verification requirements:
+
+"VERIFICATION REQUIREMENTS:
+- Provide specific file paths and line numbers for all claims
+- Include actual code snippets as evidence for all findings
+- Specify confidence level (High/Medium/Low) for each recommendation
+- Explicitly state what you can and cannot verify with available tools
+- Distinguish between static code analysis and claims requiring runtime data
+- Flag any assumptions or limitations in your analysis"
+
+"HONESTY MANDATE:
+- Acknowledge when you lack access to production systems, metrics, or runtime data
+- Clearly distinguish between what you can verify from code vs. what requires testing
+- State confidence levels for different types of claims
+- Never make definitive claims about unverifiable system behavior"
+```
+
+#### Example Enhanced Delegation
+```
+Use tool: spawn_agent
+Arguments: {
+  "chatmode": "Security Engineer",
+  "task": "ANALYZE ACTUAL CODEBASE: Examine authentication system in src/auth/ for security vulnerabilities.
+
+  VERIFICATION REQUIREMENTS:
+  - Provide exact file paths and line numbers for all security findings
+  - Include actual vulnerable code snippets from the codebase
+  - Show specific proof-of-concept exploits using real endpoints/parameters
+  - Specify confidence level (High/Medium/Low) for each vulnerability
+  - Explicitly state what security aspects you can analyze vs. what requires penetration testing
+
+  HONESTY MANDATE:
+  - Acknowledge limitations: cannot assess runtime security, production configurations, or actual threat landscape
+  - Distinguish between code-level vulnerabilities and complete security assessment
+  - State clearly what production systems/data you cannot access
+  - Provide confidence levels: High for static code analysis, Medium for architecture assessment, Low for runtime behavior claims",
+
+  "context": "[detailed context as before]",
+  "expected_deliverables": "Security findings document with file-specific evidence, confidence ratings, and limitation acknowledgments"
+}
+```
+
+## Agent Orchestration Workflow (Updated with Verification)
 
 ### Phase 1: Project Analysis and Task Decomposition
 ```
@@ -446,43 +566,77 @@ If <2 factors favor delegation → Handle directly
 3. Break down into discrete, delegatable tasks
 4. Prioritize based on dependencies and urgency
 5. Prepare context summaries for each task
+6. DESIGN VERIFICATION STRATEGY for each task type
 ```
 
-### Phase 2: Agent Delegation and Coordination
+### Phase 2: Enhanced Agent Delegation and Coordination
 ```
 1. Pre-delegation preparation:
    - Use get_system_health to check capacity
    - Use predict_quality_score to estimate task difficulty
    - Use get_ml_insights for optimal delegation strategy
+   - PREPARE VERIFICATION REQUIREMENTS for task type
 
 2. For each delegatable task:
    - Use spawn_agent with specific chatmode
-   - Provide clear task specification and expected deliverables
-   - Include relevant context (summarized appropriately)
-   - Set quality criteria and completion indicators
+   - INCLUDE MANDATORY verification requirements in task description
+   - INCLUDE HONESTY MANDATE about limitations and confidence levels
+   - Provide relevant context with verification boundaries
+   - Set quality criteria including evidence requirements
 
 3. Monitor agent progress:
    - Use get_session_stats for real-time progress tracking
    - Use get_performance_analytics for efficiency monitoring
    - Handle errors and timeouts gracefully
+   - PREPARE for mandatory verification upon completion
 ```
 
-### Phase 3: Quality Control and Integration
+### Phase 3: MANDATORY Verification and Quality Control
 ```
 1. For each completed sub-agent task:
-   - Perform initial quality assessment
-   - Use predict_refinement_success before requesting changes
-   - If quality concerns detected:
-     a. Use validate_output for detailed quality review
-     b. Decide: Accept / Refine prompt and retry / Re-delegate
-   - If quality acceptable: Integrate output and continue
+   - PERFORM IMMEDIATE VERIFICATION using verification protocol above
+   - CROSS-REFERENCE specific claims using appropriate tools:
+     * read_file for code snippet validation
+     * grep_search for pattern confirmation
+     * file_search for path verification
+     * semantic_search for domain knowledge validation
+   - ASSESS CONFIDENCE LEVELS for each claim
+   - DETECT HALLUCINATION PATTERNS using red flag indicators
 
-2. Synthesis and coordination:
+2. Verification Decision Matrix:
+   - HIGH CONFIDENCE + Verified Evidence → Accept and proceed
+   - MEDIUM CONFIDENCE + Partial Verification → Accept with caveats noted
+   - LOW CONFIDENCE or Unverifiable Claims → Request clarification or re-delegate
+   - RED FLAGS Detected → Reject output and re-delegate with stricter requirements
+
+3. If verification FAILS:
+   - Document specific verification failures
+   - Use validate_output for detailed quality review
+   - Re-delegate with enhanced verification requirements
+   - Consider alternative agent or different approach
+
+4. Synthesis and coordination:
    - Use get_quality_analytics to assess overall project quality
-   - Integrate outputs from multiple specialists
-   - Resolve conflicts between domain perspectives
-   - Use generate_analytics_report for final assessment
-   - Ensure overall project coherence
+   - Integrate only VERIFIED outputs from multiple specialists
+   - DOCUMENT confidence levels for integrated deliverables
+   - Resolve conflicts between domain perspectives based on verification confidence
+   - Use generate_analytics_report including verification results
+   - Ensure overall project coherence with verification audit trail
+```
+
+### Phase 4: Final Verification and Delivery Assurance
+```
+1. Comprehensive verification review:
+   - Audit all agent outputs for verification compliance
+   - Document confidence levels for all deliverables
+   - Flag any unverified claims for stakeholder awareness
+   - Create verification report for delivery package
+
+2. Quality assurance with verification context:
+   - Ensure all high-impact recommendations are HIGH CONFIDENCE
+   - Mark MEDIUM/LOW confidence items as requiring further validation
+   - Provide verification methodology documentation
+   - Include verification limitations in final deliverables
 ```
 
 ## Context Management for Sub-Agents
