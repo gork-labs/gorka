@@ -234,7 +234,7 @@ export function validateSubAgentStructure(data: any): { valid: boolean; issues: 
     issues.push('Missing metadata property');
   }
 
-  if (!Array.isArray(data.memory_operations)) {
+  if (data.memory_operations !== undefined && !Array.isArray(data.memory_operations)) {
     issues.push('memory_operations is not an array');
   }
 

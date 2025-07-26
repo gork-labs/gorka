@@ -1044,7 +1044,7 @@ export class SecondBrainServer {
         format_validation: {
           valid: true,
           deliverables_present: Object.keys(validatedResponse.deliverables).length > 0,
-          memory_operations_count: validatedResponse.memory_operations.length,
+          memory_operations_count: validatedResponse.memory_operations?.length || 0,
           metadata_complete: validatedResponse.metadata &&
                             validatedResponse.metadata.task_completion_status &&
                             validatedResponse.metadata.confidence_level
@@ -1391,7 +1391,7 @@ export class SecondBrainServer {
 
     sessionLog.info('Real sub-agent execution completed', {
       chatmode: chatmodeDefinition.name,
-      memoryOperations: response.memory_operations.length,
+      memoryOperations: response.memory_operations?.length || 0,
       recommendationsCount: response.deliverables.recommendations?.length || 0,
       completionStatus: response.metadata.task_completion_status
     });

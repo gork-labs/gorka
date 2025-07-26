@@ -47,7 +47,7 @@ export const SubAgentMetadataSchema = z.object({
 
 export const SubAgentResponseSchema = z.object({
   deliverables: DeliverableSchema,
-  memory_operations: z.array(MemoryOperationSchema),
+  memory_operations: z.array(MemoryOperationSchema).optional(),
   metadata: SubAgentMetadataSchema,
   // Tool execution fields (optional - for when agent wants to execute tools)
   tool: z.string().optional(),

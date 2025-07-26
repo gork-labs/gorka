@@ -469,11 +469,11 @@ export class QualityValidator {
     const memoryOps = response.memory_operations;
     let score = 0;
 
-    if (memoryOps.length === 0) {
+    if (!memoryOps || memoryOps.length === 0) {
       return {
-        passed: false,
-        score: 20,
-        feedback: 'No memory operations provided - knowledge may not be captured',
+        passed: true,
+        score: 80,
+        feedback: 'No memory operations provided - this is acceptable when no knowledge needs to be captured',
         severity: 'minor',
         category: 'memory'
       };

@@ -35,7 +35,7 @@ export interface SubAgentResponse {
     documents: string[];
     technical_details: string;
   };
-  memory_operations: any[];
+  memory_operations?: any[];
   metadata: {
     chatmode: string;
     task_completion_status: string;

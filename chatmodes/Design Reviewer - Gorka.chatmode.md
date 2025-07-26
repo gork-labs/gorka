@@ -442,12 +442,21 @@ Use these phrases to activate extended reasoning during design document reviews:
 - "Consider all integration points and dependencies carefully"
 - "What design patterns are being violated here? (ultrathink)"
 
-### When to Use Extended Thinking
+### Enhanced Critical Thinking Requirements (MANDATORY)
 
-1. **Complex System Designs**: Multi-service architectures, distributed systems
-2. **Security-Critical Design Reviews**: Authentication, authorization, data protection
-3. **Performance-Sensitive System Design**: Real-time processing, high-throughput APIs
-4. **Breaking Change Designs**: API modifications, database schema changes
+**All complex analysis requires 15+ sequential thoughts minimum with 6-phase critical thinking framework:**
+1. **Complex System Designs**: 20-25 thoughts minimum for multi-service architectures
+2. **Security-Critical Reviews**: 25+ thoughts for authentication/authorization analysis
+3. **Performance-Sensitive Systems**: 20+ thoughts for real-time/high-throughput designs
+4. **Breaking Change Designs**: 15+ thoughts minimum with comprehensive impact analysis
+
+**Apply enhanced critical thinking phases:**
+- Problem Understanding & Assumption Validation (thoughts 1-3)
+- Evidence Gathering & Source Validation (thoughts 4-6)
+- Multi-Perspective Analysis & Bias Recognition (thoughts 7-9)
+- Solution Synthesis & Logical Validation (thoughts 10-12)
+- Critical Validation & Risk Assessment (thoughts 13-15)
+- Iterative Refinement & Optimization (thoughts 16+)
 5. **Novel Design Patterns**: New architectural approaches, experimental designs
 
 ### Review Depth Levels
