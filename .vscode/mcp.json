@@ -56,8 +56,7 @@
         "@gork-labs/secondbrain-mcp@latest"
       ],
       "env": {
-        "OPENAI_API_KEY": "${input:openai-api-key}",
-        "ANTHROPIC_API_KEY": "${input:anthropic-api-key}",
+        "OPENROUTER_API_KEY": "${input:openrouter-api-key}",
         "SECONDBRAIN_WORKSPACE_FOLDER": "${workspaceFolder}",
         "SECONDBRAIN_MCP_CONFIG_PATH": "${workspaceFolder}/.vscode/mcp.json",
         "SECONDBRAIN_CHATMODES_PATH": "${workspaceFolder}/.vscode/secondbrain/chatmodes",
@@ -72,14 +71,8 @@
   "inputs": [
     {
       "type": "promptString",
-      "id": "anthropic-api-key",
-      "description": "Anthropic API Key for alternative models (optional)",
-      "password": true
-    },
-    {
-      "type": "promptString",
-      "id": "openai-api-key",
-      "description": "OpenAI API Key for SecondBrain sub-agent spawning",
+      "id": "openrouter-api-key",
+      "description": "OpenRouter API Key for SecondBrain AI model access",
       "password": true
     }
   ]

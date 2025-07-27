@@ -56,7 +56,7 @@ export class AnalyticsManager {
 
       // Record usage metric
       this.metricsCollector.recordUsage(
-        context.chatmode,
+        context.subagent,
         sessionId || 'unknown',
         'validation',
         assessment.passed,
@@ -81,7 +81,7 @@ export class AnalyticsManager {
       }
 
       logger.debug('Recorded validation event for analytics', {
-        chatmode: context.chatmode,
+        subagent: context.subagent,
         score: assessment.overallScore,
         passed: assessment.passed,
         sessionId,
@@ -91,7 +91,7 @@ export class AnalyticsManager {
     } catch (error) {
       logger.error('Failed to record validation event', {
         error: error instanceof Error ? error.message : String(error),
-        chatmode: context.chatmode,
+        subagent: context.subagent,
         sessionId
       });
     }
@@ -217,8 +217,8 @@ export class AnalyticsManager {
   /**
    * Compare performance across chatmodes
    */
-  compareChatmodePerformance(): Record<string, QualityTrend> {
-    return this.qualityAnalyzer.compareChatmodePerformance();
+  compareSubagentPerformance(): Record<string, QualityTrend> {
+    return this.qualityAnalyzer.compareSubagentPerformance();
   }
 
   /**
@@ -231,8 +231,8 @@ export class AnalyticsManager {
   /**
    * Get adaptive quality threshold (if intelligence enabled)
    */
-  getAdaptiveQualityThreshold(chatmode: string): number {
-    return this.qualityAnalyzer.getAdaptiveQualityThreshold(chatmode);
+  getAdaptiveQualityThreshold(subagent: string): number {
+    return this.qualityAnalyzer.getAdaptiveQualityThreshold(subagent);
   }
 
   /**
@@ -248,7 +248,7 @@ export class AnalyticsManager {
     };
     qualityReport: {
       overview: QualityTrend;
-      chatmodeBreakdown: Record<string, QualityTrend>;
+      subagentBreakdown: Record<string, QualityTrend>;
       insights: QualityInsight[];
       recommendations: string[];
     };
@@ -306,7 +306,7 @@ export class AnalyticsManager {
         },
         qualityReport: {
           overview: {
-            chatmode: 'overall',
+            subagent: 'overall',
             timeRange: `${days} days`,
             scoreAverage: 0,
             scoreTrend: 'stable',
@@ -316,7 +316,7 @@ export class AnalyticsManager {
             insights: ['Error loading data'],
             recommendations: ['Check system health']
           },
-          chatmodeBreakdown: {},
+          subagentBreakdown: {},
           insights: [],
           recommendations: ['Error generating report - check system status']
         },

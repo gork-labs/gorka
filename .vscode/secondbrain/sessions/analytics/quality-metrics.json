@@ -56,6 +56,32 @@
       "improvementAreas": [
         "Improve content: Response content meets quality standards"
       ]
+    },
+    {
+      "timestamp": "2025-07-26T00:26:34.982Z",
+      "chatmode": "default",
+      "qualityScore": 94,
+      "passed": true,
+      "processingTime": 1,
+      "refinementAttempts": 0,
+      "ruleBreakdown": {
+        "format": 100,
+        "completeness": 100,
+        "memory": 100,
+        "completion": 70,
+        "content": 75,
+        "specificity": 100
+      },
+      "categories": {
+        "format": 100,
+        "completeness": 100,
+        "memory": 100,
+        "completion": 70,
+        "content": 75,
+        "specificity": 100
+      },
+      "criticalIssues": [],
+      "improvementAreas": []
     }
   ],
   "Software Engineer": [
@@ -90,6 +116,40 @@
         "Improve memory: No memory operations provided - knowledge may not be captured",
         "Improve completion: Task completion assessment indicates potential issues",
         "Improve specificity: Analysis depth issues: insufficient technical specificity (0 technical terms), lacks actionable recommendations. Specificity: 0/15 technical terms, Vagueness: 0 vague terms."
+      ]
+    }
+  ],
+  "Security Engineer": [
+    {
+      "timestamp": "2025-07-26T00:11:25.525Z",
+      "chatmode": "Security Engineer",
+      "qualityScore": 50,
+      "passed": false,
+      "processingTime": 1,
+      "refinementAttempts": 0,
+      "ruleBreakdown": {
+        "format": 100,
+        "completeness": 100,
+        "memory": 80,
+        "completion": 40,
+        "content": 28,
+        "specificity": 65
+      },
+      "categories": {
+        "format": 100,
+        "completeness": 100,
+        "memory": 80,
+        "completion": 40,
+        "content": 28,
+        "specificity": 22
+      },
+      "criticalIssues": [
+        "File specificity issues: no specific file paths found, no line number references found. Found 0 file references.",
+        "Code snippet issues: no code snippets found. Found 0 code references."
+      ],
+      "improvementAreas": [
+        "Improve completion: Task completion assessment indicates potential issues",
+        "Improve content: Content quality issues: analysis lacks depth"
       ]
     }
   ]

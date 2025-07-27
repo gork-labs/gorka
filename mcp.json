@@ -2,15 +2,15 @@
 	"inputs": [
 		{
 			"type": "promptString",
-			"id": "openai-api-key",
-			"description": "OpenAI API Key for SecondBrain sub-agent spawning",
+			"id": "openrouter-api-key",
+			"description": "OpenRouter API Key for SecondBrain sub-agent spawning",
 			"password": true
 		},
 		{
 			"type": "promptString",
-			"id": "anthropic-api-key",
-			"description": "Anthropic API Key for alternative models (optional)",
-			"password": true
+			"id": "secondbrain-model",
+			"description": "Model to use for SecondBrain sub-agents (e.g., anthropic/claude-3-5-sonnet-20241022)",
+			"password": false
 		}
 	],
 	"servers": {
@@ -20,8 +20,7 @@
 			"args": [
 				"-y",
 				"@modelcontextprotocol/server-sequential-thinking@latest"
-			],
-			"gallery": true
+			]
 		},
 		"context7": {
 			"type": "stdio",
@@ -29,13 +28,11 @@
 			"args": [
 				"-y",
 				"@upstash/context7-mcp@latest"
-			],
-			"gallery": true
+			]
 		},
 		"deepwiki": {
 			"type": "http",
-			"url": "https://mcp.deepwiki.com/sse",
-			"gallery": true
+			"url": "https://mcp.deepwiki.com/sse"
 		},
 		"git": {
 			"command": "uvx",
@@ -64,8 +61,8 @@
 			"command": "npx",
 			"args": ["-y", "@gork-labs/secondbrain-mcp@latest"],
 			"env": {
-				"OPENAI_API_KEY": "${input:openai-api-key}",
-				"ANTHROPIC_API_KEY": "${input:anthropic-api-key}",
+				"OPENROUTER_API_KEY": "${input:openrouter-api-key}",
+				"SECONDBRAIN_MODEL": "${input:secondbrain-model}",
 				"SECONDBRAIN_WORKSPACE_FOLDER": "${workspaceFolder}",
 				"SECONDBRAIN_MCP_CONFIG_PATH": "${workspaceFolder}/.vscode/mcp.json",
 				"SECONDBRAIN_CHATMODES_PATH": "${workspaceFolder}/.vscode/secondbrain/chatmodes",

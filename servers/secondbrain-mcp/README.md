@@ -25,6 +25,10 @@ npm install -g @gork-labs/secondbrain-mcp
 
 ## 🔧 Configuration
 
+**Required Environment Variables:**
+- `OPENROUTER_API_KEY`: Your OpenRouter API key for accessing AI models
+- `SECONDBRAIN_MODEL`: The model to use for sub-agents (e.g., `anthropic/claude-3-5-sonnet-20241022`)
+
 Add to your `mcp.json` configuration file:
 
 ```json
@@ -34,8 +38,8 @@ Add to your `mcp.json` configuration file:
       "command": "npx",
       "args": ["@gork-labs/secondbrain-mcp"],
       "env": {
-        "OPENAI_API_KEY": "your-openai-api-key",
-        "ANTHROPIC_API_KEY": "your-anthropic-api-key"
+        "OPENROUTER_API_KEY": "your-openrouter-api-key",
+        "SECONDBRAIN_MODEL": "anthropic/claude-3-5-sonnet-20241022"
       }
     }
   }
@@ -44,10 +48,55 @@ Add to your `mcp.json` configuration file:
 
 ### Environment Variables
 
-- `OPENAI_API_KEY` - OpenAI API key for sub-agent spawning
-- `ANTHROPIC_API_KEY` - Anthropic API key for alternative models
+#### API Configuration
+- `OPENROUTER_API_KEY` - OpenRouter API key (required)
+
+#### Model Configuration
+- `SECONDBRAIN_PRIMARY_MODEL` - Primary model for orchestration (default: `anthropic/claude-3-5-sonnet-20241022`)
+- `SECONDBRAIN_SUBAGENT_MODEL` - Model for sub-agents (default: `anthropic/claude-3-5-haiku-20241022`)
+
+#### Session Management
 - `SECONDBRAIN_SESSION_PATH` - Custom session storage path (optional)
 - `SECONDBRAIN_MAX_CALLS` - Maximum calls per session (default: 20)
+
+## 🤖 Model Support
+
+SecondBrain uses OpenRouter for unified access to all AI models:
+
+### Available Models
+All models available through OpenRouter using standard `provider/model` format:
+
+- **Anthropic Models**:
+  - `anthropic/claude-3-5-sonnet-20241022` - High-quality reasoning (default primary)
+  - `anthropic/claude-3-5-haiku-20241022` - Fast, cost-effective (default sub-agents)
+
+- **OpenAI Models**:
+  - `openai/gpt-4o` - OpenAI's latest flagship model
+  - `openai/gpt-4o-mini` - Cost-effective option
+
+- **Google Models**:
+  - `google/gemini-pro-1.5` - Google's latest model
+  - `google/gemini-flash-1.5` - Fast inference
+
+- **Open Source Models**:
+  - `meta-llama/llama-3.1-405b-instruct` - Large open source model
+  - `mistralai/mixtral-8x7b-instruct` - Efficient mixture of experts
+
+### Configuration Examples
+
+```bash
+# Use Anthropic Claude Sonnet for primary (default)
+export SECONDBRAIN_PRIMARY_MODEL="anthropic/claude-3-5-sonnet-20241022"
+
+# Use Anthropic Claude Haiku for sub-agents (default)
+export SECONDBRAIN_SUBAGENT_MODEL="anthropic/claude-3-5-haiku-20241022"
+
+# Use OpenAI GPT-4O for primary
+export SECONDBRAIN_PRIMARY_MODEL="openai/gpt-4o"
+
+# Use Google Gemini for sub-agents
+export SECONDBRAIN_SUBAGENT_MODEL="google/gemini-flash-1.5"
+```
 
 ## 🛠️ Available MCP Tools
 

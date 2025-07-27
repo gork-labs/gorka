@@ -1,0 +1,86 @@
+{
+  "inputs": [
+    {
+      "type": "promptString",
+      "id": "openrouter-api-key",
+      "description": "OpenRouter API Key for SecondBrain sub-agent spawning",
+      "password": true
+    },
+    {
+      "type": "promptString",
+      "id": "secondbrain-model",
+      "description": "Model to use for SecondBrain sub-agents (e.g., anthropic/claude-3-5-sonnet-20241022)",
+      "password": false
+    }
+  ],
+  "servers": {
+    "sequentialthinking": {
+      "type": "stdio",
+      "command": "npx",
+      "args": [
+        "-y",
+        "@modelcontextprotocol/server-sequential-thinking@latest"
+      ],
+      "gallery": true
+    },
+    "context7": {
+      "type": "stdio",
+      "command": "npx",
+      "args": [
+        "-y",
+        "@upstash/context7-mcp@latest"
+      ],
+      "gallery": true
+    },
+    "deepwiki": {
+      "type": "http",
+      "url": "https://mcp.deepwiki.com/sse",
+      "gallery": true
+    },
+    "git": {
+      "command": "uvx",
+      "args": [
+        "mcp-server-git"
+      ],
+      "type": "stdio"
+    },
+    "time": {
+      "command": "uvx",
+      "args": [
+        "mcp-server-time"
+      ],
+      "type": "stdio"
+    },
+    "memory": {
+      "type": "stdio",
+      "command": "npx",
+      "args": [
+        "-y",
+        "@modelcontextprotocol/server-memory@latest"
+      ],
+      "env": {
+        "MEMORY_FILE_PATH": "${workspaceFolder}/.vscode/memory.json"
+      }
+    },
+    "secondbrain": {
+      "type": "stdio",
+      "command": "npx",
+      "args": [
+        "-y",
+        "@gork-labs/secondbrain-mcp@latest"
+      ],
+      "env": {
+        "OPENROUTER_API_KEY": "${input:openrouter-api-key}",
+        "SECONDBRAIN_MODEL": "${input:secondbrain-model}",
+        "SECONDBRAIN_WORKSPACE_FOLDER": "${workspaceFolder}",
+        "SECONDBRAIN_MCP_CONFIG_PATH": "${workspaceFolder}/.vscode/mcp.json",
+        "SECONDBRAIN_CHATMODES_PATH": "${workspaceFolder}/.vscode/secondbrain/chatmodes",
+        "SECONDBRAIN_SESSION_PATH": "${workspaceFolder}/.vscode/secondbrain/sessions",
+        "SECONDBRAIN_MAX_CALLS": "50",
+        "SECONDBRAIN_MAX_PARALLEL_AGENTS": "5",
+        "SECONDBRAIN_MAX_DEPTH": "2",
+        "SECONDBRAIN_LOG_LEVEL": "info"
+      }
+    }
+  }
+}

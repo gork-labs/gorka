@@ -1,5 +1,4 @@
 import OpenAI from 'openai';
-import Anthropic from '@anthropic-ai/sdk';
 import { config } from '../utils/config.js';
 import { logger } from '../utils/logger.js';
 
@@ -42,25 +41,30 @@ export abstract class AIClient {
   abstract isAvailable(): boolean;
 }
 
-export class OpenAIClient extends AIClient {
+export class OpenRouterClient extends AIClient {
   private client: OpenAI;
 
   constructor(options: AIClientOptions) {
     super(options);
 
-    if (!config.openaiApiKey) {
-      throw new Error('OpenAI API key not configured');
+    if (!config.openrouterApiKey) {
+      throw new Error('OpenRouter API key not configured');
     }
 
     this.client = new OpenAI({
-      apiKey: config.openaiApiKey,
-      timeout: this.timeout
+      apiKey: config.openrouterApiKey,
+      baseURL: 'https://openrouter.ai/api/v1',
+      timeout: this.timeout,
+      defaultHeaders: {
+        'HTTP-Referer': 'https://github.com/gork-labs/gorka',
+        'X-Title': 'Gorka SecondBrain MCP'
+      }
     });
   }
 
   async generateResponse(messages: AIMessage[]): Promise<AIResponse> {
     try {
-      logger.debug('Calling OpenAI API', {
+      logger.debug('Calling OpenRouter API', {
         model: this.model,
         messageCount: messages.length,
         maxTokens: this.maxTokens
@@ -78,7 +82,7 @@ export class OpenAIClient extends AIClient {
 
       const content = response.choices[0]?.message?.content;
       if (!content) {
-        throw new Error('No content in OpenAI response');
+        throw new Error('No content in OpenRouter response');
       }
 
       return {
@@ -92,7 +96,7 @@ export class OpenAIClient extends AIClient {
       };
 
     } catch (error) {
-      logger.error('OpenAI API call failed', {
+      logger.error('OpenRouter API call failed', {
         model: this.model,
         error: error instanceof Error ? error.message : String(error)
       });
@@ -101,77 +105,7 @@ export class OpenAIClient extends AIClient {
   }
 
   isAvailable(): boolean {
-    return !!config.openaiApiKey;
-  }
-}
-
-export class AnthropicClient extends AIClient {
-  private client: Anthropic;
-
-  constructor(options: AIClientOptions) {
-    super(options);
-
-    if (!config.anthropicApiKey) {
-      throw new Error('Anthropic API key not configured');
-    }
-
-    this.client = new Anthropic({
-      apiKey: config.anthropicApiKey,
-      timeout: this.timeout
-    });
-  }
-
-  async generateResponse(messages: AIMessage[]): Promise<AIResponse> {
-    try {
-      logger.debug('Calling Anthropic API', {
-        model: this.model,
-        messageCount: messages.length,
-        maxTokens: this.maxTokens
-      });
-
-      // Convert messages format for Anthropic
-      const systemMessage = messages.find(m => m.role === 'system')?.content || '';
-      const conversationMessages = messages
-        .filter(m => m.role !== 'system')
-        .map(msg => ({
-          role: msg.role as 'user' | 'assistant',
-          content: msg.content
-        }));
-
-      const response = await this.client.messages.create({
-        model: this.model,
-        max_tokens: this.maxTokens,
-        temperature: this.temperature,
-        system: systemMessage,
-        messages: conversationMessages
-      });
-
-      const content = response.content[0];
-      if (content.type !== 'text') {
-        throw new Error('Non-text response from Anthropic');
-      }
-
-      return {
-        content: content.text,
-        model: this.model,
-        usage: response.usage ? {
-          prompt_tokens: response.usage.input_tokens,
-          completion_tokens: response.usage.output_tokens,
-          total_tokens: response.usage.input_tokens + response.usage.output_tokens
-        } : undefined
-      };
-
-    } catch (error) {
-      logger.error('Anthropic API call failed', {
-        model: this.model,
-        error: error instanceof Error ? error.message : String(error)
-      });
-      throw error;
-    }
-  }
-
-  isAvailable(): boolean {
-    return !!config.anthropicApiKey;
+    return !!config.openrouterApiKey;
   }
 }
 
@@ -184,23 +118,13 @@ export class AIClientFactory {
       timeout: options?.timeout
     };
 
-    // OpenAI models
-    if (model.startsWith('gpt-')) {
-      return new OpenAIClient(clientOptions);
-    }
-
-    // Anthropic models
-    if (model.startsWith('claude-')) {
-      return new AnthropicClient(clientOptions);
-    }
-
-    throw new Error(`Unsupported model: ${model}`);
+    // All models go through OpenRouter
+    return new OpenRouterClient(clientOptions);
   }
 
-  static getAvailableClients(): { openai: boolean; anthropic: boolean } {
+  static getAvailableClients(): { openrouter: boolean } {
     return {
-      openai: !!config.openaiApiKey,
-      anthropic: !!config.anthropicApiKey
+      openrouter: !!config.openrouterApiKey
     };
   }
 

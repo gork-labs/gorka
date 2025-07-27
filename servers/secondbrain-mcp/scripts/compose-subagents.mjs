@@ -8,7 +8,7 @@ const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
 
 /**
- * Compose sub-agent chatmodes from templates, instructions, and domain-specific content
+ * Compose sub-agent subagents from templates, instructions, and domain-specific content
  */
 
 // Sub-agent configurations with domain-specific variables
@@ -453,7 +453,7 @@ const SUB_AGENTS = {
       DOMAIN_METRICS: 'response quality and behavioral effectiveness metrics',
       DOMAIN_PROCEDURES: 'chatmode testing and validation procedures',
       DOMAIN_FILE_SINGULAR: 'Chatmode File',
-      DOMAIN_EXAMPLE_PATH: 'chatmodes/Security Engineer - Gorka.chatmode.md',
+      DOMAIN_EXAMPLE_PATH: 'subagents/Security Engineer - Gorka.chatmode.md',
       DOMAIN_IMPLEMENTATION: 'Prompt Implementation',
       DOMAIN_CONTENT: 'chatmode prompt content',
       DOMAIN_MODIFICATIONS: 'prompt modifications',
@@ -530,7 +530,7 @@ function loadInstruction(instructionName) {
  */
 function loadDomainContent(roleName, contentType) {
   const domainSlug = roleName.toLowerCase().replace(/\s+/g, '-');
-  const contentPath = path.join(__dirname, '../src/chatmodes', `${domainSlug}-${contentType}.md`);
+  const contentPath = path.join(__dirname, '../src/subagents', `${domainSlug}-${contentType}.md`);
   return loadContent(contentPath);
 }
 
@@ -603,7 +603,7 @@ function composeSubAgent(roleName, config) {
  * Main composition process
  */
 function main() {
-  const outputPath = path.join(__dirname, '../chatmodes');
+  const outputPath = path.join(__dirname, '../subagents');
 
   console.log('🔄 Starting sub-agent composition...');
   console.log(`Output directory: ${outputPath}`);

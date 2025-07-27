@@ -7,10 +7,9 @@ import {
   McpError,
 } from '@modelcontextprotocol/sdk/types.js';
 import OpenAI from 'openai';
-import Anthropic from '@anthropic-ai/sdk';
 
 import { SessionManager } from './session-manager.js';
-import { ChatmodeLoader } from '../chatmodes/loader.js';
+import { SubagentLoader } from '../subagents/loader.js';
 import { QualityValidator, RefinementManager } from '../quality/index.js';
 import { AnalyticsManager } from '../analytics/analytics-manager.js';
 import { MLEngine } from '../ml/ml-engine.js';
@@ -28,13 +27,14 @@ import {
 import { parseJsonForgiving, validateSubAgentStructure } from '../utils/json-parser.js';
 import { config, validateConfig } from '../utils/config.js';
 import { logger } from '../utils/logger.js';
+import { templateManager } from '../utils/template-manager.js';
 import { getVersion, getPackageInfo } from '../utils/version.js';
 import { MCPClientManager } from '../tools/mcp-client-manager.js';
 
 export class SecondBrainServer {
   private server: Server;
   private sessionManager: SessionManager;
-  private chatmodeLoader: ChatmodeLoader;
+  private subagentLoader: SubagentLoader;
   private qualityValidator: QualityValidator;
   private refinementManager: RefinementManager;
   private analyticsManager: AnalyticsManager;
@@ -57,7 +57,7 @@ export class SecondBrainServer {
     );
 
     this.sessionManager = new SessionManager();
-    this.chatmodeLoader = new ChatmodeLoader();
+    this.subagentLoader = new SubagentLoader();
     this.qualityValidator = new QualityValidator();
     this.refinementManager = new RefinementManager(this.sessionManager, this.qualityValidator);
     this.analyticsManager = new AnalyticsManager();
@@ -503,21 +503,21 @@ export class SecondBrainServer {
 
           agentLog.info('Spawning individual agent in parallel batch', {
             agentId: agentSpec.agent_id,
-            chatmode: agentSpec.chatmode,
+            subagent: agentSpec.subagent,
             coordinatorSession: coordinatorSessionId
           });
 
-          // Get chatmode definition
-          const chatmodeDefinition = this.chatmodeLoader.getChatmode(agentSpec.chatmode);
-          const taskHash = this.sessionManager.generateTaskHash(agentSpec.task, agentSpec.context, agentSpec.chatmode);
+          // Get subagent definition
+          const subagentDefinition = this.subagentLoader.getSubagent(agentSpec.subagent);
+          const taskHash = this.sessionManager.generateTaskHash(agentSpec.task, agentSpec.context, agentSpec.subagent);
 
           // Track this agent call in both coordinator and individual sessions (NOT as refinements)
-          this.sessionManager.trackAgentCall(coordinatorSessionId, agentSpec.chatmode, taskHash, false);
-          this.sessionManager.trackAgentCall(agentSessionId, agentSpec.chatmode, taskHash, false);
+          this.sessionManager.trackAgentCall(coordinatorSessionId, agentSpec.subagent, taskHash, false);
+          this.sessionManager.trackAgentCall(agentSessionId, agentSpec.subagent, taskHash, false);
 
           // Execute real sub-agent
           const response = await this.spawnRealAgent(
-            chatmodeDefinition,
+            subagentDefinition,
             agentSpec.task,
             agentSpec.context,
             agentSpec.expected_deliverables,
@@ -528,14 +528,14 @@ export class SecondBrainServer {
 
           agentLog.info('Parallel agent completed successfully', {
             agentId: agentSpec.agent_id,
-            chatmode: agentSpec.chatmode,
+            subagent: agentSpec.subagent,
             executionTime,
             status: response.metadata.task_completion_status
           });
 
           return {
             agent_id: agentSpec.agent_id,
-            chatmode: agentSpec.chatmode,
+            subagent: agentSpec.subagent,
             status: 'success',
             execution_time_ms: executionTime,
             session_id: agentSessionId,
@@ -547,14 +547,14 @@ export class SecondBrainServer {
 
           coordinatorLog.error('Parallel agent failed', {
             agentId: agentSpec.agent_id,
-            chatmode: agentSpec.chatmode,
+            subagent: agentSpec.subagent,
             executionTime,
             error: error instanceof Error ? error.message : String(error)
           });
 
           return {
             agent_id: agentSpec.agent_id,
-            chatmode: agentSpec.chatmode,
+            subagent: agentSpec.subagent,
             status: 'failed',
             execution_time_ms: executionTime,
             session_id: null,
@@ -592,7 +592,7 @@ export class SecondBrainServer {
         },
         agent_results: results.map(result => ({
           agent_id: result.agent_id,
-          chatmode: result.chatmode,
+          subagent: result.subagent,
           status: result.status,
           execution_time_ms: result.execution_time_ms,
           session_id: result.session_id,
@@ -682,7 +682,7 @@ export class SecondBrainServer {
 
   private async handleSpawnAgent(args: any) {
     const validatedArgs = SpawnAgentArgsSchema.parse(args);
-    const { chatmode, task, context, expected_deliverables } = validatedArgs;
+    const { subagent, task, context, expected_deliverables } = validatedArgs;
 
     // Validate task doesn't contain tool call mentions
     const taskValidation = this.validateTaskForToolMentions(task, context || '');
@@ -698,7 +698,7 @@ export class SecondBrainServer {
     const sessionLog = logger.withSession(sessionId);
 
     try {
-      sessionLog.info('Spawning sub-agent', { chatmode, task: task.substring(0, 100) + '...' });
+      sessionLog.info('Spawning sub-agent', { subagent, task: task.substring(0, 100) + '...' });
 
       // Check if we can spawn (loop protection and depth limits)
       if (!this.sessionManager.canSpawnAgent(sessionId)) {
@@ -711,17 +711,17 @@ export class SecondBrainServer {
         );
       }
 
-      // Get chatmode definition
-      const chatmodeDefinition = this.chatmodeLoader.getChatmode(chatmode);
-      const taskHash = this.sessionManager.generateTaskHash(task, context, chatmode);
+      // Get subagent definition
+      const subagentDefinition = this.subagentLoader.getSubagent(subagent);
+      const taskHash = this.sessionManager.generateTaskHash(task, context, subagent);
 
       // Track this agent call (NOT as refinement)
-      this.sessionManager.trackAgentCall(sessionId, chatmode, taskHash, false);
+      this.sessionManager.trackAgentCall(sessionId, subagent, taskHash, false);
 
       // **REAL SUB-AGENT SPAWNING** - Implementing approved architecture v3.0.0
       // Replace simulation with actual specialist agent delegation
       const realResponse = await this.spawnRealAgent(
-        chatmodeDefinition,
+        subagentDefinition,
         task,
         context,
         expected_deliverables,
@@ -729,7 +729,7 @@ export class SecondBrainServer {
       );
 
       sessionLog.info('Sub-agent completed task', {
-        chatmode,
+        subagent,
         status: realResponse.metadata.task_completion_status,
         confidence: realResponse.metadata.confidence_level
       });
@@ -778,7 +778,7 @@ export class SecondBrainServer {
               },
               metadata: {
                 session_id: sessionId,
-                chatmode: chatmode,
+                subagent: subagent,
                 timestamp: new Date().toISOString()
               }
             };
@@ -808,7 +808,7 @@ export class SecondBrainServer {
             },
             metadata: {
               session_id: sessionId,
-              chatmode: chatmode,
+              subagent: subagent,
               timestamp: new Date().toISOString()
             }
           };
@@ -836,7 +836,7 @@ export class SecondBrainServer {
 
     } catch (error) {
       sessionLog.error('Failed to spawn sub-agent', {
-        chatmode,
+        subagent,
         error: error instanceof Error ? error.message : String(error)
       });
       throw error;
@@ -844,15 +844,15 @@ export class SecondBrainServer {
   }
 
   private async handleListChatmodes() {
-    const chatmodes = this.chatmodeLoader.getAllChatmodesInfo();
+    const subagents = this.subagentLoader.getAllSubagentsInfo();
 
     return {
       content: [
         {
           type: 'text',
           text: JSON.stringify({
-            available_chatmodes: chatmodes,
-            total_count: chatmodes.length
+            available_subagents: subagents,
+            total_count: subagents.length
           }, null, 2),
         },
       ],
@@ -873,7 +873,7 @@ export class SecondBrainServer {
         sub_agent_response,
         requirements,
         quality_criteria,
-        chatmode = 'default',
+        subagent = 'default',
         session_id,
         enable_refinement = true
       } = validatedArgs;
@@ -885,7 +885,7 @@ export class SecondBrainServer {
         logger.error('Failed to parse sub-agent response with forgiving parser', {
           error: parseResult.error,
           fixesAttempted: parseResult.fixesApplied,
-          chatmode,
+          subagent,
           session_id,
           operationId
         });
@@ -902,7 +902,7 @@ export class SecondBrainServer {
 
       logger.info('Successfully parsed sub-agent response', {
         fixesApplied: parseResult.fixesApplied || [],
-        chatmode,
+        subagent,
         session_id,
         operationId
       });
@@ -912,7 +912,7 @@ export class SecondBrainServer {
       if (!structureValidation.valid) {
         logger.warn('Sub-agent response has structural issues', {
           issues: structureValidation.issues,
-          chatmode,
+          subagent,
           session_id,
           operationId
         });
@@ -925,18 +925,18 @@ export class SecondBrainServer {
       } catch (zodError) {
         logger.warn('Zod validation failed, using forgiving validation', {
           zodError: zodError instanceof Error ? zodError.message : String(zodError),
-          chatmode,
+          subagent,
           session_id,
           operationId
         });
 
         // Create a valid response structure from the parsed data
-        validatedResponse = this.createValidSubAgentResponse(parseResult.data, chatmode);
+        validatedResponse = this.createValidSubAgentResponse(parseResult.data, subagent);
       }
 
       // Create validation context
       const context: ValidationContext = {
-        chatmode,
+        subagent,
         requirements,
         qualityCriteria: quality_criteria,
         sessionHistory: session_id ? this.sessionManager.getSession(session_id) || undefined : undefined
@@ -960,7 +960,7 @@ export class SecondBrainServer {
         // Log but don't fail validation if ML learning fails
         logger.warn('ML learning failed for validation', {
           error: mlError instanceof Error ? mlError.message : String(mlError),
-          chatmode,
+          subagent,
           session_id,
           operationId
         });
@@ -975,7 +975,7 @@ export class SecondBrainServer {
           // Track refinement attempt
           const refinementState = this.refinementManager.trackRefinementAttempt(
             session_id,
-            chatmode,
+            subagent,
             enhancedAssessment.overallScore,
             'Quality threshold not met'
           );
@@ -983,7 +983,7 @@ export class SecondBrainServer {
           // Record refinement event in analytics
           this.analyticsManager.recordRefinementEvent(
             session_id,
-            chatmode,
+            subagent,
             enhancedAssessment.overallScore,
             enhancedAssessment.overallScore + 0.1, // Simulate potential improvement
             false // Not yet successful, just recording the attempt
@@ -1056,7 +1056,7 @@ export class SecondBrainServer {
         // Processing metadata
         validation_metadata: {
           validation_time_ms: Date.now() - startTime,
-          chatmode_used: chatmode,
+          chatmode_used: subagent,
           session_id: session_id || null,
           validator_version: '3.0',
           rules_applied: enhancedAssessment.ruleResults.length
@@ -1064,7 +1064,7 @@ export class SecondBrainServer {
       };
 
       logger.info('Enhanced quality validation completed', {
-        chatmode,
+        subagent,
         session_id,
         overall_score: enhancedAssessment.overallScore,
         passed: enhancedAssessment.passed,
@@ -1187,7 +1187,7 @@ export class SecondBrainServer {
   /**
    * Create a valid SubAgentResponse from partially parsed data
    */
-  private createValidSubAgentResponse(data: any, chatmode: string): SubAgentResponse {
+  private createValidSubAgentResponse(data: any, subagent: string): SubAgentResponse {
     // Ensure all required fields exist with reasonable defaults
     const deliverables = data.deliverables || {};
     const memory_operations = Array.isArray(data.memory_operations) ? data.memory_operations : [];
@@ -1203,7 +1203,7 @@ export class SecondBrainServer {
       },
       memory_operations: memory_operations,
       metadata: {
-        chatmode: metadata.chatmode || chatmode,
+        subagent: metadata.subagent || subagent,
         task_completion_status: metadata.task_completion_status || 'partial',
         processing_time: metadata.processing_time || 'parsing_recovery',
         confidence_level: metadata.confidence_level || 'low'
@@ -1446,7 +1446,24 @@ export class SecondBrainServer {
     // Create enhanced tool documentation with common patterns
     const enhancedToolDocs = this.createEnhancedToolDocumentation(toolDefinitions, toolNames);
 
-    return `---
+    try {
+      return templateManager.render('sub-agent-system-prompt', {
+        chatmodeName,
+        sessionId,
+        maxTotalCalls: config.maxTotalCalls,
+        enhancedToolDocs,
+        baseInstructions,
+        task,
+        context,
+        expectedDeliverables
+      });
+    } catch (error) {
+      logger.error('Failed to render sub-agent system prompt template', {
+        error: error instanceof Error ? error.message : String(error)
+      });
+
+      // Fallback to embedded prompt
+      return `---
 You are operating as a specialized sub-agent delegated by a primary agent.
 Agent Type: ${chatmodeName}
 Session: ${sessionId}
@@ -1524,6 +1541,7 @@ Expected Deliverables: ${expectedDeliverables}
 
 Execute this task using your full domain expertise and personality. Provide authentic specialist analysis rather than generic responses. Focus on what a real ${chatmodeName} would deliver.
 `;
+    }
   }
 
   /**
@@ -1538,113 +1556,70 @@ Execute this task using your full domain expertise and personality. Provide auth
     const sessionLog = logger.withSession(sessionId);
 
     try {
-      // Use OpenAI API for real sub-agent execution with tool calling
-      if (config.openaiApiKey) {
-        return await this.executeWithOpenAI(instructions, chatmodeDefinition, sessionId);
+      // Use OpenRouter API for all sub-agent execution
+      if (config.openrouterApiKey) {
+        return await this.executeWithOpenRouter(instructions, chatmodeDefinition, sessionId);
       }
 
-      // Fallback to Anthropic if OpenAI not available
-      if (config.anthropicApiKey) {
-        const anthropic = new Anthropic({ apiKey: config.anthropicApiKey });
-
-        // Get available tools for Anthropic execution too
-        const mcpTools = this.mcpClientManager.getSafeTools();
-        const discoveredTools = this.mcpClientManager.getDiscoveredTools();
-        const availableTools = mcpTools.map(tool => tool.name);
-
-        // Create dynamic tool documentation from actually available tools
-        let toolDocumentation = '';
-        if (availableTools.length > 0) {
-          toolDocumentation = '\n\nAVAILABLE TOOLS:\n';
-
-          mcpTools.forEach(tool => {
-            const fullTool = discoveredTools.find(dt => dt.name === tool.name && dt.serverId === tool.serverId);
-            const description = tool.description || fullTool?.description || 'No description available';
-            const schema = fullTool?.inputSchema || { type: 'object', properties: {} };
-
-            toolDocumentation += `\n- ${tool.name}: ${description}\n`;
-            if (schema.properties) {
-              toolDocumentation += `  Example: {"tool": "${tool.name}", "arguments": ${JSON.stringify(this.createExampleFromSchema(schema))}}\n`;
-            }
-          });
+      // Fallback to mock if no API key
+      sessionLog.warn('No OpenRouter API key available, using mock response');
+      return {
+        deliverables: {
+          analysis: 'Mock sub-agent response (no API configuration available)',
+          recommendations: ['Configure OpenRouter API key'],
+          documents: []
+        },
+        metadata: {
+          subagent: chatmodeDefinition.name,
+          task_completion_status: 'failed',
+          processing_time: '100ms',
+          confidence_level: 'low'
         }
-
-        const toolsPrompt = availableTools.length > 0 ?
-          `\n\nTOOL ACCESS INSTRUCTIONS:
-You have access to these tools: ${availableTools.join(', ')}.
-
-CRITICAL: When you need to use a tool, respond with ONLY this JSON format:
-{"tool": "tool_name", "arguments": {...}}
-
-${toolDocumentation}
-
-Do NOT include explanations or other text when making tool calls. After I execute the tool and provide results, continue with your analysis.
-
-Use only the tools listed above.`
-          : '';
-
-        const enhancedInstructions = instructions + toolsPrompt;
-
-        sessionLog.info('Calling Anthropic for real sub-agent execution', {
-          chatmode: chatmodeDefinition.name,
-          availableTools: availableTools,
-          totalMCPTools: mcpTools.length,
-          model: 'claude-3-haiku-20240307' // Cost-effective option
-        });
-
-        const message = await anthropic.messages.create({
-          model: 'claude-3-haiku-20240307',
-          max_tokens: 4000,
-          messages: [
-            {
-              role: 'user',
-              content: enhancedInstructions
-            }
-          ]
-        });
-
-        const responseText = message.content[0]?.type === 'text' ? message.content[0].text : '';
-        if (!responseText) {
-          throw new Error('Empty response from Anthropic');
-        }
-
-        return this.parseSubAgentResponse(responseText, chatmodeDefinition.name);
-      }
-
-      throw new Error('No AI API keys configured for real sub-agent execution');
-
+      };
     } catch (error) {
-      sessionLog.error('Real sub-agent execution failed', {
-        chatmode: chatmodeDefinition.name,
-        error: error instanceof Error ? error.message : String(error)
-      });
-      throw error;
+      sessionLog.error('Sub-agent execution failed', { error: error instanceof Error ? error.message : String(error) });
+      return {
+        deliverables: {
+          analysis: `Sub-agent execution failed: ${error instanceof Error ? error.message : 'Unknown error'}`,
+          recommendations: ['Check OpenRouter API configuration', 'Verify model compatibility'],
+          documents: []
+        },
+        metadata: {
+          subagent: chatmodeDefinition.name,
+          task_completion_status: 'failed',
+          processing_time: '0ms',
+          confidence_level: 'low'
+        }
+      };
     }
   }
 
   /**
-   * Execute sub-agent with OpenAI using function calling for tool access
+   * Execute sub-agent with OpenRouter using function calling for tool access
    */
-  private async executeWithOpenAI(
+  private async executeWithOpenRouter(
     instructions: string,
     chatmodeDefinition: any,
     sessionId: string
   ): Promise<SubAgentResponse> {
     const sessionLog = logger.withSession(sessionId);
-    const openai = new OpenAI({ apiKey: config.openaiApiKey });
+    const openai = new OpenAI({
+      apiKey: config.openrouterApiKey,
+      baseURL: 'https://openrouter.ai/api/v1'
+    });
 
     // Get available MCP tools for sub-agents
     const mcpTools = this.mcpClientManager.getSafeTools();
     const discoveredTools = this.mcpClientManager.getDiscoveredTools();
     const availableTools = mcpTools.map(tool => tool.name);
 
-    sessionLog.info('Executing sub-agent with MCP tool access', {
+    sessionLog.info('Executing sub-agent via OpenRouter with MCP tool access', {
       chatmode: chatmodeDefinition.name,
       availableTools: availableTools,
       totalMCPTools: mcpTools.length,
       maxIterations: config.maxTotalCalls,
       toolDetails: mcpTools.map(t => ({ name: t.name, server: t.serverName, safe: t.safe })),
-      model: 'gpt-4o-mini'
+      model: chatmodeDefinition.defaultModel || 'openai/gpt-4o-mini'
     });
 
     // Create dynamic tool documentation from actually available tools
@@ -1699,7 +1674,7 @@ IMPORTANT: When you have gathered sufficient information to complete your task, 
       iteration++;
 
       const completion = await openai.chat.completions.create({
-        model: 'gpt-4o-mini',
+        model: chatmodeDefinition.defaultModel || 'openai/gpt-4o-mini',
         messages,
         temperature: 0.7,
         max_tokens: 4000
@@ -1707,7 +1682,7 @@ IMPORTANT: When you have gathered sufficient information to complete your task, 
 
       const message = completion.choices[0]?.message;
       if (!message) {
-        throw new Error('Empty response from OpenAI');
+        throw new Error('Empty response from OpenRouter');
       }
 
       const content = message.content || '';
@@ -1988,7 +1963,7 @@ IMPORTANT: When you have gathered sufficient information to complete your task, 
         },
         memory_operations: [],
         metadata: {
-          chatmode: chatmodeName,
+          subagent: chatmodeName,
           task_completion_status: 'failed',
           processing_time: 'Parse error',
           confidence_level: 'low'
@@ -2255,19 +2230,19 @@ IMPORTANT: When you have gathered sufficient information to complete your task, 
    */
   private async handleGetQualityAnalytics(args: any) {
     try {
-      const { chatmode, days = 7 } = args;
+      const { subagent, days = 7 } = args;
 
-      const qualityTrends = this.analyticsManager.getQualityTrends(chatmode, days);
-      const qualityInsights = this.analyticsManager.getQualityInsights(chatmode);
-      const chatmodeComparison = chatmode ? {} : this.analyticsManager.compareChatmodePerformance();
+      const qualityTrends = this.analyticsManager.getQualityTrends(subagent, days);
+      const qualityInsights = this.analyticsManager.getQualityInsights(subagent);
+      const subagentComparison = subagent ? {} : this.analyticsManager.compareSubagentPerformance();
 
       const result = {
         quality_trends: qualityTrends,
         insights: qualityInsights,
-        ...(Object.keys(chatmodeComparison).length > 0 && { chatmode_comparison: chatmodeComparison }),
+        ...(Object.keys(subagentComparison).length > 0 && { subagent_comparison: subagentComparison }),
         analytics_metadata: {
           analysis_period_days: days,
-          chatmode_filter: chatmode || 'all',
+          subagent_filter: subagent || 'all',
           generated_at: new Date().toISOString(),
           analytics_version: '1.0'
         }
@@ -2480,7 +2455,7 @@ IMPORTANT: When you have gathered sufficient information to complete your task, 
   private async handlePredictQualityScore(args: any): Promise<any> {
     try {
       const context: ValidationContext = {
-        chatmode: args.chatmode,
+        subagent: args.subagent,
         requirements: args.requirements,
         qualityCriteria: args.quality_criteria
       };
@@ -2497,9 +2472,9 @@ IMPORTANT: When you have gathered sufficient information to complete your task, 
               prediction_basis: prediction.predictionBasis,
               risk_factors: prediction.riskFactors,
               success_factors: prediction.successFactors,
-              chatmode: context.chatmode,
-              threshold: context.chatmode === 'Security Engineer' ? 0.80 : 0.75,
-              likely_to_pass: prediction.predictedScore >= (context.chatmode === 'Security Engineer' ? 0.80 : 0.75)
+              chatmode: context.subagent,
+              threshold: context.subagent === 'Security Engineer' ? 0.80 : 0.75,
+              likely_to_pass: prediction.predictedScore >= (context.subagent === 'Security Engineer' ? 0.80 : 0.75)
             }, null, 2),
           },
         ],
@@ -2530,7 +2505,7 @@ IMPORTANT: When you have gathered sufficient information to complete your task, 
   private async handlePredictRefinementSuccess(args: any): Promise<any> {
     try {
       const context: ValidationContext = {
-        chatmode: args.chatmode,
+        subagent: args.subagent,
         requirements: args.requirements,
         qualityCriteria: args.quality_criteria
       };
@@ -2556,7 +2531,7 @@ IMPORTANT: When you have gathered sufficient information to complete your task, 
                   : 'Refinement unlikely to succeed - consider alternative approach',
               current_score: args.current_score,
               refinement_attempt: args.refinement_attempt,
-              chatmode: context.chatmode
+              subagent: context.subagent
             }, null, 2),
           },
         ],
@@ -2565,7 +2540,7 @@ IMPORTANT: When you have gathered sufficient information to complete your task, 
     } catch (error) {
       logger.error('Failed to predict refinement success', {
         error: error instanceof Error ? error.message : String(error),
-        chatmode: args?.chatmode,
+        chatmode: args?.subagent,
         currentScore: args?.current_score
       });
 
@@ -2699,11 +2674,11 @@ IMPORTANT: When you have gathered sufficient information to complete your task, 
       await this.mcpClientManager.initialize();
 
       // Initialize components
-      await this.chatmodeLoader.initialize();
+      await this.subagentLoader.initialize();
 
       logger.info('SecondBrain MCP Server initialized successfully', {
         version: packageInfo.version,
-        chatmodesLoaded: this.chatmodeLoader.listChatmodes().length,
+        subagentsLoaded: this.subagentLoader.listSubagents().length,
         sessionStorePath: config.sessionStorePath,
         maxCalls: config.maxTotalCalls,
         mcpServersConnected: this.mcpClientManager.getServerStatus().filter(s => s.connected).length,

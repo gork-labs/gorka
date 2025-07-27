@@ -4,23 +4,23 @@ import {
   QualityRule,
   QualityRuleResult,
   EnhancedQualityAssessment,
-  ChatmodeQualityConfig
+  SubagentQualityConfig
 } from '../utils/types.js';
 import { logger } from '../utils/logger.js';
 import { config } from '../utils/config.js';
 
 /**
  * Core quality validation system for sub-agent responses
- * Provides rule-based validation with chatmode-specific criteria
+ * Provides rule-based validation with subagent-specific criteria
  */
 export class QualityValidator {
   private universalRules: QualityRule[] = [];
-  private chatmodeRules: Map<string, QualityRule[]> = new Map();
-  private chatmodeConfigs: Map<string, ChatmodeQualityConfig> = new Map();
+  private subagentRules: Map<string, QualityRule[]> = new Map();
+  private subagentConfigs: Map<string, SubagentQualityConfig> = new Map();
 
   constructor() {
     this.initializeUniversalRules();
-    this.loadChatmodeConfigs();
+    this.loadSubagentConfigs();
   }
 
   /**
@@ -33,9 +33,9 @@ export class QualityValidator {
     const startTime = Date.now();
 
     try {
-      // Get applicable rules for this chatmode
-      const applicableRules = this.getApplicableRules(context.chatmode);
-      const chatmodeConfig = this.getChatmodeConfig(context.chatmode);
+      // Get applicable rules for this subagent
+      const applicableRules = this.getApplicableRules(context.subagent);
+      const subagentConfig = this.getSubagentConfig(context.subagent);
 
       // Execute all quality rules
       const ruleResults: QualityRuleResult[] = [];
@@ -78,8 +78,8 @@ export class QualityValidator {
 
       const assessment: EnhancedQualityAssessment = {
         overallScore,
-        passed: overallScore >= chatmodeConfig.qualityThreshold,
-        qualityThreshold: chatmodeConfig.qualityThreshold,
+        passed: overallScore >= subagentConfig.qualityThreshold,
+        qualityThreshold: subagentConfig.qualityThreshold,
         ruleResults,
         categories,
         recommendations,
@@ -91,7 +91,7 @@ export class QualityValidator {
       };
 
       logger.info('Quality validation completed', {
-        chatmode: context.chatmode,
+        subagent: context.subagent,
         score: overallScore,
         passed: assessment.passed,
         processingTime: assessment.processingTime,
@@ -102,7 +102,7 @@ export class QualityValidator {
 
     } catch (error) {
       logger.error('Quality validation failed', {
-        chatmode: context.chatmode,
+        subagent: context.subagent,
         error: error instanceof Error ? error.message : String(error)
       });
 
@@ -177,12 +177,12 @@ export class QualityValidator {
   }
 
   /**
-   * Load chatmode-specific quality configurations
+   * Load subagent-specific quality configurations
    */
-  private loadChatmodeConfigs(): void {
-    // Default configuration for all chatmodes
-    const defaultConfig: ChatmodeQualityConfig = {
-      chatmode: 'default',
+  private loadSubagentConfigs(): void {
+    // Default configuration for all subagents
+    const defaultConfig: SubagentQualityConfig = {
+      subagent: 'default',
       qualityThreshold: config.qualityThreshold || 70,
       maxRefinementAttempts: 3,
       specificRules: [],
@@ -191,31 +191,31 @@ export class QualityValidator {
     };
 
     // Chatmode-specific configurations
-    const chatmodeConfigs: ChatmodeQualityConfig[] = [
+    const subagentConfigs: SubagentQualityConfig[] = [
       {
         ...defaultConfig,
-        chatmode: 'Security Engineer',
+        subagent: 'Security Engineer',
         qualityThreshold: 80,
         specificRules: ['security_depth', 'threat_analysis', 'compliance_coverage'],
         requiredCategories: ['format', 'completeness', 'security']
       },
       {
         ...defaultConfig,
-        chatmode: 'Software Architect',
+        subagent: 'Software Architect',
         qualityThreshold: 75,
         specificRules: ['architecture_rationale', 'scalability_consideration', 'pattern_appropriateness'],
         requiredCategories: ['format', 'completeness', 'architecture']
       },
       {
         ...defaultConfig,
-        chatmode: 'Database Architect',
+        subagent: 'Database Architect',
         qualityThreshold: 75,
         specificRules: ['data_modeling_accuracy', 'performance_implications', 'normalization_quality'],
         requiredCategories: ['format', 'completeness', 'database']
       },
       {
         ...defaultConfig,
-        chatmode: 'Test Engineer',
+        subagent: 'Test Engineer',
         qualityThreshold: 75,
         specificRules: ['test_coverage_analysis', 'edge_case_identification', 'test_strategy_quality'],
         requiredCategories: ['format', 'completeness', 'testing']
@@ -223,28 +223,28 @@ export class QualityValidator {
     ];
 
     // Store configurations
-    for (const config of chatmodeConfigs) {
-      this.chatmodeConfigs.set(config.chatmode, config);
+    for (const config of subagentConfigs) {
+      this.subagentConfigs.set(config.subagent, config);
     }
 
     // Set default for any unlisted chatmodes
-    this.chatmodeConfigs.set('default', defaultConfig);
+    this.subagentConfigs.set('default', defaultConfig);
   }
 
   /**
    * Get all applicable rules for a specific chatmode
    */
-  private getApplicableRules(chatmode: string): QualityRule[] {
+  private getApplicableRules(subagent: string): QualityRule[] {
     const rules = [...this.universalRules];
-    const chatmodeSpecificRules = this.chatmodeRules.get(chatmode) || [];
-    return rules.concat(chatmodeSpecificRules);
+    const subagentSpecificRules = this.subagentRules.get(subagent) || [];
+    return rules.concat(subagentSpecificRules);
   }
 
   /**
    * Get quality configuration for a specific chatmode
    */
-  private getChatmodeConfig(chatmode: string): ChatmodeQualityConfig {
-    return this.chatmodeConfigs.get(chatmode) || this.chatmodeConfigs.get('default')!;
+  private getSubagentConfig(subagent: string): SubagentQualityConfig {
+    return this.subagentConfigs.get(subagent) || this.subagentConfigs.get('default')!;
   }
 
   /**
@@ -303,9 +303,9 @@ export class QualityValidator {
 
     // Add contextual recommendations based on chatmode
     if (recommendations.length > 0) {
-      const chatmodeConfig = this.getChatmodeConfig(context.chatmode);
-      if (chatmodeConfig.chatmode !== 'default') {
-        recommendations.push(`Consider the specific requirements for ${context.chatmode} when refining the response.`);
+      const subagentConfig = this.getSubagentConfig(context.subagent);
+      if (subagentConfig.subagent !== 'default') {
+        recommendations.push(`Consider the specific requirements for ${context.subagent} when refining the response.`);
       }
     }
 
@@ -331,8 +331,8 @@ export class QualityValidator {
     );
 
     // Check if the overall score is close to passing threshold
-    const config = this.getChatmodeConfig(context.chatmode);
-    const currentScore = this.calculateWeightedScore(results, this.getApplicableRules(context.chatmode));
+    const config = this.getSubagentConfig(context.subagent);
+    const currentScore = this.calculateWeightedScore(results, this.getApplicableRules(context.subagent));
 
     return improvableIssues.length > 0 || (currentScore > config.qualityThreshold * 0.8);
   }
@@ -376,7 +376,7 @@ export class QualityValidator {
     processingTime: number,
     error: any
   ): EnhancedQualityAssessment {
-    const config = this.getChatmodeConfig(context.chatmode);
+    const config = this.getSubagentConfig(context.subagent);
 
     return {
       overallScore: 0,
@@ -581,8 +581,8 @@ export class QualityValidator {
   // NEW: Code-specific analysis validation methods
   private evaluateFilePathSpecificity(response: SubAgentResponse, context: ValidationContext): QualityRuleResult {
     // Only apply to technical chatmodes
-    const technicalChatmodes = ['Security Engineer', 'Software Engineer', 'DevOps Engineer', 'Database Architect', 'Test Engineer'];
-    if (!technicalChatmodes.includes(context.chatmode)) {
+    const technicalSubagents = ['Security Engineer', 'Software Engineer', 'DevOps Engineer', 'Database Architect', 'Test Engineer'];
+    if (!technicalSubagents.includes(context.subagent)) {
       return { passed: true, score: 100, feedback: 'Not applicable for this chatmode', severity: 'minor', category: 'specificity' };
     }
 
@@ -670,8 +670,8 @@ export class QualityValidator {
 
   private evaluateCodeSnippetPresence(response: SubAgentResponse, context: ValidationContext): QualityRuleResult {
     // Only apply to technical chatmodes
-    const technicalChatmodes = ['Security Engineer', 'Software Engineer', 'DevOps Engineer', 'Database Architect'];
-    if (!technicalChatmodes.includes(context.chatmode)) {
+    const technicalSubagents = ['Security Engineer', 'Software Engineer', 'DevOps Engineer', 'Database Architect'];
+    if (!technicalSubagents.includes(context.subagent)) {
       return { passed: true, score: 100, feedback: 'Not applicable for this chatmode', severity: 'minor', category: 'specificity' };
     }
 
@@ -735,8 +735,8 @@ export class QualityValidator {
 
   private evaluateConcreteAnalysisDepth(response: SubAgentResponse, context: ValidationContext): QualityRuleResult {
     // Only apply to technical chatmodes
-    const technicalChatmodes = ['Security Engineer', 'Software Engineer', 'DevOps Engineer', 'Database Architect', 'Test Engineer'];
-    if (!technicalChatmodes.includes(context.chatmode)) {
+    const technicalSubagents = ['Security Engineer', 'Software Engineer', 'DevOps Engineer', 'Database Architect', 'Test Engineer'];
+    if (!technicalSubagents.includes(context.subagent)) {
       return { passed: true, score: 100, feedback: 'Not applicable for this chatmode', severity: 'minor', category: 'specificity' };
     }
 

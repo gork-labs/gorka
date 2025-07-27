@@ -1,13 +1,13 @@
 import * as fs from 'fs';
 import * as path from 'path';
 import { fileURLToPath } from 'url';
-import { ChatmodeDefinition, ChatmodeNotFoundError } from '../utils/types.js';
+import { ChatmodeDefinition, SubagentNotFoundError } from '../utils/types.js';
 import { config } from '../utils/config.js';
 import { logger } from '../utils/logger.js';
 import { templateManager } from '../utils/template-manager.js';
 
-export class ChatmodeLoader {
-  private chatmodes: Map<string, ChatmodeDefinition> = new Map();
+export class SubagentLoader {
+  private subagents: Map<string, ChatmodeDefinition> = new Map();
   private instructions: string = '';
   private initialized: boolean = false;
 
@@ -18,13 +18,13 @@ export class ChatmodeLoader {
 
     try {
       await this.loadInstructions();
-      await this.ensureChatmodesDirectory();
+      await this.ensureSubagentsDirectory();
       await templateManager.initialize();
-      await this.loadChatmodes();
+      await this.loadSubagents();
       this.initialized = true;
-      logger.info('Chatmode loader initialized', {
-        chatmodesPath: config.chatmodesPath,
-        loadedCount: this.chatmodes.size,
+      logger.info('Subagent loader initialized', {
+        subagentsPath: config.subagentsPath,
+        loadedCount: this.subagents.size,
         instructionsLength: this.instructions.length
       });
     } catch (error) {
@@ -86,103 +86,103 @@ export class ChatmodeLoader {
     });
   }
 
-  private async ensureChatmodesDirectory(): Promise<void> {
-    const chatmodesPath = config.chatmodesPath;
+  private async ensureSubagentsDirectory(): Promise<void> {
+    const subagentsPath = config.subagentsPath;
 
-    // Create chatmodes directory if it doesn't exist
-    if (!fs.existsSync(chatmodesPath)) {
-      logger.info('Creating chatmodes directory', { path: chatmodesPath });
-      fs.mkdirSync(chatmodesPath, { recursive: true });
+    // Create subagents directory if it doesn't exist
+    if (!fs.existsSync(subagentsPath)) {
+      logger.info('Creating subagents directory', { path: subagentsPath });
+      fs.mkdirSync(subagentsPath, { recursive: true });
     }
 
     // Check if directory is empty or has no .chatmode.md files
-    const files = fs.readdirSync(chatmodesPath);
-    const chatmodeFiles = files.filter(file => file.endsWith('.chatmode.md'));
+    const files = fs.readdirSync(subagentsPath);
+    const subagentFiles = files.filter(file => file.endsWith('.chatmode.md'));
 
-    if (chatmodeFiles.length === 0) {
-      logger.info('No chatmode files found, copying defaults');
-      await this.copyDefaultChatmodes(chatmodesPath);
+    if (subagentFiles.length === 0) {
+      logger.info('No subagent files found, copying defaults');
+      await this.copyDefaultSubagents(subagentsPath);
     }
   }
 
-  private async copyDefaultChatmodes(targetPath: string): Promise<void> {
+  private async copyDefaultSubagents(targetPath: string): Promise<void> {
     try {
       // Get the directory of this module
       const __filename = fileURLToPath(import.meta.url);
       const __dirname = path.dirname(__filename);
 
-      // Look for chatmodes in the package
+      // Look for subagents in the package
       const packageRoot = path.resolve(__dirname, '../..');
-      const defaultChatmodesPath = path.join(packageRoot, 'chatmodes');
+      const defaultSubagentsPath = path.join(packageRoot, 'subagents');
 
-      if (fs.existsSync(defaultChatmodesPath)) {
-        const defaultFiles = fs.readdirSync(defaultChatmodesPath);
-        const chatmodeFiles = defaultFiles.filter(file => file.endsWith('.chatmode.md'));
+      if (fs.existsSync(defaultSubagentsPath)) {
+        const defaultFiles = fs.readdirSync(defaultSubagentsPath);
+        const subagentFiles = defaultFiles.filter(file => file.endsWith('.chatmode.md'));
 
-        for (const file of chatmodeFiles) {
-          const sourcePath = path.join(defaultChatmodesPath, file);
+        for (const file of subagentFiles) {
+          const sourcePath = path.join(defaultSubagentsPath, file);
           const targetFilePath = path.join(targetPath, file);
 
           if (!fs.existsSync(targetFilePath)) {
             fs.copyFileSync(sourcePath, targetFilePath);
-            logger.debug('Copied default chatmode', { file, from: sourcePath, to: targetFilePath });
+            logger.debug('Copied default subagent', { file, from: sourcePath, to: targetFilePath });
           }
         }
 
-        logger.info('Copied default chatmodes', {
-          count: chatmodeFiles.length,
-          from: defaultChatmodesPath,
+        logger.info('Copied default subagents', {
+          count: subagentFiles.length,
+          from: defaultSubagentsPath,
           to: targetPath
         });
       } else {
-        logger.warn('Default chatmodes directory not found in package', {
-          expectedPath: defaultChatmodesPath
+        logger.warn('Default subagents directory not found in package', {
+          expectedPath: defaultSubagentsPath
         });
       }
     } catch (error) {
-      logger.error('Failed to copy default chatmodes', {
+      logger.error('Failed to copy default subagents', {
         error: error instanceof Error ? error.message : String(error)
       });
       // Don't throw - server can still work without defaults
     }
   }
 
-  private async loadChatmodes(): Promise<void> {
-    const chatmodesPath = config.chatmodesPath;
+  private async loadSubagents(): Promise<void> {
+    const subagentsPath = config.subagentsPath;
 
-    // Directory should exist now due to ensureChatmodesDirectory
-    if (!fs.existsSync(chatmodesPath)) {
-      throw new Error(`Chatmodes directory not found: ${chatmodesPath}`);
+    // Directory should exist now due to ensureSubagentsDirectory
+    if (!fs.existsSync(subagentsPath)) {
+      throw new Error(`Subagents directory not found: ${subagentsPath}`);
     }
 
-    const files = fs.readdirSync(chatmodesPath);
-    const chatmodeFiles = files.filter(file => file.endsWith('.chatmode.md'));
+    const files = fs.readdirSync(subagentsPath);
+    const subagentFiles = files.filter(file => file.endsWith('.chatmode.md'));
 
-    if (chatmodeFiles.length === 0) {
-      logger.warn('No chatmode files found', { path: chatmodesPath });
+    if (subagentFiles.length === 0) {
+      logger.warn('No subagent files found', { path: subagentsPath });
       return;
     }
 
-    for (const file of chatmodeFiles) {
+    for (const file of subagentFiles) {
       try {
-        const filePath = path.join(chatmodesPath, file);
-        const chatmode = await this.parseChatmodeFile(filePath);
-        this.chatmodes.set(chatmode.name, chatmode);
-        logger.debug('Loaded chatmode', { name: chatmode.name, file });
+        const filePath = path.join(subagentsPath, file);
+        const subagent = await this.parseSubagentFile(filePath);
+        this.subagents.set(subagent.name, subagent);
+        logger.debug('Loaded subagent', { name: subagent.name, file });
       } catch (error) {
-        logger.warn('Failed to load chatmode file', {
+        logger.warn('Failed to load subagent file', {
           file,
           error: error instanceof Error ? error.message : String(error)
         });
       }
     }
 
-    if (this.chatmodes.size === 0) {
-      throw new Error('No valid chatmodes found');
+    if (this.subagents.size === 0) {
+      throw new Error('No valid subagents found');
     }
   }
 
-  private async parseChatmodeFile(filePath: string): Promise<ChatmodeDefinition> {
+  private async parseSubagentFile(filePath: string): Promise<ChatmodeDefinition> {
     const content = fs.readFileSync(filePath, 'utf-8');
 
     // Parse frontmatter and content
@@ -217,35 +217,59 @@ export class ChatmodeLoader {
   }
 
   private combineContentWithInstructions(chatmodeContent: string, chatmodeName: string): string {
-    if (!this.instructions) {
+    // For sub-agents, we only include essential instructions to avoid context overflow
+    // The full global instructions are meant for the main orchestrator agent
+    const essentialInstructions = this.getEssentialInstructionsForSubAgent();
+
+    if (!essentialInstructions) {
       return chatmodeContent;
     }
 
     try {
-      return templateManager.render('main-agent-wrapper', {
+      return templateManager.render('sub-agent-wrapper', {
         chatmodeName,
-        globalInstructions: this.instructions,
+        essentialInstructions,
         chatmodeContent: chatmodeContent
       });
     } catch (error) {
-      logger.error('Failed to render main agent wrapper template', {
+      logger.error('Failed to render sub-agent wrapper template', {
         chatmodeName,
         error: error instanceof Error ? error.message : String(error)
       });
 
-      // Fallback to original hardcoded template
-      return `# ${chatmodeName} - Enhanced with Global Instructions
+      // Fallback to minimal template for sub-agents
+      return `# ${chatmodeName} - Sub-Agent Specialist
 
-## Global Agent Instructions
-${this.instructions}
+## Essential Guidelines
+${essentialInstructions}
 
 ## Domain-Specific Expertise
 ${chatmodeContent}
 
 ---
 
-You MUST follow ALL the global instructions above while applying your domain expertise. These instructions are mandatory for all agents and override any conflicting guidance in your domain-specific content.`;
+You are a specialized sub-agent focused on your domain expertise. Follow the essential guidelines while applying your specialized knowledge.`;
     }
+  }
+
+  private getEssentialInstructionsForSubAgent(): string {
+    // Extract only the most critical instructions for sub-agents to avoid context overflow
+    return `## Core Principles
+
+**Tools First**: Always prefer specialized tools over CLI commands when available.
+
+**Evidence-Based Analysis**: All recommendations must include:
+- Specific file paths and line numbers
+- Actual code snippets from the codebase
+- Concrete implementation examples
+- Confidence levels (High/Medium/Low) for findings
+
+**Honesty Requirements**:
+- Explicitly state what you can and cannot verify
+- Distinguish between static analysis and runtime assessment
+- Acknowledge limitations in your analysis
+
+**Response Format**: Always respond in the required JSON format with deliverables, memory_operations, and metadata sections.`;
   }
 
   private parseSimpleYaml(yamlStr: string): Record<string, any> {
@@ -283,63 +307,63 @@ You MUST follow ALL the global instructions above while applying your domain exp
     return result;
   }
 
-  getChatmode(name: string): ChatmodeDefinition {
+  getSubagent(name: string): ChatmodeDefinition {
     if (!this.initialized) {
-      throw new Error('ChatmodeLoader not initialized');
+      throw new Error('SubagentLoader not initialized');
     }
 
-    const chatmode = this.chatmodes.get(name);
-    if (!chatmode) {
-      throw new ChatmodeNotFoundError(name);
+    const subagent = this.subagents.get(name);
+    if (!subagent) {
+      throw new SubagentNotFoundError(name);
     }
 
-    return chatmode;
+    return subagent;
   }
 
-  listChatmodes(): string[] {
+  listSubagents(): string[] {
     if (!this.initialized) {
-      throw new Error('ChatmodeLoader not initialized');
+      throw new Error('SubagentLoader not initialized');
     }
 
-    return Array.from(this.chatmodes.keys()).sort();
+    return Array.from(this.subagents.keys()).sort();
   }
 
-  getChatmodeInfo(name: string): Pick<ChatmodeDefinition, 'name' | 'description' | 'tools'> {
-    const chatmode = this.getChatmode(name);
+  getSubagentInfo(name: string): Pick<ChatmodeDefinition, 'name' | 'description' | 'tools'> {
+    const subagent = this.getSubagent(name);
     return {
-      name: chatmode.name,
-      description: chatmode.description,
-      tools: chatmode.tools
+      name: subagent.name,
+      description: subagent.description,
+      tools: subagent.tools
     };
   }
 
-  // Get all chatmodes info for listing
-  getAllChatmodesInfo(): Array<Pick<ChatmodeDefinition, 'name' | 'description' | 'tools'>> {
+  // Get all subagents info for listing
+  getAllSubagentsInfo(): Array<Pick<ChatmodeDefinition, 'name' | 'description' | 'tools'>> {
     if (!this.initialized) {
-      throw new Error('ChatmodeLoader not initialized');
+      throw new Error('SubagentLoader not initialized');
     }
 
-    return Array.from(this.chatmodes.values())
-      .map(chatmode => ({
-        name: chatmode.name,
-        description: chatmode.description,
-        tools: chatmode.tools
+    return Array.from(this.subagents.values())
+      .map(subagent => ({
+        name: subagent.name,
+        description: subagent.description,
+        tools: subagent.tools
       }))
       .sort((a, b) => a.name.localeCompare(b.name));
   }
 
-  // Refresh chatmodes and instructions from disk
+  // Refresh subagents and instructions from disk
   async refresh(): Promise<void> {
-    this.chatmodes.clear();
+    this.subagents.clear();
     this.instructions = '';
     this.initialized = false;
     await templateManager.reload();
     await this.initialize();
   }
 
-  // Check if a chatmode exists
-  hasChatmode(name: string): boolean {
-    return this.chatmodes.has(name);
+  // Check if a subagent exists
+  hasSubagent(name: string): boolean {
+    return this.subagents.has(name);
   }
 
   // Get the current instructions content (for debugging/inspection)
@@ -347,34 +371,34 @@ You MUST follow ALL the global instructions above while applying your domain exp
     return this.instructions;
   }
 
-  // Get combined content for a specific chatmode (for debugging/inspection)
+  // Get combined content for a specific subagent (for debugging/inspection)
   getCombinedContent(name: string): string {
-    const chatmode = this.getChatmode(name);
-    return chatmode.content;
+    const subagent = this.getSubagent(name);
+    return subagent.content;
   }
 
-  // Get chatmode with full instruction wrapper for sub-agents
-  getChatmodeWithWrapper(name: string, isSubAgent: boolean = false): string {
-    const chatmode = this.getChatmode(name);
+  // Get subagent with full instruction wrapper for sub-agents
+  getSubagentWithWrapper(name: string, isSubAgent: boolean = false): string {
+    const subagent = this.getSubagent(name);
 
     if (!isSubAgent) {
-      return chatmode.content;
+      return subagent.content;
     }
 
     try {
       return templateManager.render('sub-agent-wrapper', {
-        chatmodeContent: chatmode.content,
-        chatmodeName: name
+        subagentContent: subagent.content,
+        subagentName: name
       });
     } catch (error) {
       logger.error('Failed to render sub-agent wrapper template', {
-        chatmodeName: name,
+        subagentName: name,
         error: error instanceof Error ? error.message : String(error)
       });
 
       // Fallback to original hardcoded template
       return `
-${chatmode.content}
+${subagent.content}
 
 ## CRITICAL: Sub-Agent Response Format
 

@@ -31,5 +31,27 @@
     },
     "requestSize": 1018,
     "responseSize": 1357
+  },
+  {
+    "timestamp": "2025-07-26T00:11:25.527Z",
+    "operation": "quality_validation",
+    "duration": 4,
+    "success": true,
+    "resourceUsage": {
+      "memory": 22324480
+    },
+    "requestSize": 444,
+    "responseSize": 2238
+  },
+  {
+    "timestamp": "2025-07-26T00:26:34.983Z",
+    "operation": "quality_validation",
+    "duration": 2,
+    "success": true,
+    "resourceUsage": {
+      "memory": 19484160
+    },
+    "requestSize": 1130,
+    "responseSize": 1253
   }
 ]

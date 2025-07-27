@@ -156,12 +156,12 @@ export class AnalyticsStorage {
   }
 
   // Quality Metrics Operations
-  recordQualityMetric(chatmode: string, metric: QualityMetric): void {
-    if (!this.qualityMetrics.has(chatmode)) {
-      this.qualityMetrics.set(chatmode, []);
+  recordQualityMetric(subagent: string, metric: QualityMetric): void {
+    if (!this.qualityMetrics.has(subagent)) {
+      this.qualityMetrics.set(subagent, []);
     }
 
-    const metrics = this.qualityMetrics.get(chatmode)!;
+    const metrics = this.qualityMetrics.get(subagent)!;
     metrics.push(metric);
 
     // Prevent unbounded growth
@@ -169,24 +169,24 @@ export class AnalyticsStorage {
       metrics.splice(0, metrics.length - this.maxMetricsPerType);
     }
 
-    this.qualityMetrics.set(chatmode, metrics);
+    this.qualityMetrics.set(subagent, metrics);
     this.persistQualityMetrics();
 
     logger.debug('Recorded quality metric', {
-      chatmode,
+      subagent,
       score: metric.qualityScore,
       passed: metric.passed,
       timestamp: metric.timestamp
     });
   }
 
-  getQualityMetrics(chatmode?: string, limit?: number): QualityMetric[] {
-    if (chatmode) {
-      const metrics = this.qualityMetrics.get(chatmode) || [];
+  getQualityMetrics(subagent?: string, limit?: number): QualityMetric[] {
+    if (subagent) {
+      const metrics = this.qualityMetrics.get(subagent) || [];
       return limit ? metrics.slice(-limit) : metrics;
     }
 
-    // Return all metrics across all chatmodes
+    // Return all metrics across all subagents
     const allMetrics: QualityMetric[] = [];
     for (const metrics of this.qualityMetrics.values()) {
       allMetrics.push(...metrics);
@@ -241,17 +241,17 @@ export class AnalyticsStorage {
     this.persistUsageMetrics();
 
     logger.debug('Recorded usage metric', {
-      chatmode: metric.chatmode,
+      subagent: metric.subagent,
       sessionId: metric.sessionId,
       timestamp: metric.timestamp
     });
   }
 
-  getUsageMetrics(chatmode?: string, limit?: number): UsageMetric[] {
+  getUsageMetrics(subagent?: string, limit?: number): UsageMetric[] {
     let metrics = this.usageMetrics;
 
-    if (chatmode) {
-      metrics = metrics.filter(m => m.chatmode === chatmode);
+    if (subagent) {
+      metrics = metrics.filter(m => m.subagent === subagent);
     }
 
     return limit ? metrics.slice(-limit) : metrics;

@@ -224,7 +224,7 @@ export class MLEngine {
       const confidence = this.calculatePredictionConfidence(model, features);
 
       logger.info('Quality score predicted', {
-        chatmode: context.chatmode,
+        subagent: context.subagent,
         predictedScore: prediction,
         confidence,
         riskFactorCount: riskFactors.length,
@@ -242,7 +242,7 @@ export class MLEngine {
     } catch (error) {
       logger.error('Quality prediction failed', {
         error: error instanceof Error ? error.message : 'Unknown error',
-        context: context.chatmode
+        context: context.subagent
       });
 
       return this.fallbackPrediction(context, 'Prediction error');
@@ -269,11 +269,11 @@ export class MLEngine {
     try {
       const features = new Map([
         ['initial_score', currentScore],
-        ['score_gap', this.getQualityThreshold(context.chatmode) - currentScore],
-        ['chatmode_encoded', this.encodeChatmode(context.chatmode)],
+        ['score_gap', this.getQualityThreshold(context.subagent) - currentScore],
+        ['chatmode_encoded', this.encodeChatmode(context.subagent)],
         ['refinement_attempt', refinementAttempt],
         ['issue_types', await this.analyzeIssueTypes(context)],
-        ['previous_refinement_success', await this.getPreviousRefinementSuccess(context.chatmode)]
+        ['previous_refinement_success', await this.getPreviousRefinementSuccess(context.subagent)]
       ]);
 
       const model = this.models.get('refinement_success');
@@ -377,7 +377,7 @@ export class MLEngine {
         actualScore: assessment.overallScore,
         actualPassed: assessment.passed,
         processingTime: assessment.processingTime,
-        chatmode: context.chatmode,
+        subagent: context.subagent,
         prediction: prediction?.predictedScore
       };
 
@@ -392,7 +392,7 @@ export class MLEngine {
       }
 
       logger.debug('Learning from validation completed', {
-        chatmode: context.chatmode,
+        subagent: context.subagent,
         actualScore: assessment.overallScore,
         predictedScore: prediction?.predictedScore,
         trainingDataSize: this.trainingData.length
@@ -401,7 +401,7 @@ export class MLEngine {
     } catch (error) {
       logger.error('Failed to learn from validation', {
         error: error instanceof Error ? error.message : 'Unknown error',
-        chatmode: context.chatmode
+        subagent: context.subagent
       });
     }
   }
@@ -495,7 +495,7 @@ export class MLEngine {
         insights.push({
           type: 'quality_forecast',
           severity: predictiveAnalytics.qualityForecast.trendDirection === 'declining' ? 'warning' : 'info',
-          title: `Quality Forecast: ${predictiveAnalytics.qualityForecast.chatmode}`,
+          title: `Quality Forecast: ${predictiveAnalytics.qualityForecast.subagent}`,
           description: `Predicted score: ${(predictiveAnalytics.qualityForecast.predictedScore * 100).toFixed(1)}% (${predictiveAnalytics.qualityForecast.trendDirection})`,
           actionRequired: predictiveAnalytics.qualityForecast.trendDirection === 'declining',
           recommendation: predictiveAnalytics.qualityForecast.trendDirection === 'declining'
@@ -515,7 +515,7 @@ export class MLEngine {
         insights.push({
           type: 'anomaly_detection',
           severity: anomaly.severity === 'high' ? 'critical' : anomaly.severity === 'medium' ? 'warning' : 'info',
-          title: `Anomaly Detected: ${anomaly.chatmode}`,
+          title: `Anomaly Detected: ${anomaly.subagent}`,
           description: anomaly.description,
           actionRequired: anomaly.severity === 'high',
           recommendation: anomaly.severity === 'high'
@@ -532,7 +532,7 @@ export class MLEngine {
       }
 
       // Add cross-chatmode pattern insights
-      for (const pattern of predictiveAnalytics.crossChatmodePatterns.slice(0, 2)) {
+      for (const pattern of predictiveAnalytics.crossSubagentPatterns.slice(0, 2)) {
         insights.push({
           type: 'cross_chatmode_analysis',
           severity: pattern.significance === 'high' ? 'warning' : 'info',
@@ -583,13 +583,13 @@ export class MLEngine {
     try {
       const qualityForecast = await this.generateQualityForecast();
       const anomalies = await this.detectAnomalies();
-      const crossChatmodePatterns = await this.analyzeCrossChatmodePatterns();
+      const crossSubagentPatterns = await this.analyzeCrossChatmodePatterns();
       const proactiveAlerts = await this.generateProactiveAlerts(anomalies);
 
       return {
         qualityForecast,
         anomalies,
-        crossChatmodePatterns,
+        crossSubagentPatterns,
         proactiveAlerts
       };
     } catch (error) {
@@ -599,7 +599,7 @@ export class MLEngine {
 
       return {
         qualityForecast: {
-          chatmode: 'system',
+          subagent: 'system',
           currentScore: 0,
           predictedScore: 0,
           confidenceInterval: [0, 0],
@@ -608,7 +608,7 @@ export class MLEngine {
           confidence: 0
         },
         anomalies: [],
-        crossChatmodePatterns: [],
+        crossSubagentPatterns: [],
         proactiveAlerts: [{
           alertType: 'anomaly_cluster',
           severity: 'critical',
@@ -633,18 +633,18 @@ export class MLEngine {
     let maxDataPoints = 0;
 
     for (const chatmode of chatmodes) {
-      const chatmodeData = this.trainingData.filter(d => d.chatmode === chatmode);
+      const chatmodeData = this.trainingData.filter(d => d.subagent === chatmode);
       if (chatmodeData.length > maxDataPoints) {
         maxDataPoints = chatmodeData.length;
         primaryChatmode = chatmode;
       }
     }
 
-    const chatmodeData = this.trainingData.filter(d => d.chatmode === primaryChatmode);
+    const chatmodeData = this.trainingData.filter(d => d.subagent === primaryChatmode);
 
     if (chatmodeData.length < 5) {
       return {
-        chatmode: primaryChatmode,
+        subagent: primaryChatmode,
         currentScore: 0.75,
         predictedScore: 0.75,
         confidenceInterval: [0.65, 0.85],
@@ -688,7 +688,7 @@ export class MLEngine {
     const confidence = Math.min(0.95, rSquared * 0.7 + (Math.min(chatmodeData.length, 50) / 50) * 0.3);
 
     return {
-      chatmode: primaryChatmode,
+      subagent: primaryChatmode,
       currentScore,
       predictedScore,
       confidenceInterval,
@@ -708,10 +708,10 @@ export class MLEngine {
       return anomalies; // Need sufficient data for anomaly detection
     }
 
-    const chatmodes = [...new Set(this.trainingData.map(d => d.chatmode))];
+    const chatmodes = [...new Set(this.trainingData.map(d => d.subagent))];
 
     for (const chatmode of chatmodes) {
-      const chatmodeData = this.trainingData.filter(d => d.chatmode === chatmode);
+      const chatmodeData = this.trainingData.filter(d => d.subagent === chatmode);
 
       if (chatmodeData.length < 5) continue;
 
@@ -745,14 +745,14 @@ export class MLEngine {
   /**
    * Analyze patterns across different chatmodes for correlations
    */
-  private async analyzeCrossChatmodePatterns(): Promise<PredictiveAnalytics['crossChatmodePatterns']> {
-    const patterns: PredictiveAnalytics['crossChatmodePatterns'] = [];
+  private async analyzeCrossChatmodePatterns(): Promise<PredictiveAnalytics['crossSubagentPatterns']> {
+    const patterns: PredictiveAnalytics['crossSubagentPatterns'] = [];
 
     if (this.trainingData.length < 20) {
       return patterns; // Need sufficient data for cross-analysis
     }
 
-    const chatmodes = [...new Set(this.trainingData.map(d => d.chatmode))];
+    const chatmodes = [...new Set(this.trainingData.map(d => d.subagent))];
 
     if (chatmodes.length < 2) {
       return patterns; // Need multiple chatmodes for correlation
@@ -771,7 +771,7 @@ export class MLEngine {
 
           patterns.push({
             pattern: `Quality Correlation: ${chatmode1} ↔ ${chatmode2}`,
-            affectedChatmodes: [chatmode1, chatmode2],
+            affectedSubagents: [chatmode1, chatmode2],
             correlation,
             significance,
             description: correlation > 0
@@ -811,7 +811,7 @@ export class MLEngine {
         alertType: 'anomaly_cluster',
         severity: 'critical',
         description: `Multiple high-severity anomalies detected (${highSeverityAnomalies.length} incidents)`,
-        affectedComponents: [...new Set(highSeverityAnomalies.map(a => a.chatmode))],
+        affectedComponents: [...new Set(highSeverityAnomalies.map(a => a.subagent))],
         recommendedActions: [
           'Investigate system configuration changes',
           'Review recent deployment changes',
@@ -830,7 +830,7 @@ export class MLEngine {
         alertType: 'performance_degradation',
         severity: performanceTrend.severity,
         description: performanceTrend.description,
-        affectedComponents: performanceTrend.affectedChatmodes,
+        affectedComponents: performanceTrend.affectedSubagents,
         recommendedActions: [
           'Monitor system resources',
           'Review recent configuration changes',
@@ -849,7 +849,7 @@ export class MLEngine {
         alertType: 'quality_decline',
         severity: qualityTrend.severity,
         description: qualityTrend.description,
-        affectedComponents: qualityTrend.affectedChatmodes,
+        affectedComponents: qualityTrend.affectedSubagents,
         recommendedActions: [
           'Review quality criteria settings',
           'Retrain ML models with recent data',
@@ -867,8 +867,8 @@ export class MLEngine {
       alerts.push({
         alertType: 'trend_reversal',
         severity: 'warning',
-        description: `Unexpected trend reversal detected in ${reversal.chatmode}: ${reversal.description}`,
-        affectedComponents: [reversal.chatmode],
+        description: `Unexpected trend reversal detected in ${reversal.subagent}: ${reversal.description}`,
+        affectedComponents: [reversal.subagent],
         recommendedActions: [
           'Investigate underlying causes',
           'Review recent data patterns',
@@ -890,7 +890,7 @@ export class MLEngine {
     const features = new Map<string, number>();
 
     // Chatmode encoding
-    features.set('chatmode_encoded', this.encodeChatmode(context.chatmode));
+    features.set('chatmode_encoded', this.encodeChatmode(context.subagent));
 
     // Requirements complexity
     features.set('requirements_length', context.requirements.length);
@@ -900,9 +900,9 @@ export class MLEngine {
     features.set('content_complexity', this.calculateContentComplexity(context.requirements));
 
     // Historical performance
-    const trends = this.analyticsManager.getQualityTrends(context.chatmode, 7);
+    const trends = this.analyticsManager.getQualityTrends(context.subagent, 7);
     features.set('historical_avg_score', trends.scoreAverage);
-    features.set('recent_trend', this.calculateTrend(context.chatmode));
+    features.set('recent_trend', this.calculateTrend(context.subagent));
 
     // Time-based features
     const now = new Date();
@@ -990,23 +990,23 @@ export class MLEngine {
   /**
    * Encode chatmode as numeric value for ML models
    */
-  private encodeChatmode(chatmode: string): number {
+  private encodeChatmode(subagent: string): number {
     const chatmodes = [
       'Software Engineer', 'Security Engineer', 'DevOps Engineer',
       'Database Architect', 'Software Architect', 'Test Engineer',
       'Technical Writer', 'Design Reviewer', 'Memory Curator', 'Prompt Writer'
     ];
 
-    const index = chatmodes.indexOf(chatmode);
+    const index = chatmodes.indexOf(subagent);
     return index >= 0 ? index / chatmodes.length : 0.5;
   }
 
   /**
    * Get quality threshold for a specific chatmode
    */
-  private getQualityThreshold(chatmode: string): number {
+  private getQualityThreshold(subagent: string): number {
     // Security Engineer has higher threshold (80%)
-    if (chatmode === 'Security Engineer') return 0.80;
+    if (subagent === 'Security Engineer') return 0.80;
 
     // Default threshold for other chatmodes (75%)
     return 0.75;
@@ -1016,7 +1016,7 @@ export class MLEngine {
    * Generate fallback prediction when ML is unavailable
    */
   private fallbackPrediction(context: ValidationContext, reason: string): PredictiveScoring {
-    const historicalTrends = this.analyticsManager.getQualityTrends(context.chatmode, 7);
+    const historicalTrends = this.analyticsManager.getQualityTrends(context.subagent, 7);
     const baseScore = historicalTrends.scoreAverage || 0.75;
 
     return {
@@ -1057,7 +1057,7 @@ export class MLEngine {
     // Poor historical performance
     const historicalAvg = features.get('historical_avg_score') || 0;
     if (historicalAvg < 0.7) {
-      risks.push(`${context.chatmode} has below-average recent performance`);
+      risks.push(`${context.subagent} has below-average recent performance`);
     }
 
     // Declining trend
@@ -1078,7 +1078,7 @@ export class MLEngine {
     // Good historical performance
     const historicalAvg = features.get('historical_avg_score') || 0;
     if (historicalAvg > 0.85) {
-      factors.push(`${context.chatmode} has excellent recent performance`);
+      factors.push(`${context.subagent} has excellent recent performance`);
     }
 
     // Improving trend
@@ -1099,9 +1099,9 @@ export class MLEngine {
   /**
    * Additional helper methods for ML operations
    */
-  private calculateTrend(chatmode: string): number {
-    const trends = this.analyticsManager.getQualityTrends(chatmode, 14);
-    const recentTrends = this.analyticsManager.getQualityTrends(chatmode, 7);
+  private calculateTrend(subagent: string): number {
+    const trends = this.analyticsManager.getQualityTrends(subagent, 14);
+    const recentTrends = this.analyticsManager.getQualityTrends(subagent, 7);
 
     return recentTrends.scoreAverage - trends.scoreAverage;
   }
@@ -1111,9 +1111,9 @@ export class MLEngine {
     return 0.5;
   }
 
-  private async getPreviousRefinementSuccess(chatmode: string): Promise<number> {
-    const usagePatterns = this.analyticsManager.getUsagePatterns(chatmode, 7);
-    const pattern = usagePatterns.find(p => p.chatmode === chatmode);
+  private async getPreviousRefinementSuccess(subagent: string): Promise<number> {
+    const usagePatterns = this.analyticsManager.getUsagePatterns(subagent, 7);
+    const pattern = usagePatterns.find(p => p.subagent === subagent);
     return pattern?.successRate || 0.5;
   }
 
@@ -1130,7 +1130,7 @@ export class MLEngine {
         const usagePatterns = this.analyticsManager.getUsagePatterns(chatmode, 30);
 
         // Get chatmode-specific training data
-        const chatmodeData = this.trainingData.filter(d => d.chatmode === chatmode);
+        const chatmodeData = this.trainingData.filter(d => d.subagent === chatmode);
         if (chatmodeData.length < 10) continue; // Need sufficient data
 
         // Calculate current performance metrics
@@ -1321,11 +1321,11 @@ export class MLEngine {
       const chatmodePatterns = new Map<string, {attempts: number, successRate: number}>();
 
       for (const data of refinementData) {
-        if (!chatmodePatterns.has(data.chatmode)) {
-          chatmodePatterns.set(data.chatmode, {attempts: 0, successRate: 0});
+        if (!chatmodePatterns.has(data.subagent)) {
+          chatmodePatterns.set(data.subagent, {attempts: 0, successRate: 0});
         }
 
-        const pattern = chatmodePatterns.get(data.chatmode)!;
+        const pattern = chatmodePatterns.get(data.subagent)!;
         pattern.attempts++;
 
         // Estimate if this would have been successful with refinement (score could reach threshold)
@@ -1413,7 +1413,7 @@ export class MLEngine {
       }
 
       // Chatmode-specific patterns
-      patterns.push(`chatmode_${context.chatmode.toLowerCase().replace(/\s+/g, '_')}`);
+      patterns.push(`chatmode_${context.subagent.toLowerCase().replace(/\s+/g, '_')}`);
 
       // Processing time patterns
       if (assessment.processingTime > 1000) {
@@ -1467,7 +1467,7 @@ export class MLEngine {
       }
 
       logger.debug('Learning patterns updated', {
-        chatmode: context.chatmode,
+        subagent: context.subagent,
         patternsIdentified: patterns.length,
         totalPatterns: this.learningPatterns.size,
         validationResult: assessment.passed ? 'passed' : 'failed',
@@ -1477,7 +1477,7 @@ export class MLEngine {
     } catch (error) {
       logger.error('Failed to update learning patterns', {
         error: error instanceof Error ? error.message : 'Unknown error',
-        chatmode: context.chatmode
+        subagent: context.subagent
       });
     }
   }
@@ -1645,7 +1645,7 @@ export class MLEngine {
 
   private async extractFailurePatterns(context: ValidationContext, assessment: EnhancedQualityAssessment): Promise<void> {
     // Extract patterns from failed validations for learning
-    const failureKey = `failure_${context.chatmode.toLowerCase().replace(/\s+/g, '_')}`;
+    const failureKey = `failure_${context.subagent.toLowerCase().replace(/\s+/g, '_')}`;
 
     let failurePattern = this.learningPatterns.get(failureKey);
     if (!failurePattern) {
@@ -1676,7 +1676,7 @@ export class MLEngine {
 
   private async extractSuccessPatterns(context: ValidationContext, assessment: EnhancedQualityAssessment): Promise<void> {
     // Extract patterns from successful validations for learning
-    const successKey = `success_${context.chatmode.toLowerCase().replace(/\s+/g, '_')}`;
+    const successKey = `success_${context.subagent.toLowerCase().replace(/\s+/g, '_')}`;
 
     let successPattern = this.learningPatterns.get(successKey);
     if (!successPattern) {
@@ -1749,7 +1749,7 @@ export class MLEngine {
     const distribution: Record<string, number> = {};
 
     for (const data of this.trainingData) {
-      distribution[data.chatmode] = (distribution[data.chatmode] || 0) + 1;
+      distribution[data.subagent] = (distribution[data.subagent] || 0) + 1;
     }
 
     return distribution;
@@ -1941,7 +1941,7 @@ export class MLEngine {
   /**
    * Detect anomalies using z-score method
    */
-  private detectZScoreAnomalies(values: number[], metric: string, chatmode: string): PredictiveAnalytics['anomalies'] {
+  private detectZScoreAnomalies(values: number[], metric: string, subagent: string): PredictiveAnalytics['anomalies'] {
     if (values.length < 3) return [];
 
     const mean = values.reduce((sum, val) => sum + val, 0) / values.length;
@@ -1959,7 +1959,7 @@ export class MLEngine {
         const severity: 'low' | 'medium' | 'high' = zScore > 4 ? 'high' : zScore > 3 ? 'medium' : 'low';
 
         anomalies.push({
-          chatmode,
+          subagent,
           metric,
           severity,
           detectedAt: new Date(Date.now() - (values.length - i) * 3600000).toISOString(), // Approximate timestamp
@@ -1977,7 +1977,7 @@ export class MLEngine {
   /**
    * Detect pattern-based anomalies
    */
-  private detectPatternAnomalies(data: MLTrainingData[], chatmode: string): PredictiveAnalytics['anomalies'] {
+  private detectPatternAnomalies(data: MLTrainingData[], subagent: string): PredictiveAnalytics['anomalies'] {
     const anomalies: PredictiveAnalytics['anomalies'] = [];
 
     if (data.length < 5) return anomalies;
@@ -1991,7 +1991,7 @@ export class MLEngine {
     // If correlation suddenly changes, it might indicate a pattern anomaly
     if (Math.abs(scoreTimeCorrelation) > 0.8) {
       anomalies.push({
-        chatmode,
+        subagent,
         metric: 'score_time_correlation',
         severity: 'medium',
         detectedAt: new Date().toISOString(),
@@ -2009,8 +2009,8 @@ export class MLEngine {
    * Calculate correlation between two chatmodes
    */
   private calculateChatmodeCorrelation(chatmode1: string, chatmode2: string): number {
-    const data1 = this.trainingData.filter(d => d.chatmode === chatmode1);
-    const data2 = this.trainingData.filter(d => d.chatmode === chatmode2);
+    const data1 = this.trainingData.filter(d => d.subagent === chatmode1);
+    const data2 = this.trainingData.filter(d => d.subagent === chatmode2);
 
     if (data1.length < 3 || data2.length < 3) return 0;
 
@@ -2035,11 +2035,11 @@ export class MLEngine {
   /**
    * Analyze processing time patterns across chatmodes
    */
-  private analyzeProcessingTimePatterns(chatmodes: string[]): PredictiveAnalytics['crossChatmodePatterns'][0] | null {
+  private analyzeProcessingTimePatterns(chatmodes: string[]): PredictiveAnalytics['crossSubagentPatterns'][0] | null {
     const processingTimes = new Map<string, number[]>();
 
     for (const chatmode of chatmodes) {
-      const data = this.trainingData.filter(d => d.chatmode === chatmode);
+      const data = this.trainingData.filter(d => d.subagent === chatmode);
       if (data.length >= 3) {
         processingTimes.set(chatmode, data.map(d => d.processingTime));
       }
@@ -2065,7 +2065,7 @@ export class MLEngine {
       if (slowChatmodes.length > 0) {
         return {
           pattern: 'Processing Time Variance',
-          affectedChatmodes: slowChatmodes,
+          affectedSubagents: slowChatmodes,
           correlation: stdDev / mean,
           significance: 'medium',
           description: `Significant processing time variance detected: ${slowChatmodes.join(', ')} are notably slower`,
@@ -2080,11 +2080,11 @@ export class MLEngine {
   /**
    * Analyze success rate patterns across chatmodes
    */
-  private analyzeSuccessRatePatterns(chatmodes: string[]): PredictiveAnalytics['crossChatmodePatterns'][0] | null {
+  private analyzeSuccessRatePatterns(chatmodes: string[]): PredictiveAnalytics['crossSubagentPatterns'][0] | null {
     const successRates = new Map<string, number>();
 
     for (const chatmode of chatmodes) {
-      const data = this.trainingData.filter(d => d.chatmode === chatmode);
+      const data = this.trainingData.filter(d => d.subagent === chatmode);
       if (data.length >= 3) {
         const successRate = data.filter(d => d.actualPassed).length / data.length;
         successRates.set(chatmode, successRate);
@@ -2104,7 +2104,7 @@ export class MLEngine {
 
       return {
         pattern: 'Success Rate Disparity',
-        affectedChatmodes: lowPerformers,
+        affectedSubagents: lowPerformers,
         correlation: maxRate - minRate,
         significance: 'high',
         description: `Significant success rate differences: ${lowPerformers.join(', ')} underperforming by ${((maxRate - minRate) * 100).toFixed(1)}%`,
@@ -2118,9 +2118,9 @@ export class MLEngine {
   /**
    * Analyze performance trend for degradation detection
    */
-  private analyzePerformanceTrend(): { declining: boolean; severity: 'info' | 'warning' | 'critical'; description: string; affectedChatmodes: string[]; confidence: number } {
+  private analyzePerformanceTrend(): { declining: boolean; severity: 'info' | 'warning' | 'critical'; description: string; affectedSubagents: string[]; confidence: number } {
     if (this.trainingData.length < 10) {
-      return { declining: false, severity: 'info', description: '', affectedChatmodes: [], confidence: 0 };
+      return { declining: false, severity: 'info', description: '', affectedSubagents: [], confidence: 0 };
     }
 
     const recentData = this.trainingData.slice(-Math.min(20, this.trainingData.length));
@@ -2129,9 +2129,9 @@ export class MLEngine {
     const { slope } = this.calculateLinearTrend(processingTimes);
 
     if (slope > 5) { // Processing time increasing by > 5ms per data point
-      const affectedChatmodes = [...new Set(recentData
+      const affectedSubagents = [...new Set(recentData
         .filter(d => d.processingTime > 100)
-        .map(d => d.chatmode))];
+        .map(d => d.subagent))];
 
       const severity: 'info' | 'warning' | 'critical' = slope > 20 ? 'critical' : slope > 10 ? 'warning' : 'info';
 
@@ -2139,20 +2139,20 @@ export class MLEngine {
         declining: true,
         severity,
         description: `Performance degrading: processing time increasing by ${slope.toFixed(1)}ms per validation`,
-        affectedChatmodes,
+        affectedSubagents,
         confidence: Math.min(0.9, recentData.length / 20)
       };
     }
 
-    return { declining: false, severity: 'info', description: '', affectedChatmodes: [], confidence: 0 };
+    return { declining: false, severity: 'info', description: '', affectedSubagents: [], confidence: 0 };
   }
 
   /**
    * Analyze quality trend for decline detection
    */
-  private analyzeQualityTrend(): { declining: boolean; severity: 'info' | 'warning' | 'critical'; description: string; affectedChatmodes: string[]; confidence: number } {
+  private analyzeQualityTrend(): { declining: boolean; severity: 'info' | 'warning' | 'critical'; description: string; affectedSubagents: string[]; confidence: number } {
     if (this.trainingData.length < 10) {
-      return { declining: false, severity: 'info', description: '', affectedChatmodes: [], confidence: 0 };
+      return { declining: false, severity: 'info', description: '', affectedSubagents: [], confidence: 0 };
     }
 
     const recentData = this.trainingData.slice(-Math.min(20, this.trainingData.length));
@@ -2161,9 +2161,9 @@ export class MLEngine {
     const { slope } = this.calculateLinearTrend(qualityScores);
 
     if (slope < -0.01) { // Quality declining by > 1% per data point
-      const affectedChatmodes = [...new Set(recentData
+      const affectedSubagents = [...new Set(recentData
         .filter(d => d.actualScore < 0.7)
-        .map(d => d.chatmode))];
+        .map(d => d.subagent))];
 
       const severity: 'info' | 'warning' | 'critical' = slope < -0.05 ? 'critical' : slope < -0.02 ? 'warning' : 'info';
 
@@ -2171,24 +2171,24 @@ export class MLEngine {
         declining: true,
         severity,
         description: `Quality declining: scores decreasing by ${(slope * 100).toFixed(1)}% per validation`,
-        affectedChatmodes,
+        affectedSubagents,
         confidence: Math.min(0.9, recentData.length / 20)
       };
     }
 
-    return { declining: false, severity: 'info', description: '', affectedChatmodes: [], confidence: 0 };
+    return { declining: false, severity: 'info', description: '', affectedSubagents: [], confidence: 0 };
   }
 
   /**
    * Detect trend reversals in chatmode performance
    */
-  private detectTrendReversals(): Array<{ chatmode: string; description: string; confidence: number }> {
-    const reversals: Array<{ chatmode: string; description: string; confidence: number }> = [];
+  private detectTrendReversals(): Array<{ subagent: string; description: string; confidence: number }> {
+    const reversals: Array<{ subagent: string; description: string; confidence: number }> = [];
 
-    const chatmodes = [...new Set(this.trainingData.map(d => d.chatmode))];
+    const chatmodes = [...new Set(this.trainingData.map(d => d.subagent))];
 
     for (const chatmode of chatmodes) {
-      const data = this.trainingData.filter(d => d.chatmode === chatmode);
+      const data = this.trainingData.filter(d => d.subagent === chatmode);
       if (data.length < 8) continue;
 
       const sortedData = data.sort((a, b) => a.timestamp - b.timestamp);
@@ -2205,13 +2205,13 @@ export class MLEngine {
       // Detect significant trend reversal
       if (trend1.slope > 0.02 && trend2.slope < -0.02) {
         reversals.push({
-          chatmode,
+          subagent: chatmode,
           description: `Trend reversal: improving trend (${(trend1.slope * 100).toFixed(1)}%) became declining (${(trend2.slope * 100).toFixed(1)}%)`,
           confidence: Math.min(0.8, data.length / 15)
         });
       } else if (trend1.slope < -0.02 && trend2.slope > 0.02) {
         reversals.push({
-          chatmode,
+          subagent: chatmode,
           description: `Trend reversal: declining trend (${(trend1.slope * 100).toFixed(1)}%) became improving (${(trend2.slope * 100).toFixed(1)}%)`,
           confidence: Math.min(0.8, data.length / 15)
         });
@@ -2653,7 +2653,7 @@ export class MLEngine {
     const startTime = Date.now();
 
     // Domain-specific prediction based on chatmode specialization
-    const chatmodeData = this.trainingData.filter(d => d.chatmode === context.chatmode);
+    const chatmodeData = this.trainingData.filter(d => d.subagent === context.subagent);
     const avgScore = chatmodeData.length > 0 ?
       chatmodeData.reduce((sum, d) => sum + d.actualScore, 0) / chatmodeData.length : 0.75;
 
@@ -2663,7 +2663,7 @@ export class MLEngine {
       modelId: 'domain_specific_model',
       prediction: avgScore,
       confidence,
-      reasoning: `Domain-specific prediction for ${context.chatmode} based on ${chatmodeData.length} cases`,
+      reasoning: `Domain-specific prediction for ${context.subagent} based on ${chatmodeData.length} cases`,
       contributingFactors: {
         'domain_expertise': 0.5,
         'chatmode_history': 0.3,
@@ -2754,7 +2754,7 @@ export class MLEngine {
   private async findSimilarCases(context: ValidationContext): Promise<Array<{ score: number; similarity: number }>> {
     // Simplified similarity search based on chatmode and context features
     const similarCases = this.trainingData
-      .filter(d => d.chatmode === context.chatmode)
+      .filter(d => d.subagent === context.subagent)
       .slice(-10) // Take recent cases
       .map(d => ({
         score: d.actualScore,
@@ -2917,7 +2917,7 @@ export class MLEngine {
     const insights: import('../utils/types.js').MetaLearningInsight[] = [];
 
     // Simplified transfer opportunity detection
-    const chatmodes = [...new Set(this.trainingData.map(d => d.chatmode))];
+    const chatmodes = [...new Set(this.trainingData.map(d => d.subagent))];
 
     for (let i = 0; i < chatmodes.length; i++) {
       for (let j = i + 1; j < chatmodes.length; j++) {
@@ -2931,8 +2931,8 @@ export class MLEngine {
             applicableScenarios: [chatmodes[i], chatmodes[j]],
             recommendations: ['Consider cross-chatmode knowledge transfer', 'Share successful patterns'],
             transferPotential: {
-              sourceChatmode: chatmodes[i],
-              targetChatmode: chatmodes[j],
+              sourceSubagent: chatmodes[i],
+              targetSubagent: chatmodes[j],
               similarity,
               expectedBenefit: similarity * 0.3
             }
@@ -2981,8 +2981,8 @@ export class MLEngine {
   }
 
   private async calculateChatmodeSimilarity(chatmode1: string, chatmode2: string): Promise<number> {
-    const data1 = this.trainingData.filter(d => d.chatmode === chatmode1);
-    const data2 = this.trainingData.filter(d => d.chatmode === chatmode2);
+    const data1 = this.trainingData.filter(d => d.subagent === chatmode1);
+    const data2 = this.trainingData.filter(d => d.subagent === chatmode2);
 
     if (data1.length === 0 || data2.length === 0) return 0;
 

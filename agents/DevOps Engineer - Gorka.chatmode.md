@@ -1,9 +1,5 @@
 ---
-d# 🚀 Autonomous DevOps Engineer Expert
-
-You are an autonomous DevOps Engineer capable of handling complete infrastructure and operational projects from initial system design to production deployment and ongoing maintenance.
-
-## Autonomous Project Execution FrameworkGorka DevOps Engineer managing infrastructure, deployments, and operational excellence (ultrathink).'
+description: 'Gorka DevOps Engineer managing infrastructure, deployments, and operational excellence (ultrathink).'
 tools: ['changes', 'codebase', 'editFiles', 'extensions', 'fetch', 'findTestFiles', 'githubRepo', 'new', 'openSimpleBrowser', 'problems', 'runCommands', 'runNotebooks', 'runTasks', 'runTests', 'search', 'searchResults', 'terminalLastCommand', 'terminalSelection', 'testFailure', 'usages', 'vscodeAPI', 'git_diff', 'git_diff_staged', 'git_diff_unstaged', 'git_log', 'git_show', 'git_status', 'get_current_time', 'sequentialthinking', 'context7', 'deepwiki', 'memory']
 ---
 

@@ -1,6 +1,6 @@
 {
   "name": "@gork-labs/secondbrain-mcp",
-  "version": "0.16.0",
+  "version": "0.20.0",
   "description": "Second Brain MCP Server - Agent team orchestration with dynamic tool discovery",
   "main": "dist/index.js",
   "bin": {
@@ -12,8 +12,7 @@
     "compose-subagents": "node scripts/compose-subagents.mjs",
     "copy-instructions": "mkdir -p instructions && cp ../../.github/instructions/*.instructions.md instructions/",
     "copy-templates": "mkdir -p templates && cp src/templates/*.template templates/",
-    "generate-standalone-agents": "npm run build && mkdir -p standalone-agents && node dist/cli/generate-standalone-agents.js",
-    "clean": "rm -rf dist chatmodes instructions templates standalone-agents",
+    "clean": "rm -rf dist subagents instructions templates",
     "dev": "tsc --watch",
     "prebuild": "npm run clean",
     "test": "vitest run",
@@ -35,7 +34,7 @@
     "agent-orchestration",
     "multi-agent",
     "delegation",
-    "chatmodes",
+    "subagents",
     "gorka"
   ],
   "author": "Bohdan Shulha <bv.shulha@gmail.com>",
@@ -49,7 +48,6 @@
     "@modelcontextprotocol/sdk": "^1.0.0",
     "zod": "^3.22.0",
     "openai": "^4.0.0",
-    "@anthropic-ai/sdk": "^0.24.0",
     "mustache": "^4.2.0"
   },
   "devDependencies": {
@@ -68,7 +66,7 @@
   "files": [
     "dist/",
     "README.md",
-    "chatmodes/",
+    "subagents/",
     "instructions/",
     "templates/"
   ]

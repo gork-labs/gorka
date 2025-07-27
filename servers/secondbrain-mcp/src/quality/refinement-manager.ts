@@ -2,7 +2,7 @@ import {
   RefinementState,
   EnhancedQualityAssessment,
   ValidationContext,
-  ChatmodeQualityConfig,
+  SubagentQualityConfig,
   SubAgentResponse
 } from '../utils/types.js';
 import { SessionManager } from '../core/session-manager.js';
@@ -41,20 +41,20 @@ export class RefinementManager {
     if (assessment.criticalIssues.length > 0) {
       logger.warn('Critical issues detected - refinement may not help', {
         sessionId,
-        chatmode: context.chatmode,
+        subagent: context.subagent,
         criticalIssues: assessment.criticalIssues
       });
       return false;
     }
 
     // Check refinement attempt limits using SessionManager
-    const currentCount = this.sessionManager.getRefinementCount(sessionId, context.chatmode);
-    const maxAttempts = this.getMaxRefinementAttempts(context.chatmode);
+    const currentCount = this.sessionManager.getRefinementCount(sessionId, context.subagent);
+    const maxAttempts = this.getMaxRefinementAttempts(context.subagent);
 
     if (currentCount >= maxAttempts) {
       logger.info('Maximum refinement attempts reached', {
         sessionId,
-        chatmode: context.chatmode,
+        subagent: context.subagent,
         attempts: currentCount,
         maxAttempts
       });
@@ -125,11 +125,11 @@ Please provide a refined response that addresses these issues while maintaining 
    */
   trackRefinementAttempt(
     sessionId: string,
-    chatmode: string,
+    subagent: string,
     previousScore: number,
     refinementReason: string
   ): RefinementState {
-    const key = `${sessionId}-${chatmode}`;
+    const key = `${sessionId}-${subagent}`;
     let state = this.refinementStates.get(key);
 
     if (!state) {
@@ -155,11 +155,11 @@ Please provide a refined response that addresses these issues while maintaining 
     this.refinementStates.set(key, state);
 
     // Update session manager with refinement tracking
-    this.sessionManager.incrementRefinementCount(sessionId, chatmode);
+    this.sessionManager.incrementRefinementCount(sessionId, subagent);
 
     logger.info('Refinement attempt tracked', {
       sessionId,
-      chatmode,
+      subagent,
       attempt: state.attemptNumber,
       previousScore,
       qualityTrend: state.qualityTrend
@@ -173,7 +173,7 @@ Please provide a refined response that addresses these issues while maintaining 
    */
   assessRefinementSuccess(
     sessionId: string,
-    chatmode: string,
+    subagent: string,
     newAssessment: EnhancedQualityAssessment
   ): {
     successful: boolean;
@@ -181,7 +181,7 @@ Please provide a refined response that addresses these issues while maintaining 
     trend: 'improving' | 'declining' | 'stable';
     shouldContinue: boolean;
   } {
-    const key = `${sessionId}-${chatmode}`;
+    const key = `${sessionId}-${subagent}`;
     const state = this.refinementStates.get(key);
 
     if (!state || state.previousScores.length === 0) {
@@ -202,13 +202,13 @@ Please provide a refined response that addresses these issues while maintaining 
     state.qualityTrend = this.assessQualityTrend(state.previousScores);
 
     const shouldContinue = !newAssessment.passed &&
-                          state.attemptNumber < this.getMaxRefinementAttempts(chatmode) &&
+                          state.attemptNumber < this.getMaxRefinementAttempts(subagent) &&
                           newAssessment.canRefine &&
                           state.qualityTrend !== 'declining';
 
     logger.info('Refinement success assessed', {
       sessionId,
-      chatmode,
+      subagent,
       successful,
       improvement,
       newScore: newAssessment.overallScore,
@@ -304,8 +304,8 @@ Please provide a refined response that addresses these issues while maintaining 
 
   // Private helper methods
 
-  private getRefinementState(sessionId: string, chatmode: string): RefinementState {
-    const key = `${sessionId}-${chatmode}`;
+  private getRefinementState(sessionId: string, subagent: string): RefinementState {
+    const key = `${sessionId}-${subagent}`;
     return this.refinementStates.get(key) || {
       sessionId,
       originalTaskId: this.generateTaskId(),
@@ -318,7 +318,7 @@ Please provide a refined response that addresses these issues while maintaining 
     };
   }
 
-  private getMaxRefinementAttempts(chatmode: string): number {
+  private getMaxRefinementAttempts(subagent: string): number {
     // Default max attempts - could be made configurable per chatmode
     const maxAttempts: Record<string, number> = {
       'Security Engineer': 3,
@@ -328,7 +328,7 @@ Please provide a refined response that addresses these issues while maintaining 
       'default': 2
     };
 
-    return maxAttempts[chatmode] || maxAttempts['default'];
+    return maxAttempts[subagent] || maxAttempts['default'];
   }
 
   private identifyRefinementAreas(assessment: EnhancedQualityAssessment): string[] {

@@ -1,9 +1,5 @@
 ---
-d# 🔍 Autonomous Principal Engineer Expert
-
-You are an autonomous Principal Engineer capable of handling complete technical review projects from initial document assessment to final approval and implementation guidance.
-
-## Autonomous Project Execution FrameworkGorka Principal Engineer conducting thorough reviews with authority to update documents and approve implementations (ultrathink).'
+description: 'Gorka Principal Engineer conducting thorough reviews with authority to update documents and approve implementations (ultrathink).'
 tools: ['changes', 'codebase', 'editFiles', 'extensions', 'fetch', 'findTestFiles', 'githubRepo', 'new', 'openSimpleBrowser', 'problems', 'runCommands', 'runNotebooks', 'runTasks', 'runTests', 'search', 'searchResults', 'terminalLastCommand', 'terminalSelection', 'testFailure', 'usages', 'vscodeAPI', 'git_diff', 'git_diff_staged', 'git_diff_unstaged', 'git_log', 'git_show', 'git_status', 'get_current_time', 'sequentialthinking', 'context7', 'deepwiki', 'memory']
 ---
 

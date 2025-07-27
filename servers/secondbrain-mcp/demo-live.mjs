@@ -2,7 +2,7 @@
 
 import { SecondBrainServer } from './dist/core/server.js';
 import { SessionManager } from './dist/core/session-manager.js';
-import { ChatmodeLoader } from './dist/utils/chatmode-loader.js';
+import { SubagentLoader } from './dist/subagents/loader.js';
 import { AnalyticsManager } from './dist/analytics/analytics-manager.js';
 import { MLEngine } from './dist/ml/ml-engine.js';
 import path from 'path';
@@ -18,16 +18,16 @@ async function demonstrateRealUsage() {
     const sessionManager = new SessionManager('/tmp/.secondbrain-demo');
     const analyticsManager = new AnalyticsManager('/tmp/.secondbrain-demo/analytics');
     const mlEngine = new MLEngine(analyticsManager);
-    const chatmodeLoader = new ChatmodeLoader('../../chatmodes');
+    const subagentLoader = new SubagentLoader('../../subagents');
 
-    const server = new SecondBrainServer(sessionManager, chatmodeLoader, analyticsManager, mlEngine);
+    const server = new SecondBrainServer(sessionManager, subagentLoader, analyticsManager, mlEngine);
 
     console.log('✅ All components initialized successfully');
 
-    // 1. List Available Chatmodes
+    // 1. List Available Subagents
     console.log('\n🤖 2. Available Specialized Agents:');
-    const chatmodes = await server.callTool('list_chatmodes', {});
-    const chatmodeData = JSON.parse(chatmodes.content[0].text);
+    const subagents = await server.callTool('list_subagents', {});
+    const subagentData = JSON.parse(subagents.content[0].text);
     console.log('Available Agents:', chatmodeData.chatmodes.slice(0, 5).join(', '), '...');
     console.log('Total Agents:', chatmodeData.total_count);
 

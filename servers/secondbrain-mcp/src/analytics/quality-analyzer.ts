@@ -11,7 +11,7 @@ import { logger } from '../utils/logger.js';
 
 /**
  * Quality Analyzer
- * Analyzes quality trends, patterns, and generates insights for continuous improvement
+ * Analyzes quality trends, patterns, and performance metrics to generate insights for continuous improvement
  */
 export class QualityAnalyzer {
   private storage: AnalyticsStorage;
@@ -54,7 +54,7 @@ export class QualityAnalyzer {
   ): void {
     const metric: QualityMetric = {
       timestamp: new Date().toISOString(),
-      chatmode: context.chatmode,
+      subagent: context.subagent,
       sessionId,
       qualityScore: assessment.overallScore,
       passed: assessment.passed,
@@ -66,10 +66,10 @@ export class QualityAnalyzer {
       improvementAreas: assessment.refinementSuggestions
     };
 
-    this.storage.recordQualityMetric(context.chatmode, metric);
+    this.storage.recordQualityMetric(context.subagent, metric);
 
     logger.debug('Recorded quality assessment for analysis', {
-      chatmode: context.chatmode,
+      subagent: context.subagent,
       score: assessment.overallScore,
       passed: assessment.passed,
       sessionId
@@ -89,16 +89,16 @@ export class QualityAnalyzer {
   /**
    * Analyze quality trends for a specific chatmode or overall
    */
-  analyzeQualityTrends(chatmode?: string, days = 7): QualityTrend {
+  analyzeQualityTrends(subagent?: string, days = 7): QualityTrend {
     const endDate = new Date();
     const startDate = new Date();
     startDate.setDate(endDate.getDate() - days);
 
-    const metrics = this.storage.getQualityMetrics(chatmode)
+    const metrics = this.storage.getQualityMetrics(subagent)
       .filter(m => new Date(m.timestamp) >= startDate);
 
     if (metrics.length === 0) {
-      return this.createEmptyTrend(chatmode || 'overall', days);
+      return this.createEmptyTrend(subagent || 'overall', days);
     }
 
     const scoreAverage = metrics.reduce((sum, m) => sum + m.qualityScore, 0) / metrics.length;
@@ -110,7 +110,7 @@ export class QualityAnalyzer {
     const recommendations = this.generateTrendRecommendations(metrics, scoreTrend, successRate);
 
     return {
-      chatmode: chatmode || 'overall',
+      subagent: subagent || 'overall',
       timeRange: `${days} days`,
       scoreAverage,
       scoreTrend,
@@ -122,9 +122,9 @@ export class QualityAnalyzer {
     };
   }
 
-  private createEmptyTrend(chatmode: string, days: number): QualityTrend {
+  private createEmptyTrend(subagent: string, days: number): QualityTrend {
     return {
-      chatmode,
+      subagent,
       timeRange: `${days} days`,
       scoreAverage: 0,
       scoreTrend: 'stable',
@@ -251,15 +251,15 @@ export class QualityAnalyzer {
   /**
    * Generate quality insights for proactive management
    */
-  generateQualityInsights(chatmode?: string): QualityInsight[] {
+  generateQualityInsights(subagent?: string): QualityInsight[] {
     const insights: QualityInsight[] = [];
-    const trends = this.analyzeQualityTrends(chatmode, 7);
+    const trends = this.analyzeQualityTrends(subagent, 7);
 
     // Trend insight
     if (trends.scoreTrend === 'declining') {
       insights.push({
         type: 'trend',
-        chatmode,
+        subagent,
         severity: 'warning',
         title: 'Quality Score Declining',
         description: `Quality scores have been declining over the past 7 days. Average score: ${trends.scoreAverage.toFixed(1)}`,
@@ -275,7 +275,7 @@ export class QualityAnalyzer {
     if (trends.successRate < 0.7) {
       insights.push({
         type: 'pattern',
-        chatmode,
+        subagent,
         severity: trends.successRate < 0.5 ? 'critical' : 'warning',
         title: 'Low Validation Success Rate',
         description: `Only ${(trends.successRate * 100).toFixed(1)}% of validations are passing the quality threshold`,
@@ -291,7 +291,7 @@ export class QualityAnalyzer {
     if (trends.scoreAverage >= 90 && trends.successRate >= 0.95) {
       insights.push({
         type: 'recommendation',
-        chatmode,
+        subagent,
         severity: 'info',
         title: 'Excellent Quality Performance',
         description: `Outstanding quality metrics with ${trends.scoreAverage.toFixed(1)} average score and ${(trends.successRate * 100).toFixed(1)}% success rate`,
@@ -306,15 +306,15 @@ export class QualityAnalyzer {
   }
 
   /**
-   * Compare chatmode performance
+   * Compare subagent performance
    */
-  compareChatmodePerformance(): Record<string, QualityTrend> {
+  compareSubagentPerformance(): Record<string, QualityTrend> {
     const analytics = this.storage.getAnalyticsData();
-    const chatmodes = Object.keys(analytics.qualityMetrics);
+    const subagents = Object.keys(analytics.qualityMetrics);
     const comparison: Record<string, QualityTrend> = {};
 
-    for (const chatmode of chatmodes) {
-      comparison[chatmode] = this.analyzeQualityTrends(chatmode, 7);
+    for (const subagent of subagents) {
+      comparison[subagent] = this.analyzeQualityTrends(subagent, 7);
     }
 
     return comparison;
@@ -328,7 +328,7 @@ export class QualityAnalyzer {
       return 75; // Default prediction
     }
 
-    const historicalMetrics = this.storage.getQualityMetrics(context.chatmode, 50);
+    const historicalMetrics = this.storage.getQualityMetrics(context.subagent, 50);
 
     if (historicalMetrics.length < 5) {
       return 75; // Not enough data for prediction
@@ -345,7 +345,7 @@ export class QualityAnalyzer {
     const prediction = Math.round(weightedScore);
 
     logger.debug('Generated quality score prediction', {
-      chatmode: context.chatmode,
+      subagent: context.subagent,
       prediction,
       historicalSamples: historicalMetrics.length
     });
@@ -356,12 +356,12 @@ export class QualityAnalyzer {
   /**
    * Get adaptive quality threshold based on historical performance
    */
-  getAdaptiveQualityThreshold(chatmode: string): number {
+  getAdaptiveQualityThreshold(subagent: string): number {
     if (!this.config.intelligence.enableAdaptiveThresholds) {
       return 80; // Default threshold
     }
 
-    const metrics = this.storage.getQualityMetrics(chatmode, 100);
+    const metrics = this.storage.getQualityMetrics(subagent, 100);
 
     if (metrics.length < 10) {
       return 80; // Not enough data for adaptation
@@ -381,7 +381,7 @@ export class QualityAnalyzer {
     const adaptiveThreshold = Math.max(60, Math.min(90, passingScores[percentile10Index]));
 
     logger.debug('Calculated adaptive quality threshold', {
-      chatmode,
+      subagent,
       threshold: adaptiveThreshold,
       sampleSize: passingScores.length
     });
@@ -394,20 +394,20 @@ export class QualityAnalyzer {
    */
   generateQualityReport(days = 30): {
     overview: QualityTrend;
-    chatmodeBreakdown: Record<string, QualityTrend>;
+    subagentBreakdown: Record<string, QualityTrend>;
     insights: QualityInsight[];
     recommendations: string[];
   } {
     const overview = this.analyzeQualityTrends(undefined, days);
-    const chatmodeBreakdown = this.compareChatmodePerformance();
+    const subagentBreakdown = this.compareSubagentPerformance();
     const insights = this.generateQualityInsights();
 
     // Generate global recommendations
     const recommendations: string[] = [];
 
-    const allChatmodes = Object.values(chatmodeBreakdown);
-    const avgScore = allChatmodes.reduce((sum, trend) => sum + trend.scoreAverage, 0) / allChatmodes.length;
-    const avgSuccessRate = allChatmodes.reduce((sum, trend) => sum + trend.successRate, 0) / allChatmodes.length;
+    const allSubagents = Object.values(subagentBreakdown);
+    const avgScore = allSubagents.reduce((sum, trend) => sum + trend.scoreAverage, 0) / allSubagents.length;
+    const avgSuccessRate = allSubagents.reduce((sum, trend) => sum + trend.successRate, 0) / allSubagents.length;
 
     if (avgScore < 75) {
       recommendations.push('Overall quality scores are below target - consider comprehensive review');
@@ -417,16 +417,16 @@ export class QualityAnalyzer {
       recommendations.push('Success rates indicate quality thresholds may need adjustment');
     }
 
-    // Find best and worst performing chatmodes
-    const sortedByScore = allChatmodes.sort((a, b) => b.scoreAverage - a.scoreAverage);
+    // Find best and worst performing subagents
+    const sortedByScore = allSubagents.sort((a, b) => b.scoreAverage - a.scoreAverage);
     if (sortedByScore.length > 1) {
-      recommendations.push(`Best performer: ${sortedByScore[0].chatmode} (${sortedByScore[0].scoreAverage.toFixed(1)})`);
-      recommendations.push(`Needs attention: ${sortedByScore[sortedByScore.length - 1].chatmode} (${sortedByScore[sortedByScore.length - 1].scoreAverage.toFixed(1)})`);
+      recommendations.push(`Best performer: ${sortedByScore[0].subagent} (${sortedByScore[0].scoreAverage.toFixed(1)})`);
+      recommendations.push(`Needs attention: ${sortedByScore[sortedByScore.length - 1].subagent} (${sortedByScore[sortedByScore.length - 1].scoreAverage.toFixed(1)})`);
     }
 
     return {
       overview,
-      chatmodeBreakdown,
+      subagentBreakdown,
       insights,
       recommendations
     };

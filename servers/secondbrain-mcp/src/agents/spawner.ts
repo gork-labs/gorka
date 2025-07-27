@@ -144,7 +144,7 @@ export class AgentSpawner {
           },
           memory_operations: [],
           metadata: {
-            chatmode: request.chatmodeName,
+            subagent: request.chatmodeName,
             task_completion_status: 'failed',
             processing_time: `${timeElapsed}ms`,
             confidence_level: 'low'
@@ -194,60 +194,37 @@ export class AgentSpawner {
         error: error instanceof Error ? error.message : String(error)
       });
 
-      // Fallback to hardcoded templates
-      const systemPrompt = `You are a ${chatmode.name} with expertise in your domain.
+      // Fallback to template-based fallback prompts
+      try {
+        const systemPrompt = templateManager.render('fallback-system-prompt', {
+          agentType: chatmode.name,
+          description: chatmode.description
+        });
 
-${chatmode.description}
+        const userPrompt = templateManager.render('fallback-user-prompt', {
+          agentType: chatmode.name,
+          task,
+          context,
+          expectedDeliverables,
+          urgency
+        });
 
-Your role is to provide high-quality, domain-specific responses following the SecondBrain architecture.
+        return [
+          { role: 'system', content: systemPrompt },
+          { role: 'user', content: userPrompt }
+        ];
+      } catch (fallbackError) {
+        logger.error('Failed to render fallback templates', {
+          chatmodeName: chatmode.name,
+          error: fallbackError instanceof Error ? fallbackError.message : String(fallbackError)
+        });
 
-You MUST respond in this exact JSON format:
-{
-  "deliverables": {
-    "documents": ["file1.md", "file2.md"], // optional - files you created
-    "analysis": "Your detailed analysis here", // optional - your analysis
-    "recommendations": ["rec1", "rec2"] // optional - your recommendations
-  },
-  "memory_operations": [
-    {
-      "operation": "create_entities",
-      "data": {
-        "entities": [{
-          "name": "ConceptName_Type",
-          "entityType": "concept",
-          "observations": ["fact1", "fact2"]
-        }]
+        // Final fallback to minimal prompts
+        return [
+          { role: 'system', content: `You are a ${chatmode.name}. Respond in JSON format with deliverables, memory_operations, and metadata fields.` },
+          { role: 'user', content: `Task: ${task}\n\nContext: ${context}\n\nPlease provide your response in JSON format.` }
+        ];
       }
-    }
-  ],
-  "metadata": {
-    "chatmode": "${chatmode.name}",
-    "task_completion_status": "complete", // complete|partial|failed
-    "processing_time": "actual_time_taken",
-    "confidence_level": "high" // high|medium|low
-  }
-}
-
-Focus on capturing domain knowledge in memory_operations, not implementation details.`;
-
-      const userPrompt = `## Task
-${task}
-
-## Context
-${context}
-
-## Expected Deliverables
-${expectedDeliverables}
-
-## Urgency
-${urgency}
-
-Please provide your response in the exact JSON format specified in the system prompt.`;
-
-      return [
-        { role: 'system', content: systemPrompt },
-        { role: 'user', content: userPrompt }
-      ];
     }
   }
 
@@ -277,7 +254,7 @@ Please provide your response in the exact JSON format specified in the system pr
         },
         memory_operations: parsed.memory_operations || [],
         metadata: {
-          chatmode: chatmode.name,
+          subagent: chatmode.name,
           task_completion_status: parsed.metadata?.task_completion_status || 'partial',
           processing_time: `${processingTime}ms`,
           confidence_level: parsed.metadata?.confidence_level || 'medium'
@@ -299,7 +276,7 @@ Please provide your response in the exact JSON format specified in the system pr
         },
         memory_operations: [],
         metadata: {
-          chatmode: chatmode.name,
+          subagent: chatmode.name,
           task_completion_status: content.toLowerCase().includes('error') ? 'failed' : 'partial',
           processing_time: `${processingTime}ms`,
           confidence_level: 'low'

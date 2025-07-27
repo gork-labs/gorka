@@ -10,13 +10,12 @@ export interface SecondBrainConfig {
   maxDepth: number;
   sessionTimeoutMinutes: number;
 
-  // Chatmode Management
-  chatmodesPath: string;
+  // Subagent Management
+  subagentsPath: string;
   mcpConfigPath: string;
 
   // API Configuration
-  openaiApiKey?: string;
-  anthropicApiKey?: string;
+  openrouterApiKey: string;
   defaultModel: string;
   subAgentModel: string;
 
@@ -33,6 +32,21 @@ function getDefaultConfig(): SecondBrainConfig {
   const homeDir = os.homedir();
   const defaultStorePath = path.join(homeDir, '.secondbrain');
 
+  // Validate required environment variables
+  const openrouterApiKey = process.env.OPENROUTER_API_KEY;
+  const model = process.env.SECONDBRAIN_MODEL;
+
+  if (!openrouterApiKey) {
+    console.error('❌ FATAL: OPENROUTER_API_KEY environment variable is required');
+    process.exit(1);
+  }
+
+  if (!model) {
+    console.error('❌ FATAL: SECONDBRAIN_MODEL environment variable is required');
+    console.error('   Example: SECONDBRAIN_MODEL=anthropic/claude-3-5-sonnet-20241022');
+    process.exit(1);
+  }
+
   return {
     // Session Management
     sessionStorePath: process.env.SECONDBRAIN_SESSION_PATH || defaultStorePath,
@@ -42,15 +56,14 @@ function getDefaultConfig(): SecondBrainConfig {
     maxDepth: parseInt(process.env.SECONDBRAIN_MAX_DEPTH || '2'),
     sessionTimeoutMinutes: parseInt(process.env.SECONDBRAIN_SESSION_TIMEOUT || '30'),
 
-    // Chatmode Management
-    chatmodesPath: process.env.SECONDBRAIN_CHATMODES_PATH || path.join(process.cwd(), '..', '..', 'chatmodes'),
+    // Subagent Management
+    subagentsPath: process.env.SECONDBRAIN_SUBAGENTS_PATH || path.join(process.cwd(), '.vscode', 'secondbrain', 'subagents'),
     mcpConfigPath: process.env.SECONDBRAIN_MCP_CONFIG_PATH || path.join(process.cwd(), '..', '..', '.vscode', 'mcp.json'),
 
     // API Configuration
-    openaiApiKey: process.env.OPENAI_API_KEY,
-    anthropicApiKey: process.env.ANTHROPIC_API_KEY,
-    defaultModel: process.env.SECONDBRAIN_PRIMARY_MODEL || 'gpt-4',
-    subAgentModel: process.env.SECONDBRAIN_SUBAGENT_MODEL || 'gpt-4o-mini',
+    openrouterApiKey: openrouterApiKey,
+    defaultModel: model,
+    subAgentModel: model,
 
     // Quality Control
     qualityThreshold: parseInt(process.env.SECONDBRAIN_QUALITY_THRESHOLD || '70'),
@@ -67,9 +80,7 @@ export const config = getDefaultConfig();
 export function validateConfig(cfg: SecondBrainConfig): void {
   const errors: string[] = [];
 
-  if (!cfg.openaiApiKey && !cfg.anthropicApiKey) {
-    errors.push('At least one API key (OPENAI_API_KEY or ANTHROPIC_API_KEY) must be provided');
-  }
+  // Note: openrouterApiKey and model are already validated during config creation
 
   if (cfg.maxTotalCalls < 1 || cfg.maxTotalCalls > 100) {
     errors.push('maxTotalCalls must be between 1 and 100');

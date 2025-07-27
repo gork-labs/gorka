@@ -84,7 +84,7 @@ export class MetricsCollector {
    * Record a usage event
    */
   recordUsage(
-    chatmode: string,
+    subagent: string,
     sessionId: string,
     operation: string,
     success: boolean,
@@ -96,7 +96,7 @@ export class MetricsCollector {
   ): void {
     const metric: UsageMetric = {
       timestamp: new Date().toISOString(),
-      chatmode,
+      subagent,
       sessionId,
       operation,
       success,
@@ -106,7 +106,7 @@ export class MetricsCollector {
     this.storage.recordUsageMetric(metric);
 
     logger.debug('Recorded usage metric', {
-      chatmode,
+      subagent,
       sessionId,
       operation,
       success,
@@ -252,35 +252,35 @@ export class MetricsCollector {
   /**
    * Analyze usage patterns for chatmodes
    */
-  analyzeUsagePatterns(chatmode?: string, days = 7): UsagePattern[] {
+  analyzeUsagePatterns(subagent?: string, days = 7): UsagePattern[] {
     const endDate = new Date();
     const startDate = new Date();
     startDate.setDate(endDate.getDate() - days);
 
-    const metrics = this.storage.getUsageMetrics(chatmode)
+    const metrics = this.storage.getUsageMetrics(subagent)
       .filter(m => new Date(m.timestamp) >= startDate);
 
-    if (chatmode) {
-      return [this.analyzeSpecificChatmodeUsage(chatmode, metrics)];
+    if (subagent) {
+      return [this.analyzeSpecificSubagentUsage(subagent, metrics)];
     }
 
-    // Analyze all chatmodes
-    const chatmodeGroups: Record<string, UsageMetric[]> = {};
+    // Analyze all subagents
+    const subagentGroups: Record<string, UsageMetric[]> = {};
     for (const metric of metrics) {
-      if (!chatmodeGroups[metric.chatmode]) {
-        chatmodeGroups[metric.chatmode] = [];
+      if (!subagentGroups[metric.subagent]) {
+        subagentGroups[metric.subagent] = [];
       }
-      chatmodeGroups[metric.chatmode].push(metric);
+      subagentGroups[metric.subagent].push(metric);
     }
 
-    return Object.entries(chatmodeGroups).map(([cm, cms]) =>
-      this.analyzeSpecificChatmodeUsage(cm, cms)
+    return Object.entries(subagentGroups).map(([cm, cms]) =>
+      this.analyzeSpecificSubagentUsage(cm, cms)
     );
   }
 
-  private analyzeSpecificChatmodeUsage(chatmode: string, metrics: UsageMetric[]): UsagePattern {
+  private analyzeSpecificSubagentUsage(subagent: string, metrics: UsageMetric[]): UsagePattern {
     if (metrics.length === 0) {
-      return this.createEmptyUsagePattern(chatmode);
+      return this.createEmptyUsagePattern(subagent);
     }
 
     // Calculate peak hours
@@ -333,7 +333,7 @@ export class MetricsCollector {
     const complexityMode = this.findMode(complexities) || 'medium';
 
     return {
-      chatmode,
+      subagent,
       peakHours,
       avgSessionDuration,
       successRate,
@@ -346,9 +346,9 @@ export class MetricsCollector {
     };
   }
 
-  private createEmptyUsagePattern(chatmode: string): UsagePattern {
+  private createEmptyUsagePattern(subagent: string): UsagePattern {
     return {
-      chatmode,
+      subagent,
       peakHours: [],
       avgSessionDuration: 0,
       successRate: 0,

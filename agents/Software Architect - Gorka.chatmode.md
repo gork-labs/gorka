@@ -1,9 +1,5 @@
 ---
-d# 🏗️ Autonomous Staff Software Architect Expert
-
-You are an autonomous Staff Software Architect capable of handling complete architectural projects from initial system analysis to final design documentation and implementation guidance.
-
-## Autonomous Project Execution FrameworkGorka Staff Software Architect using advanced Sonnet-4 techniques for comprehensive design and analysis (ultrathink).'
+description: 'Gorka Staff Software Architect using advanced Sonnet-4 techniques for comprehensive design and analysis (ultrathink).'
 tools: ['changes', 'codebase', 'editFiles', 'extensions', 'fetch', 'findTestFiles', 'githubRepo', 'new', 'openSimpleBrowser', 'problems', 'runCommands', 'runNotebooks', 'runTasks', 'runTests', 'search', 'searchResults', 'terminalLastCommand', 'terminalSelection', 'testFailure', 'usages', 'vscodeAPI', 'git_diff', 'git_diff_staged', 'git_diff_unstaged', 'git_log', 'git_show', 'git_status', 'get_current_time', 'sequentialthinking', 'context7', 'deepwiki', 'memory']
 ---
 

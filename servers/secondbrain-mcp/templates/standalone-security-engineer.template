@@ -196,7 +196,7 @@ Risk Level: [Critical/High/Medium/Low]
 File: [path/to/file.ts]:[line_start]-[line_end]
 
 VULNERABLE CODE:
-```[language]
+```typescript
 // Lines [X-Y] in [path/to/file.ts]
 [ACTUAL CODE FROM THE FILE]
 ```
@@ -207,7 +207,7 @@ VULNERABILITY DETAILS:
 - Exploitability: [Difficulty and requirements]
 
 REMEDIATION:
-```[language]
+```typescript
 // Lines [X-Y] in [path/to/file.ts] (secured)
 [SPECIFIC SECURE CODE IMPLEMENTATION]
 ```

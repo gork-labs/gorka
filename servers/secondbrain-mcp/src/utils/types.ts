@@ -39,7 +39,7 @@ export const DeliverableSchema = z.object({
 });
 
 export const SubAgentMetadataSchema = z.object({
-  chatmode: z.string(),
+  subagent: z.string(),
   task_completion_status: z.enum(['complete', 'partial', 'failed']),
   processing_time: z.string(),
   confidence_level: z.enum(['high', 'medium', 'low'])
@@ -60,7 +60,7 @@ export const SubAgentResponseSchema = z.object({
 
 export const ParallelAgentSpecSchema = z.object({
   agent_id: z.string(),
-  chatmode: z.string(),
+  subagent: z.string(),
   task: z.string(),
   context: z.string(),
   expected_deliverables: z.string()
@@ -73,7 +73,7 @@ export const SpawnAgentsParallelArgsSchema = z.object({
 
 export interface ParallelAgentResult {
   agent_id: string;
-  chatmode: string;
+  subagent: string;
   status: 'success' | 'failed';
   execution_time_ms: number;
   session_id: string | null;
@@ -91,7 +91,7 @@ export type SubAgentResponse = z.infer<typeof SubAgentResponseSchema>;
 // =============================================================================
 
 export const SpawnAgentArgsSchema = z.object({
-  chatmode: z.string().describe('The chatmode to use for the sub-agent (e.g., "Security Engineer")'),
+  subagent: z.string().describe('The subagent type to use for the sub-agent (e.g., "Security Engineer")'),
   task: z.string().describe('Detailed task description for the sub-agent'),
   context: z.string().describe('Relevant context and background information'),
   expected_deliverables: z.string().describe('What the sub-agent should produce')
@@ -101,7 +101,7 @@ export const ValidateOutputArgsSchema = z.object({
   sub_agent_response: z.string().describe('JSON response from sub-agent to validate'),
   requirements: z.string().describe('Original task requirements'),
   quality_criteria: z.string().describe('Quality criteria for validation'),
-  chatmode: z.string().optional().describe('Chatmode used for the sub-agent (for chatmode-specific validation)'),
+  subagent: z.string().optional().describe('Subagent type used for the sub-agent (for subagent-specific validation)'),
   session_id: z.string().optional().describe('Session ID for refinement tracking'),
   enable_refinement: z.boolean().optional().describe('Whether to generate refinement recommendations (default: true)')
 });
@@ -144,7 +144,7 @@ export interface QualityRuleResult {
 }
 
 export interface ValidationContext {
-  chatmode: string;
+  subagent: string;
   requirements: string;
   qualityCriteria: string;
   sessionHistory?: SessionState;
@@ -156,7 +156,7 @@ export interface QualityRule {
   name: string;
   category: string;
   weight: number; // 0-1, importance of this rule
-  applicableToAll: boolean; // true for universal rules, false for chatmode-specific
+  applicableToAll: boolean; // true for universal rules, false for subagent-specific
   evaluator: (response: SubAgentResponse, context: ValidationContext) => QualityRuleResult;
 }
 
@@ -191,7 +191,7 @@ export interface QualityMetrics {
   successRate: number; // percentage passing quality threshold
   refinementRate: number; // percentage requiring refinement
   categoryBreakdown: Record<string, number>;
-  chatmodePerformance: Record<string, number>;
+  subagentPerformance: Record<string, number>;
   qualityTrends: Array<{
     timestamp: string;
     averageScore: number;
@@ -199,11 +199,11 @@ export interface QualityMetrics {
   }>;
 }
 
-export interface ChatmodeQualityConfig {
-  chatmode: string;
+export interface SubagentQualityConfig {
+  subagent: string;
   qualityThreshold: number; // minimum score to pass
   maxRefinementAttempts: number;
-  specificRules: string[]; // names of chatmode-specific rules to apply
+  specificRules: string[]; // names of subagent-specific rules to apply
   ruleWeights: Record<string, number>; // rule name -> weight override
   requiredCategories: string[]; // categories that must pass
   refinementPromptTemplate?: string;
@@ -226,9 +226,9 @@ export class SessionLimitError extends SecondBrainError {
   }
 }
 
-export class ChatmodeNotFoundError extends SecondBrainError {
-  constructor(chatmode: string) {
-    super(`Chatmode not found: ${chatmode}`, 'CHATMODE_NOT_FOUND', { chatmode });
+export class SubagentNotFoundError extends SecondBrainError {
+  constructor(subagent: string) {
+    super(`Subagent not found: ${subagent}`, 'SUBAGENT_NOT_FOUND', { subagent });
   }
 }
 
@@ -244,7 +244,7 @@ export class InvalidResponseError extends SecondBrainError {
 
 export interface QualityMetric {
   timestamp: string;
-  chatmode: string;
+  subagent: string;
   sessionId?: string;
   qualityScore: number; // 0-100
   passed: boolean;
@@ -272,7 +272,7 @@ export interface PerformanceMetric {
 
 export interface UsageMetric {
   timestamp: string;
-  chatmode: string;
+  subagent: string;
   sessionId: string;
   operation: string;
   success: boolean;
@@ -292,7 +292,7 @@ export interface AnalyticsData {
 }
 
 export interface QualityTrend {
-  chatmode: string;
+  subagent: string;
   timeRange: string;
   scoreAverage: number;
   scoreTrend: 'improving' | 'declining' | 'stable';
@@ -316,7 +316,7 @@ export interface SystemHealth {
 
 export interface QualityInsight {
   type: 'trend' | 'pattern' | 'anomaly' | 'recommendation';
-  chatmode?: string;
+  subagent?: string;
   severity: 'info' | 'warning' | 'critical';
   title: string;
   description: string;
@@ -339,7 +339,7 @@ export interface PerformanceInsight {
 }
 
 export interface UsagePattern {
-  chatmode: string;
+  subagent: string;
   peakHours: number[];
   avgSessionDuration: number;
   successRate: number;
@@ -392,7 +392,7 @@ export interface MLTrainingData {
   actualScore: number;
   actualPassed: boolean;
   processingTime: number;
-  chatmode: string;
+  subagent: string;
   prediction?: number;
 }
 
@@ -442,7 +442,7 @@ export interface MLOptimization {
 
 export interface PredictiveAnalytics {
   qualityForecast: {
-    chatmode: string;
+    subagent: string;
     currentScore: number;
     predictedScore: number;
     confidenceInterval: [number, number];
@@ -451,7 +451,7 @@ export interface PredictiveAnalytics {
     confidence: number;
   };
   anomalies: {
-    chatmode: string;
+    subagent: string;
     metric: string;
     severity: 'low' | 'medium' | 'high';
     detectedAt: string;
@@ -460,9 +460,9 @@ export interface PredictiveAnalytics {
     actualValue: number;
     deviationScore: number;
   }[];
-  crossChatmodePatterns: {
+  crossSubagentPatterns: {
     pattern: string;
-    affectedChatmodes: string[];
+    affectedSubagents: string[];
     correlation: number;
     significance: 'low' | 'medium' | 'high';
     description: string;
@@ -621,8 +621,8 @@ export interface MetaLearningInsight {
   applicableScenarios: string[];
   recommendations: string[];
   transferPotential?: {
-    sourceChatmode: string;
-    targetChatmode: string;
+    sourceSubagent: string;
+    targetSubagent: string;
     similarity: number;
     expectedBenefit: number;
   };
