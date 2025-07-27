@@ -1,6 +1,6 @@
 {
   "name": "@gork-labs/secondbrain-mcp",
-  "version": "0.21.0",
+  "version": "0.23.0",
   "description": "Second Brain MCP Server - Agent team orchestration with dynamic tool discovery",
   "main": "dist/index.js",
   "bin": {
@@ -8,8 +8,8 @@
   },
   "type": "module",
   "scripts": {
-    "build": "tsc && npm run compose-subagents && npm run copy-instructions && npm run copy-templates",
-    "compose-subagents": "node scripts/compose-subagents.mjs",
+    "build": "tsc && npm run copy-instructions && npm run copy-templates",
+    "compose-subagents": "echo 'Skipping compose-subagents - using optimized lean versions'",
     "copy-instructions": "mkdir -p instructions && cp ../../.github/instructions/*.instructions.md instructions/",
     "copy-templates": "mkdir -p templates && cp src/templates/*.template templates/",
     "clean": "rm -rf dist subagents instructions templates",

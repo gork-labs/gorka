@@ -3,9 +3,10 @@ import { AIClient, AIMessage, AIResponse } from '../ai/client.js';
 import { ContextManager } from './context-manager.js';
 import { logger } from '../utils/logger.js';
 import { templateManager } from '../utils/template-manager.js';
+import { ResponseParser } from '../utils/response-parser.js';
 
 export interface SpawnAgentRequest {
-  chatmodeName: string;
+  subagentName: string;
   task: string;
   context: string;
   expectedDeliverables: string;
@@ -39,7 +40,7 @@ export class AgentSpawner {
     const startTime = Date.now();
 
     logger.info('Spawning sub-agent', {
-      chatmode: request.chatmodeName,
+      chatmode: request.subagentName,
       urgency: request.urgency,
       taskLength: request.task.length,
       contextLength: request.context.length
@@ -47,9 +48,9 @@ export class AgentSpawner {
 
     try {
       // Validate chatmode exists
-      const chatmode = this.chatmodes.get(request.chatmodeName);
+      const chatmode = this.chatmodes.get(request.subagentName);
       if (!chatmode) {
-        throw new Error(`Chatmode not found: ${request.chatmodeName}`);
+        throw new Error(`Chatmode not found: ${request.subagentName}`);
       }
 
       // Summarize context for the specific domain
@@ -70,7 +71,7 @@ export class AgentSpawner {
 
       if (!validation.valid) {
         logger.warn('Context validation issues detected', {
-          chatmode: request.chatmodeName,
+          chatmode: request.subagentName,
           issues: validation.issues
         });
       }
@@ -90,11 +91,16 @@ export class AgentSpawner {
         request.timeout || this.getDefaultTimeout(request.urgency)
       );
 
-      // Parse and validate response
-      const parsedResponse = this.parseAgentResponse(
+      // Parse and validate response with retry mechanism
+      const parsedResponse = await ResponseParser.parseWithRetry(
         aiResponse.content,
-        chatmode,
-        Date.now() - startTime
+        chatmode.name,
+        {
+          maxRetries: 2,
+          retryCallback: async (failedContent: string, attempt: number) => {
+            return this.requestFormatCorrection(failedContent, chatmode, request, attempt);
+          }
+        }
       );
 
       // Calculate quality score
@@ -118,7 +124,7 @@ export class AgentSpawner {
       };
 
       logger.info('Sub-agent spawning completed', {
-        chatmode: request.chatmodeName,
+        chatmode: request.subagentName,
         status: parsedResponse.metadata.task_completion_status,
         tokensUsed: aiResponse.usage?.total_tokens || 0,
         timeElapsed,
@@ -131,7 +137,7 @@ export class AgentSpawner {
       const timeElapsed = Date.now() - startTime;
 
       logger.error('Sub-agent spawning failed', {
-        chatmode: request.chatmodeName,
+        chatmode: request.subagentName,
         error: error instanceof Error ? error.message : String(error),
         timeElapsed
       });
@@ -144,7 +150,7 @@ export class AgentSpawner {
           },
           memory_operations: [],
           metadata: {
-            subagent: request.chatmodeName,
+            subagent: request.subagentName,
             task_completion_status: 'failed',
             processing_time: `${timeElapsed}ms`,
             confidence_level: 'low'
@@ -229,59 +235,78 @@ export class AgentSpawner {
   }
 
   /**
-   * Parse AI response into structured format
+   * Request format correction from AI when JSON parsing fails
    */
-  private parseAgentResponse(
-    content: string,
+  private async requestFormatCorrection(
+    failedContent: string,
     chatmode: ChatmodeDefinition,
-    processingTime: number
-  ): SubAgentResponse {
-    try {
-      // Try to extract JSON from the response
-      const jsonMatch = content.match(/\{[\s\S]*\}/);
-      if (!jsonMatch) {
-        throw new Error('No JSON found in response');
+    originalRequest: SpawnAgentRequest,
+    attempt: number
+  ): Promise<string> {
+    logger.info('Requesting format correction from AI', {
+      chatmode: chatmode.name,
+      attempt,
+      contentLength: failedContent.length
+    });
+
+    const formatCorrectionPrompt = `
+CRITICAL FORMAT ERROR: Your previous response could not be parsed as JSON.
+
+Original task: ${originalRequest.task}
+
+Your response started with: "${failedContent.substring(0, 200)}..."
+
+You MUST respond with ONLY valid JSON in this exact format:
+{
+  "deliverables": {
+    "analysis": "Your detailed analysis here",
+    "recommendations": ["Rec 1", "Rec 2"],
+    "documents": ["Doc 1", "Doc 2"]
+  },
+  "memory_operations": [],
+  "metadata": {
+    "subagent": "${chatmode.name}",
+    "task_completion_status": "complete",
+    "processing_time": "format_correction",
+    "confidence_level": "medium"
+  }
+}
+
+REQUIREMENTS:
+- Start response with { and end with }
+- No text before or after the JSON
+- Ensure all strings are properly quoted
+- No trailing commas
+- Include all required fields
+`;
+
+    const messages: AIMessage[] = [
+      {
+        role: 'system',
+        content: `You are a ${chatmode.name}. CRITICAL: Respond with ONLY valid JSON. No explanatory text.`
+      },
+      {
+        role: 'user',
+        content: formatCorrectionPrompt
       }
+    ];
 
-      const parsed = JSON.parse(jsonMatch[0]);
+    try {
+      const correctionResponse = await this.executeWithTimeout(
+        () => this.aiClient.generateResponse(messages),
+        15000 // Shorter timeout for format correction
+      );
 
-      // Validate and ensure all required fields
-      const response: SubAgentResponse = {
-        deliverables: {
-          documents: parsed.deliverables?.documents,
-          analysis: parsed.deliverables?.analysis,
-          recommendations: parsed.deliverables?.recommendations
-        },
-        memory_operations: parsed.memory_operations || [],
-        metadata: {
-          subagent: chatmode.name,
-          task_completion_status: parsed.metadata?.task_completion_status || 'partial',
-          processing_time: `${processingTime}ms`,
-          confidence_level: parsed.metadata?.confidence_level || 'medium'
-        }
-      };
-
-      return response;
-
+      return correctionResponse.content;
     } catch (error) {
-      logger.warn('Failed to parse agent response as JSON, creating fallback', {
+      logger.error('Format correction request failed', {
         chatmode: chatmode.name,
+        attempt,
         error: error instanceof Error ? error.message : String(error)
       });
 
-      // Fallback parsing
-      return {
-        deliverables: {
-          analysis: content
-        },
-        memory_operations: [],
-        metadata: {
-          subagent: chatmode.name,
-          task_completion_status: content.toLowerCase().includes('error') ? 'failed' : 'partial',
-          processing_time: `${processingTime}ms`,
-          confidence_level: 'low'
-        }
-      };
+      // Return original content if correction fails
+      return failedContent;
     }
   }
 

@@ -25,6 +25,7 @@ import {
   ParallelAgentResult
 } from '../utils/types.js';
 import { parseJsonForgiving, validateSubAgentStructure } from '../utils/json-parser.js';
+import { ResponseParser } from '../utils/response-parser.js';
 import { config, validateConfig } from '../utils/config.js';
 import { logger } from '../utils/logger.js';
 import { templateManager } from '../utils/template-manager.js';
@@ -1402,6 +1403,7 @@ export class SecondBrainServer {
   /**
    * Create sub-agent wrapper as per approved architecture v3.0.0
    * Implements universal wrapper with selective tool access control
+   * Uses well-optimized subagent content directly (no runtime optimization needed)
    */
   private createSubAgentWrapper(
     chatmodeDefinition: any,
@@ -1410,7 +1412,8 @@ export class SecondBrainServer {
     expectedDeliverables: string,
     sessionId: string
   ): string {
-    const baseInstructions = chatmodeDefinition.content || chatmodeDefinition.description || '';
+    // Use the already-optimized subagent content directly
+    const subagentInstructions = chatmodeDefinition.content || '';
     const chatmodeName = chatmodeDefinition.name || 'Specialist';
 
     // Get actual available tools from MCP servers dynamically
@@ -1452,7 +1455,7 @@ export class SecondBrainServer {
         sessionId,
         maxTotalCalls: config.maxTotalCalls,
         enhancedToolDocs,
-        baseInstructions,
+        baseInstructions: subagentInstructions,
         task,
         context,
         expectedDeliverables
@@ -1462,85 +1465,8 @@ export class SecondBrainServer {
         error: error instanceof Error ? error.message : String(error)
       });
 
-      // Fallback to embedded prompt
-      return `---
-You are operating as a specialized sub-agent delegated by a primary agent.
-Agent Type: ${chatmodeName}
-Session: ${sessionId}
-
-CRITICAL SUB-AGENT REQUIREMENTS (Approved Architecture v3.0.0):
-1. You are BLOCKED from accessing SecondBrain MCP tools (spawn_agent, validate_output, etc.)
-2. You have FULL ACCESS to available MCP tools listed below
-3. Respond ONLY in the standardized JSON format specified below
-4. Complete the specific task assigned with full domain expertise
-5. Propose memory operations but do not execute them directly
-6. Provide confidence level and completion status
-
-EXECUTION CONSTRAINTS:
-- Maximum tool call iterations: ${config.maxTotalCalls}
-- Plan your tool usage efficiently within this limit
-- Use tools strategically to gather the most relevant information first
-- If approaching the limit, prioritize completing the task over exhaustive analysis
-- The system will enforce this limit to prevent infinite loops
-
-TOOL ACCESS GUIDELINES:
-- Use EXACT tool names from the list below
-- If a tool fails, I will provide guidance and alternatives
-- Tools must be called with correct JSON format: {"tool": "tool_name", "arguments": {...}}
-- Only use tools that are explicitly listed as available
-
-${enhancedToolDocs}
-
-DOMAIN EXPERTISE AND PERSONALITY:
-${baseInstructions}
-
-RESPONSE FORMAT REQUIRED:
-{
-  "deliverables": {
-    "analysis": "Primary domain-specific analysis result",
-    "recommendations": ["List of actionable recommendations from your expertise"],
-    "documents": ["List of any documents created or referenced"],
-    "technical_details": "Specific technical insights from your domain"
-  },
-  "memory_operations": [
-    {
-      "operation": "create_entities",
-      "data": {
-        "entities": [
-          {
-            "name": "DomainConcept_Entity",
-            "entityType": "concept",
-            "observations": [
-              "Domain-specific observation with real insight",
-              "Knowledge captured: [current timestamp]"
-            ]
-          }
-        ]
-      }
-    }
-  ],
-  "metadata": {
-    "chatmode": "${chatmodeName}",
-    "task_completion_status": "complete",
-    "processing_time": "Real AI execution time",
-    "confidence_level": "high"
-  },
-  "recommendations": {
-    "additional_specialists": ["suggested agent types if specialist consultation needed"],
-    "follow_up_tasks": ["recommended next steps for primary agent"],
-    "quality_concerns": []
-  }
-}
-
-TASK ASSIGNMENT:
-Task: ${task}
-
-Context: ${context}
-
-Expected Deliverables: ${expectedDeliverables}
-
-Execute this task using your full domain expertise and personality. Provide authentic specialist analysis rather than generic responses. Focus on what a real ${chatmodeName} would deliver.
-`;
+      // Template failure should cause task failure, not fallback
+      throw new Error(`Sub-agent template rendering failed: ${error instanceof Error ? error.message : String(error)}`);
     }
   }
 
@@ -1772,7 +1698,7 @@ Execute this task using your full domain expertise and personality. Provide auth
         finalResponseLength: content.length
       });
 
-      return this.parseSubAgentResponse(content, chatmodeDefinition.name);
+      return await this.parseSubAgentResponse(content, chatmodeDefinition.name);
     }
 
     // Enhanced error message with debugging information
@@ -1804,54 +1730,33 @@ Execute this task using your full domain expertise and personality. Provide auth
   }
 
   /**
-   * Parse sub-agent response from AI model output
+   * Parse sub-agent response from AI model output with retry support
    */
-  private parseSubAgentResponse(responseText: string, chatmodeName: string): SubAgentResponse {
+  private async parseSubAgentResponse(responseText: string, chatmodeName: string): Promise<SubAgentResponse> {
     try {
-      // Extract JSON from response text
-      const jsonMatch = responseText.match(/\{[\s\S]*\}/);
-      if (!jsonMatch) {
-        throw new Error('No JSON found in sub-agent response');
-      }
-
-      const response = JSON.parse(jsonMatch[0]);
-
-      // Ensure required fields are present
-      response.metadata = response.metadata || {};
-      response.metadata.chatmode = chatmodeName;
-      response.metadata.task_completion_status = response.metadata.task_completion_status || 'complete';
-      response.metadata.confidence_level = response.metadata.confidence_level || 'high';
-      response.metadata.processing_time = response.metadata.processing_time || 'Real AI execution';
-
-      // Ensure deliverables structure
-      response.deliverables = response.deliverables || {};
-      response.deliverables.analysis = response.deliverables.analysis || `Real ${chatmodeName} analysis completed`;
-      response.deliverables.recommendations = response.deliverables.recommendations || [];
-
-      // Ensure memory operations structure
-      response.memory_operations = response.memory_operations || [];
-
-      return response;
-
-    } catch (parseError) {
-      logger.error('Failed to parse sub-agent response', {
+      // Use centralized parser with retry mechanism
+      return await ResponseParser.parseWithRetry(responseText, chatmodeName, {
+        maxRetries: 1 // Server-level parsing uses fewer retries since spawner handles most cases
+      });
+    } catch (error) {
+      logger.error('Server-level response parsing failed completely', {
         chatmode: chatmodeName,
-        error: parseError instanceof Error ? parseError.message : String(parseError),
-        responsePreview: responseText.substring(0, 200) + '...'
+        error: error instanceof Error ? error.message : String(error),
+        responseLength: responseText.length
       });
 
-      // Return fallback response
+      // Final fallback - this should rarely happen with the new parser
       return {
         deliverables: {
-          analysis: `${chatmodeName} execution encountered parsing error`,
-          recommendations: ['Review task requirements and retry'],
-          documents: ['Error log available']
+          analysis: `${chatmodeName} response parsing failed completely`,
+          recommendations: ['Check response format and retry'],
+          documents: ['Raw response preserved in logs']
         },
         memory_operations: [],
         metadata: {
           subagent: chatmodeName,
           task_completion_status: 'failed',
-          processing_time: 'Parse error',
+          processing_time: 'parsing_error',
           confidence_level: 'low'
         }
       };

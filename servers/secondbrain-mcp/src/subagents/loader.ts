@@ -28,7 +28,7 @@ export class SubagentLoader {
         instructionsLength: this.instructions.length
       });
     } catch (error) {
-      logger.error('Failed to initialize chatmode loader', {
+      logger.error('Failed to initialize subagent loader', {
         error: error instanceof Error ? error.message : String(error)
       });
       throw error;
@@ -95,9 +95,9 @@ export class SubagentLoader {
       fs.mkdirSync(subagentsPath, { recursive: true });
     }
 
-    // Check if directory is empty or has no .chatmode.md files
+    // Check if directory is empty or has no .subagent.md files
     const files = fs.readdirSync(subagentsPath);
-    const subagentFiles = files.filter(file => file.endsWith('.chatmode.md'));
+    const subagentFiles = files.filter(file => file.endsWith('.subagent.md') || file.endsWith('.chatmode.md'));
 
     if (subagentFiles.length === 0) {
       logger.info('No subagent files found, copying defaults');
@@ -117,7 +117,7 @@ export class SubagentLoader {
 
       if (fs.existsSync(defaultSubagentsPath)) {
         const defaultFiles = fs.readdirSync(defaultSubagentsPath);
-        const subagentFiles = defaultFiles.filter(file => file.endsWith('.chatmode.md'));
+        const subagentFiles = defaultFiles.filter(file => file.endsWith('.subagent.md') || file.endsWith('.chatmode.md'));
 
         for (const file of subagentFiles) {
           const sourcePath = path.join(defaultSubagentsPath, file);
@@ -156,7 +156,7 @@ export class SubagentLoader {
     }
 
     const files = fs.readdirSync(subagentsPath);
-    const subagentFiles = files.filter(file => file.endsWith('.chatmode.md'));
+    const subagentFiles = files.filter(file => file.endsWith('.subagent.md') || file.endsWith('.chatmode.md'));
 
     if (subagentFiles.length === 0) {
       logger.warn('No subagent files found', { path: subagentsPath });
@@ -188,7 +188,7 @@ export class SubagentLoader {
     // Parse frontmatter and content
     const frontmatterMatch = content.match(/^---\n([\s\S]*?)\n---\n([\s\S]*)$/);
     if (!frontmatterMatch) {
-      throw new Error('Invalid chatmode file format - missing frontmatter');
+      throw new Error('Invalid subagent file format - missing frontmatter');
     }
 
     const [, frontmatterStr, chatmodeContent] = frontmatterMatch;
@@ -197,14 +197,14 @@ export class SubagentLoader {
     const frontmatter = this.parseSimpleYaml(frontmatterStr);
 
     if (!frontmatter.description) {
-      throw new Error('Chatmode file missing required description field');
+      throw new Error('Subagent file missing required description field');
     }
 
-    // Extract chatmode name from filename
-    const filename = path.basename(filePath, '.chatmode.md');
+    // Extract subagent name from filename
+    const filename = path.basename(filePath, filePath.endsWith('.subagent.md') ? '.subagent.md' : '.chatmode.md');
     const name = filename.replace(' - Gorka', '');
 
-    // Combine chatmode content with global instructions
+    // Combine subagent content with global instructions
     const combinedContent = this.combineContentWithInstructions(chatmodeContent.trim(), name);
 
     return {
@@ -396,50 +396,10 @@ You are a specialized sub-agent focused on your domain expertise. Follow the ess
         error: error instanceof Error ? error.message : String(error)
       });
 
-      // Fallback to original hardcoded template
-      return `
-${subagent.content}
+      // Minimal fallback when template system fails
+      return `${subagent.content}
 
-## CRITICAL: Sub-Agent Response Format
-
-You are operating as a sub-agent. You MUST return your response in the following JSON format:
-
-\`\`\`json
-{
-  "deliverables": {
-    "documents": ["list of created/updated document paths"],
-    "analysis": "your primary analysis result",
-    "recommendations": ["list of actionable recommendations"]
-  },
-  "memory_operations": [
-    {
-      "operation": "create_entities|add_observations|create_relations|etc",
-      "data": {...}
-    }
-  ],
-  "metadata": {
-    "chatmode": "${name}",
-    "task_completion_status": "complete|partial|failed",
-    "processing_time": "duration estimate",
-    "confidence_level": "high|medium|low"
-  }
-}
-\`\`\`
-
-**IMPORTANT CONSTRAINTS for Sub-Agents:**
-- You can spawn other agents up to a reasonable limit (limited access to secondbrain MCP tools)
-- Focus ONLY on the specific task assigned to you
-- Provide structured, actionable deliverables
-- Include confidence level assessment
-
-**Memory Operations Guidelines:**
-- Capture domain knowledge, business rules, and patterns discovered
-- Store WHY decisions were made, not just implementation details
-- Focus on lasting business value and domain concepts
-- Follow memory usage guidelines for your domain expertise
-
-Complete your assigned task and return the structured JSON response.
-`;
+Respond in JSON format with: deliverables, memory_operations, metadata sections.`;
     }
   }
 }

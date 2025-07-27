@@ -24,6 +24,8 @@ import OpenAI from 'openai';
 import { logger } from '../utils/logger.js';
 import { getVersionString } from '../utils/version.js';
 import { config } from '../utils/config.js';
+import { SubAgentResponse } from '../utils/types.js';
+import { ResponseParser } from '../utils/response-parser.js';
 
 export interface MCPTool {
   name: string;
@@ -32,22 +34,6 @@ export interface MCPTool {
   serverId: string;
   serverName: string;
   safe: boolean;
-}
-
-export interface SubAgentResponse {
-  deliverables: {
-    analysis: string;
-    recommendations: string[];
-    documents: string[];
-    technical_details: string;
-  };
-  memory_operations?: any[];
-  metadata: {
-    chatmode: string;
-    task_completion_status: string;
-    processing_time: string;
-    confidence_level: string;
-  };
 }
 
 /**
@@ -440,7 +426,7 @@ export class OpenAIFunctionCallingExecutor {
           finalResponseLength: message.content?.length || 0
         });
 
-        const result = this.parseSubAgentResponse(message.content || '', chatmodeName);
+        const result = await this.parseSubAgentResponse(message.content || '', chatmodeName);
         return { result, toolCallCount: totalToolCalls };
 
       } catch (error) {
@@ -460,42 +446,21 @@ export class OpenAIFunctionCallingExecutor {
   }
 
   /**
-   * Parse sub-agent response from final content
+   * Parse sub-agent response from final content using centralized parser
    */
-  private parseSubAgentResponse(responseText: string, chatmodeName: string): SubAgentResponse {
+  private async parseSubAgentResponse(responseText: string, chatmodeName: string): Promise<SubAgentResponse> {
     try {
-      // Extract JSON from response text
-      const jsonMatch = responseText.match(/\{[\s\S]*\}/);
-      if (!jsonMatch) {
-        throw new Error('No JSON found in sub-agent response');
-      }
-
-      const parsed = JSON.parse(jsonMatch[0]);
-
-      // Validate and structure the response
-      return {
-        deliverables: {
-          analysis: parsed.deliverables?.analysis || 'Analysis not provided',
-          recommendations: Array.isArray(parsed.deliverables?.recommendations)
-            ? parsed.deliverables.recommendations
-            : [],
-          documents: Array.isArray(parsed.deliverables?.documents)
-            ? parsed.deliverables.documents
-            : [],
-          technical_details: parsed.deliverables?.technical_details || 'Technical details not provided'
-        },
-        memory_operations: Array.isArray(parsed.memory_operations)
-          ? parsed.memory_operations
-          : [],
-        metadata: {
-          chatmode: parsed.metadata?.chatmode || chatmodeName,
-          task_completion_status: parsed.metadata?.task_completion_status || 'complete',
-          processing_time: parsed.metadata?.processing_time || 'unknown',
-          confidence_level: parsed.metadata?.confidence_level || 'medium'
-        }
-      };
-
+      return await ResponseParser.parseWithRetry(responseText, chatmodeName, {
+        maxRetries: 1 // Function calling context uses fewer retries
+      });
     } catch (error) {
+      logger.error('OpenAI function calling response parsing failed', {
+        chatmode: chatmodeName,
+        error: error instanceof Error ? error.message : String(error),
+        responseLength: responseText.length
+      });
+
+      // This should rarely happen with the new parser, but provide final fallback
       throw new Error(`Failed to parse sub-agent response: ${error instanceof Error ? error.message : String(error)}`);
     }
   }
