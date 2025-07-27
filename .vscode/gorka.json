@@ -9,8 +9,8 @@
     "time"
   ],
   "inputs": [
-    "anthropic-api-key",
-    "openai-api-key"
+    "openrouter-api-key",
+    "secondbrain-model"
   ],
   "chatmodes": [
     "Database Architect - Gorka.chatmode.md",

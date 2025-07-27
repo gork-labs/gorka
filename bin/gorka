@@ -48,7 +48,7 @@ print_step() {
 # Function to ensure cache directory exists and files are available
 ensure_files_available() {
     # If files exist locally (development setup), use them
-    if [ -f "$AGENTS_DIR/mcp.json" ] && [ -d "$AGENTS_DIR/chatmodes" ]; then
+    if [ -f "$AGENTS_DIR/mcp.json" ] && [ -d "$AGENTS_DIR/agents" ]; then
         print_info "Using local development files from $AGENTS_DIR"
         echo "$AGENTS_DIR"
         return 0
@@ -87,7 +87,7 @@ ensure_files_available() {
     fi
 
     # Verify required files exist in the cloned repository
-    if [ ! -f "$repo_dir/mcp.json" ] || [ ! -d "$repo_dir/chatmodes" ]; then
+    if [ ! -f "$repo_dir/mcp.json" ] || [ ! -d "$repo_dir/agents" ]; then
         print_error "Required files not found in cloned repository"
         return 1
     fi
@@ -350,11 +350,13 @@ install() {
     chatmodes_list=""
     instructions_list=""
 
-    if [ -d "$FILES_DIR/chatmodes" ]; then
+    if [ -d "$FILES_DIR/agents" ]; then
         print_info "Copying chatmodes to workspace .github directory..."
-        cp -r "$FILES_DIR/chatmodes" "$github_dir/"
+        # Create chatmodes directory and copy the agent files
+        mkdir -p "$github_dir/chatmodes"
+        cp "$FILES_DIR/agents"/*.md "$github_dir/chatmodes/" 2>/dev/null || true
         print_success "Chatmodes copied to: .github/chatmodes"
-        chatmodes_list=$(find "$FILES_DIR/chatmodes" -name "*.md" -exec basename {} \; | tr '\n' '\n')
+        chatmodes_list=$(find "$FILES_DIR/agents" -name "*.md" -exec basename {} \; | tr '\n' '\n')
     fi
 
     if [ -d "$FILES_DIR/instructions" ]; then
@@ -505,8 +507,8 @@ get_available_components() {
 
     echo ""
     echo "Chatmodes:"
-    if [ -d "$FILES_DIR/chatmodes" ]; then
-        find "$FILES_DIR/chatmodes" -name "*.md" -exec basename {} \; | while read chatmode; do
+    if [ -d "$FILES_DIR/agents" ]; then
+        find "$FILES_DIR/agents" -name "*.md" -exec basename {} \; | while read chatmode; do
             if [ -n "$chatmode" ]; then
                 echo "  • $chatmode"
             fi
@@ -707,8 +709,8 @@ clean_orphans() {
             available_servers=$(jq -r '.servers // {} | keys[]' "$FILES_DIR/mcp.workspace.json" 2>/dev/null || echo "")
         fi
 
-        if [ -d "$FILES_DIR/chatmodes" ]; then
-            available_chatmodes=$(find "$FILES_DIR/chatmodes" -name "*.md" -exec basename {} \; | tr '\n' '\n')
+        if [ -d "$FILES_DIR/agents" ]; then
+            available_chatmodes=$(find "$FILES_DIR/agents" -name "*.md" -exec basename {} \; | tr '\n' '\n')
         fi
 
         if [ -d "$FILES_DIR/instructions" ] && [ "$scope" = "workspace" ]; then
