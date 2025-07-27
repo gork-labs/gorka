@@ -14,10 +14,9 @@ export interface SecondBrainConfig {
   subagentsPath: string;
   mcpConfigPath: string;
 
-  // API Configuration
+  // OpenRouter API Configuration
   openrouterApiKey: string;
-  defaultModel: string;
-  subAgentModel: string;
+  model: string;
 
   // Quality Control
   qualityThreshold: number;
@@ -43,7 +42,7 @@ function getDefaultConfig(): SecondBrainConfig {
 
   if (!model) {
     console.error('❌ FATAL: SECONDBRAIN_MODEL environment variable is required');
-    console.error('   Example: SECONDBRAIN_MODEL=anthropic/claude-3-5-sonnet-20241022');
+    console.error('   Example: SECONDBRAIN_MODEL=meta-llama/llama-3.1-8b-instruct:free');
     process.exit(1);
   }
 
@@ -60,10 +59,9 @@ function getDefaultConfig(): SecondBrainConfig {
     subagentsPath: process.env.SECONDBRAIN_SUBAGENTS_PATH || path.join(process.cwd(), '.vscode', 'secondbrain', 'subagents'),
     mcpConfigPath: process.env.SECONDBRAIN_MCP_CONFIG_PATH || path.join(process.cwd(), '..', '..', '.vscode', 'mcp.json'),
 
-    // API Configuration
+    // OpenRouter API Configuration
     openrouterApiKey: openrouterApiKey,
-    defaultModel: model,
-    subAgentModel: model,
+    model: model,
 
     // Quality Control
     qualityThreshold: parseInt(process.env.SECONDBRAIN_QUALITY_THRESHOLD || '70'),

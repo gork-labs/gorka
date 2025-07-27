@@ -53,5 +53,16 @@
     },
     "requestSize": 1130,
     "responseSize": 1253
+  },
+  {
+    "timestamp": "2025-07-27T16:53:07.171Z",
+    "operation": "quality_validation",
+    "duration": 5,
+    "success": true,
+    "resourceUsage": {
+      "memory": 17531880
+    },
+    "requestSize": 398,
+    "responseSize": 1357
   }
 ]

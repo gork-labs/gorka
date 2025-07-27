@@ -102,7 +102,7 @@ export SECONDBRAIN_SUBAGENT_MODEL="google/gemini-flash-1.5"
 
 ### Core Agent Tools
 - **`spawn_agent`** - Spawn specialized sub-agents with domain expertise
-- **`list_chatmodes`** - List available specialized agent types
+- **`list_subagents`** - List available specialized agent types
 - **`validate_output`** - Comprehensive quality control and validation
 - **`get_session_stats`** - Session tracking and loop protection metrics
 
@@ -121,9 +121,10 @@ export SECONDBRAIN_SUBAGENT_MODEL="google/gemini-flash-1.5"
 ## 🎯 Quick Start Example
 
 ```typescript
+```typescript
 // Spawn a Security Engineer for vulnerability analysis
 const response = await mcp.callTool('spawn_agent', {
-  chatmode: 'Security Engineer',
+  subagent: 'Security Engineer',
   task: 'Analyze web application for security vulnerabilities',
   context: 'E-commerce platform with user authentication and payment processing',
   expected_deliverables: 'Vulnerability report with remediation recommendations'
@@ -134,9 +135,10 @@ const validation = await mcp.callTool('validate_output', {
   sub_agent_response: response.content[0].text,
   requirements: 'Security vulnerability analysis',
   quality_criteria: 'Must include specific vulnerabilities and remediation steps',
-  chatmode: 'Security Engineer',
+  subagent: 'Security Engineer',
   enable_refinement: true
 });
+```
 
 // Get ML insights about system performance
 const insights = await mcp.callTool('get_ml_insights', {});

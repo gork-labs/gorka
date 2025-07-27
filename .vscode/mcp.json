@@ -20,7 +20,8 @@
     },
     "deepwiki": {
       "type": "http",
-      "url": "https://mcp.deepwiki.com/sse"
+      "url": "https://mcp.deepwiki.com/sse",
+      "env": {}
     },
     "git": {
       "command": "uvx",
@@ -64,7 +65,7 @@
         "SECONDBRAIN_SESSION_PATH": "${workspaceFolder}/.vscode/secondbrain/sessions",
         "SECONDBRAIN_MAX_CALLS": "50",
         "SECONDBRAIN_MAX_PARALLEL_AGENTS": "5",
-        "SECONDBRAIN_MAX_DEPTH": "5",
+        "SECONDBRAIN_MAX_DEPTH": "2",
         "SECONDBRAIN_LOG_LEVEL": "info",
         "SECONDBRAIN_MODEL": "${input:secondbrain-model}"
       }

@@ -82,6 +82,34 @@
       },
       "criticalIssues": [],
       "improvementAreas": []
+    },
+    {
+      "timestamp": "2025-07-27T16:53:07.168Z",
+      "subagent": "default",
+      "qualityScore": 94,
+      "passed": true,
+      "processingTime": 1,
+      "refinementAttempts": 0,
+      "ruleBreakdown": {
+        "format": 100,
+        "completeness": 100,
+        "memory": 100,
+        "completion": 80,
+        "content": 67,
+        "specificity": 100
+      },
+      "categories": {
+        "format": 100,
+        "completeness": 100,
+        "memory": 100,
+        "completion": 80,
+        "content": 67,
+        "specificity": 100
+      },
+      "criticalIssues": [],
+      "improvementAreas": [
+        "Improve content: Response content meets quality standards"
+      ]
     }
   ],
   "Software Engineer": [

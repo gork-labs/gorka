@@ -129,9 +129,6 @@ export class AIClientFactory {
   }
 
   static getDefaultModel(isSubAgent: boolean = false): string {
-    if (isSubAgent) {
-      return config.subAgentModel;
-    }
-    return config.defaultModel;
+    return config.model;
   }
 }

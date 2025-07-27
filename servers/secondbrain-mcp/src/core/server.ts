@@ -78,9 +78,9 @@ export class SecondBrainServer {
             inputSchema: {
               type: 'object',
               properties: {
-                chatmode: {
+                subagent: {
                   type: 'string',
-                  description: 'The chatmode to use for the sub-agent (e.g., "Security Engineer")',
+                  description: 'The subagent type to use for the sub-agent (e.g., "Security Engineer")',
                 },
                 task: {
                   type: 'string',
@@ -95,7 +95,7 @@ export class SecondBrainServer {
                   description: 'What the sub-agent should produce',
                 },
               },
-              required: ['chatmode', 'task', 'context', 'expected_deliverables'],
+              required: ['subagent', 'task', 'context', 'expected_deliverables'],
             },
           },
           {
@@ -114,9 +114,9 @@ export class SecondBrainServer {
                         type: 'string',
                         description: 'Unique identifier for this agent in the batch (for result correlation)',
                       },
-                      chatmode: {
+                      subagent: {
                         type: 'string',
-                        description: 'The chatmode to use for the sub-agent (e.g., "Security Engineer")',
+                        description: 'The subagent type to use for the sub-agent (e.g., "Security Engineer")',
                       },
                       task: {
                         type: 'string',
@@ -131,7 +131,7 @@ export class SecondBrainServer {
                         description: 'What the sub-agent should produce',
                       },
                     },
-                    required: ['agent_id', 'chatmode', 'task', 'context', 'expected_deliverables'],
+                    required: ['agent_id', 'subagent', 'task', 'context', 'expected_deliverables'],
                   },
                   minItems: 1,
                   maxItems: 5,
@@ -145,7 +145,7 @@ export class SecondBrainServer {
             },
           },
           {
-            name: 'list_chatmodes',
+            name: 'list_subagents',
             description: 'List all available chatmodes for sub-agent spawning',
             inputSchema: {
               type: 'object',
@@ -373,8 +373,8 @@ export class SecondBrainServer {
           case 'spawn_agents_parallel':
             return await this.handleSpawnAgentsParallel(args);
 
-          case 'list_chatmodes':
-            return await this.handleListChatmodes();
+          case 'list_subagents':
+            return await this.handleListSubagents();
 
           case 'validate_output':
             return await this.handleValidateOutput(args);
@@ -843,7 +843,7 @@ export class SecondBrainServer {
     }
   }
 
-  private async handleListChatmodes() {
+  private async handleListSubagents() {
     const subagents = this.subagentLoader.getAllSubagentsInfo();
 
     return {
@@ -1619,50 +1619,28 @@ Execute this task using your full domain expertise and personality. Provide auth
       totalMCPTools: mcpTools.length,
       maxIterations: config.maxTotalCalls,
       toolDetails: mcpTools.map(t => ({ name: t.name, server: t.serverName, safe: t.safe })),
-      model: chatmodeDefinition.defaultModel || 'openai/gpt-4o-mini'
+      model: config.model
     });
 
-    // Create dynamic tool documentation from actually available tools
-    let toolDocumentation = '';
-    if (availableTools.length > 0) {
-      toolDocumentation = '\n\nAVAILABLE TOOLS:\n';
+    // Create OpenAI function tools from MCP tools
+    const functionTools: OpenAI.Chat.Completions.ChatCompletionTool[] = mcpTools.map(tool => {
+      const fullTool = discoveredTools.find(dt => dt.name === tool.name && dt.serverId === tool.serverId);
+      const schema = fullTool?.inputSchema || { type: 'object', properties: {} };
 
-      mcpTools.forEach(tool => {
-        const fullTool = discoveredTools.find(dt => dt.name === tool.name && dt.serverId === tool.serverId);
-        const description = tool.description || fullTool?.description || 'No description available';
-        const schema = fullTool?.inputSchema || { type: 'object', properties: {} };
-
-        toolDocumentation += `\n- ${tool.name}: ${description}\n`;
-        if (schema.properties) {
-          toolDocumentation += `  Example: {"tool": "${tool.name}", "arguments": ${JSON.stringify(this.createExampleFromSchema(schema))}}\n`;
+      return {
+        type: 'function' as const,
+        function: {
+          name: tool.name,
+          description: tool.description || fullTool?.description || 'No description available',
+          parameters: this.convertMCPSchemaToOpenAI(schema)
         }
-      });
-    }
+      };
+    });
 
-    // Add tool information to the system prompt
-    const toolsPrompt = availableTools.length > 0 ?
-      `\n\nTOOL ACCESS INSTRUCTIONS:
-You have access to these tools: ${availableTools.join(', ')}.
-
-CRITICAL: When you need to use a tool, respond with ONLY this JSON format:
-{"tool": "tool_name", "arguments": {...}}
-
-${toolDocumentation}
-
-Do NOT include explanations or other text when making tool calls. After I execute the tool and provide results, continue with your analysis.
-
-Use only the tools listed above. If you need to read files or examine data, use the available tools.
-
-IMPORTANT: When you have gathered sufficient information to complete your task, provide your final response in the required format WITHOUT any additional tool calls. Do not include tool call examples or references in your final response.
-`
-      : '';
-
-    const enhancedInstructions = instructions + toolsPrompt;
-
-    const messages: any[] = [
+    const messages: OpenAI.Chat.Completions.ChatCompletionMessageParam[] = [
       {
         role: 'system',
-        content: enhancedInstructions
+        content: instructions
       }
     ];
 
@@ -1674,8 +1652,10 @@ IMPORTANT: When you have gathered sufficient information to complete your task, 
       iteration++;
 
       const completion = await openai.chat.completions.create({
-        model: chatmodeDefinition.defaultModel || 'openai/gpt-4o-mini',
+        model: config.model,
         messages,
+        tools: functionTools.length > 0 ? functionTools : undefined,
+        tool_choice: functionTools.length > 0 ? 'auto' : undefined,
         temperature: 0.7,
         max_tokens: 4000
       });
@@ -1685,142 +1665,107 @@ IMPORTANT: When you have gathered sufficient information to complete your task, 
         throw new Error('Empty response from OpenRouter');
       }
 
-      const content = message.content || '';
-      messages.push({ role: 'assistant', content });
+      // Add assistant message to conversation
+      messages.push(message);
 
-      // Check if the response contains a tool call request
-      const toolCallMatch = this.extractToolCall(content);
-
-      sessionLog.info('Checking agent response for tool calls', {
-        hasToolCall: !!toolCallMatch,
-        toolRequested: toolCallMatch?.tool,
-        responsePreview: content.substring(0, 200),
-        iteration
-      });
-
-      if (toolCallMatch) {
-        sessionLog.info('Sub-agent requesting tool execution', {
-          tool: toolCallMatch.tool,
-          arguments: toolCallMatch.arguments,
+      // Check if there are tool calls to execute
+      if (message.tool_calls && message.tool_calls.length > 0) {
+        sessionLog.info('Processing OpenAI function calls', {
+          toolCallCount: message.tool_calls.length,
           iteration
         });
 
-        try {
-          // Execute tool through MCPClientManager instead of ToolProxy
-          const result = await this.mcpClientManager.callTool(toolCallMatch.tool, toolCallMatch.arguments);
-
-          let toolResultMessage: string;
-
-          if (result.success) {
-            consecutiveFailures = 0; // Reset counter on successful tool call
-            toolResultMessage = `Tool "${toolCallMatch.tool}" result: ${JSON.stringify(result.content)}`;
-            sessionLog.info('MCP tool executed successfully for sub-agent', {
-              tool: toolCallMatch.tool,
-              success: result.success,
-              serverId: result.serverId,
-              iteration
-            });
-          } else {
-            consecutiveFailures++; // Increment failure counter
-
-            // Safety check: prevent too many consecutive failures
-            if (consecutiveFailures >= 5) {
-              sessionLog.error('Sub-agent safety trigger activated', {
-                chatmode: chatmodeDefinition.name,
-                consecutiveFailures,
-                iteration,
-                lastToolAttempted: toolCallMatch.tool,
-                availableTools: mcpTools.map(tool => tool.name)
-              });
-
-              throw new Error(
-                `Sub-agent (${chatmodeDefinition.name}) safety triggered: ${consecutiveFailures} consecutive tool failures. ` +
-                `This indicates the agent is stuck in a loop of unsuccessful tool attempts. ` +
-                `Last failed tool: "${toolCallMatch.tool}". ` +
-                `Available tools: ${mcpTools.map(tool => tool.name).join(', ')}. ` +
-                `Solutions: 1) Check if the task requires tools that aren't available, ` +
-                `2) Simplify the task description, 3) Verify tool names are correct. ` +
-                `Session: ${sessionId}, Iteration: ${iteration}/${maxIterations}.`
-              );
+        // Execute all tool calls
+        const toolResults = await Promise.all(
+          message.tool_calls.map(async (toolCall) => {
+            if (toolCall.type !== 'function') {
+              return null;
             }
 
-            // ENHANCED: Provide helpful error messages with available tools
-            const availableToolNames = mcpTools.map(tool => tool.name);
-            toolResultMessage = this.createToolErrorMessage(
-              toolCallMatch.tool,
-              result.error || 'Unknown error',
-              availableToolNames
-            );
+            const functionName = toolCall.function.name;
+            const functionArgs = JSON.parse(toolCall.function.arguments);
 
-            sessionLog.error('MCP tool execution failed for sub-agent', {
-              tool: toolCallMatch.tool,
-              success: result.success,
-              error: result.error,
-              serverId: result.serverId,
-              availableTools: availableToolNames,
+            sessionLog.info('Executing function call', {
+              functionName,
+              callId: toolCall.id,
+              arguments: functionArgs,
               iteration
             });
+
+            try {
+              const result = await this.mcpClientManager.callTool(functionName, functionArgs);
+
+              consecutiveFailures = 0; // Reset on success
+
+              sessionLog.info('Function call executed successfully', {
+                tool: functionName,
+                callId: toolCall.id,
+                success: result.success,
+                serverId: result.serverId,
+                iteration
+              });
+
+              return {
+                tool_call_id: toolCall.id,
+                role: 'tool' as const,
+                content: JSON.stringify(result.success ? result.content : { error: result.error })
+              };
+            } catch (error) {
+              consecutiveFailures++;
+              const errorMessage = error instanceof Error ? error.message : String(error);
+
+              sessionLog.error('Function call failed', {
+                tool: functionName,
+                callId: toolCall.id,
+                error: errorMessage,
+                consecutiveFailures,
+                iteration
+              });
+
+              return {
+                tool_call_id: toolCall.id,
+                role: 'tool' as const,
+                content: JSON.stringify({ error: errorMessage })
+              };
+            }
+          })
+        );
+
+        // Add tool results to conversation
+        toolResults.forEach(result => {
+          if (result) {
+            messages.push(result);
           }
+        });
 
-          messages.push({
-            role: 'user',
-            content: toolResultMessage
-          });
+        // Safety check for consecutive failures
+        if (consecutiveFailures >= 3) {
+          const errorMessage = `Sub-agent exceeded maximum consecutive tool call failures (${consecutiveFailures}). Terminating to prevent infinite loops.`;
+          sessionLog.error(errorMessage, { iteration, consecutiveFailures });
 
-          // Continue the conversation to get the final response
-          continue;
-
-        } catch (error) {
-          consecutiveFailures++; // Increment failure counter for exceptions too
-
-          // Safety check: prevent too many consecutive failures
-          if (consecutiveFailures >= 5) {
-            sessionLog.error('Sub-agent safety trigger activated (exception)', {
-              chatmode: chatmodeDefinition.name,
-              consecutiveFailures,
-              iteration,
-              lastToolAttempted: toolCallMatch.tool,
-              lastException: error instanceof Error ? error.message : String(error),
-              availableTools: mcpTools.map(tool => tool.name)
-            });
-
-            throw new Error(
-              `Sub-agent (${chatmodeDefinition.name}) safety triggered: ${consecutiveFailures} consecutive tool failures (exception path). ` +
-              `This indicates the agent is stuck in a loop of unsuccessful tool attempts. ` +
-              `Last failed tool: "${toolCallMatch.tool}" (exception: ${error instanceof Error ? error.message : String(error)}). ` +
-              `Available tools: ${mcpTools.map(tool => tool.name).join(', ')}. ` +
-              `Solutions: 1) Check if the task requires tools that aren't available, ` +
-              `2) Simplify the task description, 3) Verify tool arguments are correct. ` +
-              `Session: ${sessionId}, Iteration: ${iteration}/${maxIterations}.`
-            );
-          }
-
-          // ENHANCED: Provide helpful error messages with available tools for exceptions too
-          const availableToolNames = mcpTools.map(tool => tool.name);
-          const errorMessage = this.createToolErrorMessage(
-            toolCallMatch.tool,
-            error instanceof Error ? error.message : String(error),
-            availableToolNames
-          );
-
-          messages.push({
-            role: 'user',
-            content: errorMessage
-          });
-
-          sessionLog.error('MCP tool execution failed for sub-agent', {
-            tool: toolCallMatch.tool,
-            error: error instanceof Error ? error.message : String(error),
-            availableTools: availableToolNames,
-            iteration
-          });
-
-          // Continue the conversation to handle the error
-          continue;
+          // Return proper SubAgentResponse structure
+          return {
+            deliverables: {
+              analysis: `${chatmodeDefinition.name} execution failed due to consecutive tool failures: ${errorMessage}`,
+              recommendations: ['Review tool usage patterns', 'Check tool argument formats', 'Verify tool availability'],
+              documents: ['Error log available']
+            },
+            memory_operations: [],
+            metadata: {
+              subagent: chatmodeDefinition.name,
+              task_completion_status: 'failed',
+              processing_time: `${iteration} iterations`,
+              confidence_level: 'low'
+            }
+          };
         }
+
+        // Continue the conversation after tool execution
+        continue;
       }
 
       // No tool calls - this should be the final response
+      const content = message.content || '';
       sessionLog.info('Sub-agent completed task', {
         chatmode: chatmodeDefinition.name,
         iterations: iteration,
@@ -1837,7 +1782,14 @@ IMPORTANT: When you have gathered sufficient information to complete your task, 
       finalIteration: iteration,
       consecutiveFailures,
       instructionsPreview: instructions.substring(0, 200) + '...',
-      lastMessagePreview: messages[messages.length - 1]?.content?.substring(0, 200) + '...' || 'No messages'
+      lastMessagePreview: (() => {
+        const lastMessage = messages[messages.length - 1];
+        if (!lastMessage?.content) return 'No messages';
+        if (typeof lastMessage.content === 'string') {
+          return lastMessage.content.substring(0, 200) + '...';
+        }
+        return 'Non-string content';
+      })()
     });
 
     throw new Error(
@@ -1849,72 +1801,6 @@ IMPORTANT: When you have gathered sufficient information to complete your task, 
       `For complex analysis tasks, consider setting SECONDBRAIN_MAX_CALLS=100 or higher. ` +
       `Debug info: Session ${sessionId}, ${iteration} iterations completed.`
     );
-  }
-
-  /**
-   * Extract tool call from agent response
-   */
-  private extractToolCall(content: string): { tool: string; arguments: Record<string, any> } | null {
-    try {
-      // Multiple patterns to match different tool call formats
-      const patterns = [
-        // Standard format: {"tool": "toolname", "arguments": {...}}
-        /\{"tool":\s*"([^"]+)",\s*"arguments":\s*(\{[^}]*\}|\[[^\]]*\]|"[^"]*"|[^,}]+)\}/,
-        // Loose format: {"tool": "toolname", "arguments": {...anything...}}
-        /\{"tool":\s*"([^"]+)"[\s\S]*?"arguments":\s*(\{[\s\S]*?\})\}/,
-        // Simple format: {"tool": "toolname"}
-        /\{"tool":\s*"([^"]+)"\}/
-      ];
-
-      for (const pattern of patterns) {
-        const match = content.match(pattern);
-        if (match) {
-          try {
-            const toolName = match[1];
-            let args = {};
-
-            if (match[2]) {
-              // Try to parse arguments
-              try {
-                args = JSON.parse(match[2]);
-              } catch {
-                // If parse fails, try to extract the full JSON
-                const fullJsonMatch = content.match(/\{[\s\S]*\}/);
-                if (fullJsonMatch) {
-                  const parsed = JSON.parse(fullJsonMatch[0]);
-                  if (parsed.tool === toolName && parsed.arguments) {
-                    args = parsed.arguments;
-                  }
-                }
-              }
-            }
-
-            return {
-              tool: toolName,
-              arguments: args
-            };
-          } catch (parseError) {
-            continue; // Try next pattern
-          }
-        }
-      }
-
-      // Fallback: try to parse the entire content as JSON
-      const fullMatch = content.match(/\{[\s\S]*\}/);
-      if (fullMatch) {
-        const parsed = JSON.parse(fullMatch[0]);
-        if (parsed.tool) {
-          return {
-            tool: parsed.tool,
-            arguments: parsed.arguments || {}
-          };
-        }
-      }
-
-      return null;
-    } catch (error) {
-      return null;
-    }
   }
 
   /**
@@ -2012,7 +1898,7 @@ IMPORTANT: When you have gathered sufficient information to complete your task, 
     const secondBrainTools = [
       'spawn_agent',
       'validate_output',
-      'list_chatmodes',
+      'list_subagents',
       'get_session_stats',
       'get_quality_analytics',
       'get_performance_analytics',
@@ -2692,6 +2578,32 @@ IMPORTANT: When you have gathered sufficient information to complete your task, 
       });
       throw error;
     }
+  }
+
+  /**
+   * Convert MCP input schema to OpenAI function parameters schema
+   */
+  private convertMCPSchemaToOpenAI(mcpSchema: any): any {
+    if (!mcpSchema || typeof mcpSchema !== 'object') {
+      return {
+        type: 'object',
+        properties: {},
+        required: []
+      };
+    }
+
+    // Handle typical MCP schema structure
+    const result: any = {
+      type: mcpSchema.type || 'object',
+      properties: {},
+      required: mcpSchema.required || []
+    };
+
+    if (mcpSchema.properties) {
+      result.properties = { ...mcpSchema.properties };
+    }
+
+    return result;
   }
 
   async start(): Promise<void> {

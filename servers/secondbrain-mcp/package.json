@@ -1,6 +1,6 @@
 {
   "name": "@gork-labs/secondbrain-mcp",
-  "version": "0.20.0",
+  "version": "0.21.0",
   "description": "Second Brain MCP Server - Agent team orchestration with dynamic tool discovery",
   "main": "dist/index.js",
   "bin": {

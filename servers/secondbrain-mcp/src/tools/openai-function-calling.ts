@@ -4,8 +4,13 @@
  * This implementation uses OpenAI's built-in function calling capabilities to replace
  * the regex-based tool parsing system with reliable, structured function execution.
  *
- * Key Benefits:
- * 1. Structured function definitions with automatic validation
+ * Key Ben      sessionLog.info('Executing sub-agent with OpenRouter native function calling', {
+        chatmode: chatmodeName,
+        availableTools: this.mcpTools.map(t => t.name),
+        functionToolsCount: functionTools.length,
+        maxIterations: this.maxIterations,
+        model: config.model
+      }); * 1. Structured function definitions with automatic validation
  * 2. Built-in JSON parsing and type safety
  * 3. Multiple simultaneous function calls support
  * 4. Automatic error handling and retry logic
@@ -18,6 +23,7 @@
 import OpenAI from 'openai';
 import { logger } from '../utils/logger.js';
 import { getVersionString } from '../utils/version.js';
+import { config } from '../utils/config.js';
 
 export interface MCPTool {
   name: string;
@@ -59,13 +65,16 @@ export class OpenAIFunctionCallingExecutor {
     mcpTools: MCPTool[],
     maxIterations: number = 20
   ) {
-    // Initialize OpenAI client with version information
+    // Initialize OpenAI client with OpenRouter configuration
     const versionString = getVersionString();
     this.openai = new OpenAI({
-      apiKey,
+      apiKey: config.openrouterApiKey,
+      baseURL: 'https://openrouter.ai/api/v1',
       defaultHeaders: {
         'User-Agent': `${versionString} (SecondBrain-MCP)`,
-        'X-Client-Version': versionString
+        'X-Client-Version': versionString,
+        'HTTP-Referer': 'https://github.com/gork-labs/gorka',
+        'X-Title': 'Gorka SecondBrain MCP'
       }
     });
 
@@ -240,7 +249,7 @@ export class OpenAIFunctionCallingExecutor {
         availableTools: this.mcpTools.map(t => t.name),
         functionToolsCount: functionTools.length,
         maxIterations: this.maxIterations,
-        model: 'gpt-4o-mini'
+        model: config.model
       });
 
       const { result, toolCallCount: executionToolCalls } = await this.executeSubAgentManual(
@@ -315,7 +324,7 @@ export class OpenAIFunctionCallingExecutor {
 
       try {
         const completion = await this.openai.chat.completions.create({
-          model: 'gpt-4o-mini',
+          model: config.model,
           messages,
           tools: functionTools,
           tool_choice: 'auto',
