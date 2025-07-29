@@ -9,6 +9,10 @@ on:
   release:
     types: [published]
 
+permissions:
+  contents: write
+  packages: write
+
 env:
   GO_VERSION: '1.24.4'
 
@@ -18,7 +22,7 @@ jobs:
     runs-on: ubuntu-latest
     strategy:
       matrix:
-        binary: [secondbrain-cli, secondbrain-mcp, secondbrain-gen]
+        binary: [secondbrain-cli, secondbrain-mcp]
         goos: [linux, darwin]
         goarch: [amd64, arm64]
         include:
@@ -26,9 +30,6 @@ jobs:
             goos: windows
             goarch: amd64
           - binary: secondbrain-mcp
-            goos: windows
-            goarch: amd64
-          - binary: secondbrain-gen
             goos: windows
             goarch: amd64
     steps:
@@ -40,6 +41,12 @@ jobs:
         with:
           go-version: ${{ env.GO_VERSION }}
           cache-dependency-path: go.sum
+
+      - name: Generate embedded assets
+        run: |
+          echo "Generating embedded assets..."
+          go generate ./internal/embedded-resources/behavioral-specs/
+          echo "Assets generated successfully"
 
       - name: Build binary
         env:
@@ -62,14 +69,25 @@ jobs:
           name: ${{ matrix.binary }}-${{ matrix.goos }}-${{ matrix.goarch }}
           path: bin/${{ matrix.binary }}_${{ matrix.goos }}_${{ matrix.goarch }}*
 
-  release:
-    name: Create Release
+  auto-release:
+    name: Auto Create Release
     runs-on: ubuntu-latest
     needs: [build]
-    if: github.event_name == 'release'
+    if: github.event_name == 'push' && github.ref == 'refs/heads/main'
+    outputs:
+      tag-name: ${{ steps.generate-tag.outputs.tag-name }}
     steps:
       - name: Checkout code
         uses: actions/checkout@v4
+
+      - name: Generate version tag
+        id: generate-tag
+        run: |
+          # Generate timestamp-based version
+          TIMESTAMP=$(date +"%Y.%m.%d.%H%M%S")
+          TAG_NAME="v${TIMESTAMP}"
+          echo "tag-name=${TAG_NAME}" >> $GITHUB_OUTPUT
+          echo "Generated tag: ${TAG_NAME}"
 
       - name: Download all artifacts
         uses: actions/download-artifact@v4
@@ -95,20 +113,28 @@ jobs:
           echo "Release assets prepared:"
           ls -la
 
-      - name: Upload release assets
+      - name: Create Release
+        id: create-release
         uses: softprops/action-gh-release@v2
         with:
+          tag_name: ${{ steps.generate-tag.outputs.tag-name }}
+          name: "Gorka ${{ steps.generate-tag.outputs.tag-name }} - Auto Release"
           files: release-assets/*
+          generate_release_notes: true
           body: |
-            ## Gorka Agent System Release
+            ## Gorka Agent System Auto Release
 
-            This release includes the complete Gorka Agent System with cross-platform binaries and installation script.
+            This release was automatically created from the latest changes on the main branch.
+
+            **Commit**: ${{ github.sha }}
+            **Date**: ${{ github.event.head_commit.timestamp }}
+            **Author**: ${{ github.event.head_commit.author.name }}
 
             ### Quick Installation
 
             Download and install with a single command:
             ```bash
-            bash <(curl -fsSL https://github.com/gork-labs/gorka/releases/download/${{ github.ref_name }}/gorka)
+            bash <(curl -fsSL https://github.com/gork-labs/gorka/releases/download/${{ steps.generate-tag.outputs.tag-name }}/gorka)
             ```
 
             After installation, follow the displayed instructions to add `~/.local/bin` to your PATH.
@@ -118,7 +144,6 @@ jobs:
             1. Download the appropriate binaries for your platform:
                - `secondbrain-cli_<platform>` - Main CLI interface
                - `secondbrain-mcp_<platform>` - MCP server implementation
-               - `secondbrain-gen_<platform>` - Code generation tools
 
             2. Make them executable and place in your PATH:
             ```bash
@@ -142,10 +167,7 @@ jobs:
 
             - **secondbrain-cli**: Command-line interface for agent management
             - **secondbrain-mcp**: Model Context Protocol server with behavioral matrices
-            - **secondbrain-gen**: Code and chatmode generation utilities
             - **gorka**: Installation and management script
-
-            ### Verification
 
             ### Verification
 
@@ -153,3 +175,10 @@ jobs:
             ```bash
             sha256sum -c checksums.txt
             ```
+
+            ### Latest Changes
+
+            ${{ github.event.head_commit.message }}
+
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}

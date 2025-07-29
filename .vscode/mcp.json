@@ -52,22 +52,13 @@
     },
     "secondbrain": {
       "type": "stdio",
-      "command": "npx",
-      "args": [
-        "-y",
-        "@gork-labs/secondbrain-mcp@latest"
-      ],
+      "command": "secondbrain-mcp",
       "env": {
         "OPENROUTER_API_KEY": "${input:openrouter-api-key}",
+        "OPENROUTER_MODEL": "${input:openrouter-model}",
         "SECONDBRAIN_WORKSPACE_FOLDER": "${workspaceFolder}",
         "SECONDBRAIN_MCP_CONFIG_PATH": "${workspaceFolder}/.vscode/mcp.json",
-        "SECONDBRAIN_CHATMODES_PATH": "${workspaceFolder}/.vscode/secondbrain/chatmodes",
-        "SECONDBRAIN_SESSION_PATH": "${workspaceFolder}/.vscode/secondbrain/sessions",
-        "SECONDBRAIN_MAX_CALLS": "50",
-        "SECONDBRAIN_MAX_PARALLEL_AGENTS": "5",
-        "SECONDBRAIN_MAX_DEPTH": "2",
-        "SECONDBRAIN_LOG_LEVEL": "info",
-        "SECONDBRAIN_MODEL": "${input:secondbrain-model}"
+        "SECONDBRAIN_CHATMODES_PATH": "${workspaceFolder}/.vscode/secondbrain/chatmodes"
       }
     }
   },
@@ -75,12 +66,12 @@
     {
       "type": "promptString",
       "id": "openrouter-api-key",
-      "description": "OpenRouter API Key for SecondBrain AI model access",
+      "description": "OpenRouter API Key for SecondBrain sub-agent spawning",
       "password": true
     },
     {
       "type": "promptString",
-      "id": "secondbrain-model",
+      "id": "openrouter-model",
       "description": "Model to use for SecondBrain sub-agents (e.g., anthropic/claude-3-5-sonnet-20241022)",
       "password": false
     }
