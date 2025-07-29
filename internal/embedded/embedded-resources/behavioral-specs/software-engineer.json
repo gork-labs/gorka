@@ -1,0 +1,31 @@
+{
+  "agent_id": "software_engineer",
+  "mcp_tool": "execute_implementation_behavioral_matrix",
+  "vscode_chatmode": "Software Engineer - Gorka.chatmode.md",
+  "algorithm": {
+    "input": {
+      "implementation_specification": "object",
+      "technical_context": "object",
+      "quality_requirements": "object"
+    },
+    "steps": [
+      {
+        "action": "analyze_implementation_requirements",
+        "logic": "specification_to_implementation_mapping"
+      },
+      {
+        "action": "validate_implementation_quality",
+        "logic": "basic_quality_assessment"
+      }
+    ],
+    "output": {
+      "implementation_result": "object",
+      "quality_assessment": "object",
+      "implementation_metadata": "object"
+    },
+    "tools": {
+      "mcp_mode": ["read_file", "edit_file", "basic_quality_validator"],
+      "vscode_mode": ["read_file", "replace_string_in_file", "get_errors", "semantic_search"]
+    }
+  }
+}

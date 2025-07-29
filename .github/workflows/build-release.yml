@@ -1,0 +1,155 @@
+name: Gorka Agent System Build & Release
+
+on:
+  push:
+    branches: [main, develop]
+    tags: ['v*']
+  pull_request:
+    branches: [main, develop]
+  release:
+    types: [published]
+
+env:
+  GO_VERSION: '1.24.4'
+
+jobs:
+  build:
+    name: Build Cross-Platform Binaries
+    runs-on: ubuntu-latest
+    strategy:
+      matrix:
+        binary: [secondbrain-cli, secondbrain-mcp, secondbrain-gen]
+        goos: [linux, darwin]
+        goarch: [amd64, arm64]
+        include:
+          - binary: secondbrain-cli
+            goos: windows
+            goarch: amd64
+          - binary: secondbrain-mcp
+            goos: windows
+            goarch: amd64
+          - binary: secondbrain-gen
+            goos: windows
+            goarch: amd64
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Setup Go
+        uses: actions/setup-go@v5
+        with:
+          go-version: ${{ env.GO_VERSION }}
+          cache-dependency-path: go.sum
+
+      - name: Build binary
+        env:
+          GOOS: ${{ matrix.goos }}
+          GOARCH: ${{ matrix.goarch }}
+        run: |
+          BINARY_NAME="${{ matrix.binary }}"
+          OUTPUT_NAME="${BINARY_NAME}_${{ matrix.goos }}_${{ matrix.goarch }}"
+          
+          if [ "$GOOS" = "windows" ]; then
+            OUTPUT_NAME="${OUTPUT_NAME}.exe"
+          fi
+          
+          mkdir -p bin
+          go build -v -ldflags="-s -w" -o "bin/${OUTPUT_NAME}" ./cmd/${{ matrix.binary }}
+
+      - name: Archive binary
+        uses: actions/upload-artifact@v4
+        with:
+          name: ${{ matrix.binary }}-${{ matrix.goos }}-${{ matrix.goarch }}
+          path: bin/${{ matrix.binary }}_${{ matrix.goos }}_${{ matrix.goarch }}*
+
+  release:
+    name: Create Release
+    runs-on: ubuntu-latest
+    needs: [build]
+    if: github.event_name == 'release'
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Download all artifacts
+        uses: actions/download-artifact@v4
+        with:
+          path: artifacts
+
+      - name: Prepare release assets
+        run: |
+          mkdir -p release-assets
+          
+          # Copy all binaries from artifacts
+          find artifacts -type f -name "secondbrain-*" -exec cp {} release-assets/ \;
+          
+          # Copy install script as gorka
+          cp install.sh release-assets/gorka
+          chmod +x release-assets/gorka
+          
+          # Create checksums
+          cd release-assets
+          sha256sum * > checksums.txt
+          
+          # List all files for verification
+          echo "Release assets prepared:"
+          ls -la
+
+      - name: Upload release assets
+        uses: softprops/action-gh-release@v2
+        with:
+          files: release-assets/*
+          body: |
+            ## Gorka Agent System Release
+
+            This release includes the complete Gorka Agent System with cross-platform binaries and installation script.
+
+            ### Quick Installation
+
+            Download and install with a single command:
+            ```bash
+            bash <(curl -fsSL https://github.com/gork-labs/gorka/releases/download/${{ github.ref_name }}/gorka)
+            ```
+
+            After installation, follow the displayed instructions to add `~/.local/bin` to your PATH.
+
+            ### Manual Installation
+
+            1. Download the appropriate binaries for your platform:
+               - `secondbrain-cli_<platform>` - Main CLI interface
+               - `secondbrain-mcp_<platform>` - MCP server implementation
+               - `secondbrain-gen_<platform>` - Code generation tools
+
+            2. Make them executable and place in your PATH:
+            ```bash
+            chmod +x secondbrain-*
+            mv secondbrain-* ~/.local/bin/
+            ```
+
+            3. Update your PATH if needed:
+            ```bash
+            echo 'export PATH="$HOME/.local/bin:$PATH"' >> ~/.bashrc  # or ~/.zshrc
+            source ~/.bashrc  # or ~/.zshrc
+            ```
+
+            ### Available Platforms
+
+            - Linux (amd64, arm64)
+            - macOS (amd64, arm64) 
+            - Windows (amd64)
+
+            ### Components Included
+
+            - **secondbrain-cli**: Command-line interface for agent management
+            - **secondbrain-mcp**: Model Context Protocol server with behavioral matrices
+            - **secondbrain-gen**: Code and chatmode generation utilities
+            - **gorka**: Installation and management script
+
+            ### Verification
+
+            ### Verification
+
+            Verify the integrity of downloaded binaries using the provided checksums:
+            ```bash
+            sha256sum -c checksums.txt
+            ```

@@ -1,11 +1,13 @@
 ---
-title: "Production Coding Agent System Documentation"
-date: "2025-07-24"
-last_updated: "2025-07-24T17:01:29+02:00"
+title: "SecondBrain MCP Server (Gorka) Documentation"
+date: "2025-07-29"
+last_updated: "2025-07-29T17:00:00+02:00"
 author: "@bohdan-shulha"
 ---
 
-# Production Coding Agent System
+# SecondBrain MCP Server (Gorka)
+
+A Model Context Protocol (MCP) server that provides intelligent agent spawning and coordination capabilities for VS Code. This project implements a dual-executable architecture with both an MCP server for VS Code integration and a CLI tool for workspace management.
 
 ## What is "Gorka"?
 
@@ -17,6 +19,146 @@ The name "Gorka" has an interesting origin story:
 - Interestingly, "Gorka" also means **"hill"** in several languages, which fits the idea of building something substantial and elevated
 
 Gorka is a project within **Gork Labs** - a comprehensive agent-powered development system that shares the naming heritage but serves a different purpose than the original Go Framework.
+
+## Features
+
+- **Dual Architecture**: MCP server for VS Code integration + CLI tool for standalone management
+- **Agent Coordination**: Spawn and coordinate specialized agents (Project Orchestrator, Software Engineer, Security Engineer)
+- **OpenRouter Integration**: Uses OpenRouter API for LLM capabilities via OpenAI SDK
+- **Environment-Based Configuration**: No config files - everything via environment variables
+- **Concurrency Control**: Configurable parallel agent limits with semaphore-based management
+- **Quality Validation**: Built-in output validation and quality assessment
+
+## Quick Start
+
+### Option 1: One-Line Installation (Recommended)
+
+Download and install Gorka with a single command:
+
+```bash
+bash <(curl -fsSL https://github.com/gork-labs/gorka/releases/latest/download/gorka)
+```
+
+This will:
+- Download the latest `secondbrain-cli` and `secondbrain-mcp` binaries
+- Install them to `~/.local/bin`
+- Add the `gorka` management script to your system
+- Provide instructions to update your PATH
+
+After installation, follow the displayed instructions to add `~/.local/bin` to your PATH.
+
+### Option 2: Development Installation
+
+### Prerequisites
+
+- Go 1.21+
+- OpenRouter API key
+- VS Code (for MCP server usage)
+
+### Installation
+
+1. Clone and build:
+```bash
+git clone <repository-url>
+cd agents
+make deps
+make build
+```
+
+For cross-platform release builds:
+```bash
+make build-release
+```
+This creates binaries for Linux, macOS, and Windows in `bin/release/`.
+
+2. Set environment variables:
+```bash
+export OPENROUTER_API_KEY="your-api-key"
+export SECONDBRAIN_MODEL="anthropic/claude-3.5-sonnet"
+export SECONDBRAIN_WORKSPACE="/path/to/your/workspace"
+export SECONDBRAIN_MAX_PARALLEL_AGENTS=3
+```
+
+3. The CLI tool is ready to use:
+```bash
+./secondbrain-cli version
+```
+
+## Gorka Management Script
+
+The `gorka` script provides a unified interface for managing the Gorka system:
+
+```bash
+# Install or upgrade the system
+gorka install
+
+# Upgrade the gorka script itself
+gorka self-upgrade
+
+# Get help
+gorka help
+
+# All other commands are passed to secondbrain-mcp
+gorka components list
+gorka chatmodes generate
+gorka server start
+```
+
+### VS Code MCP Integration
+
+Configure VS Code MCP in `.vscode/mcp.json`:
+
+```json
+{
+  "servers": {
+    "secondbrain-gorka": {
+      "command": "secondbrain-mcp",
+      "args": [],
+      "env": {
+        "OPENROUTER_API_KEY": "${OPENROUTER_API_KEY}",
+        "SECONDBRAIN_MODEL": "${SECONDBRAIN_MODEL}",
+        "SECONDBRAIN_WORKSPACE": "${SECONDBRAIN_WORKSPACE}",
+        "SECONDBRAIN_MAX_PARALLEL_AGENTS": "${SECONDBRAIN_MAX_PARALLEL_AGENTS}"
+      }
+    }
+  }
+}
+```
+
+## Environment Variables
+
+### Required
+- `OPENROUTER_API_KEY`: Your OpenRouter API key
+- `SECONDBRAIN_MODEL`: Model name (e.g., "anthropic/claude-3.5-sonnet")
+- `SECONDBRAIN_WORKSPACE`: Workspace directory path
+- `SECONDBRAIN_MAX_PARALLEL_AGENTS`: Max concurrent agents (recommended: 3-5)
+
+### Optional
+- `SECONDBRAIN_LOG_LEVEL`: Logging level (default: "info")
+- `SECONDBRAIN_REQUEST_TIMEOUT`: API timeout in seconds (default: 60)
+- `SECONDBRAIN_MAX_CONTEXT_SIZE`: Token limit (default: 50000)
+- `SECONDBRAIN_OPENROUTER_BASE_URL`: API endpoint (default: "https://openrouter.ai/api/v1")
+
+## Available Agents
+
+### Project Orchestrator
+Coordinates multiple specialized agents for complex tasks. Handles task decomposition, agent coordination, and result synthesis.
+
+### Software Engineer
+Specializes in code analysis, software design, debugging, and technical documentation.
+
+### Security Engineer
+Focuses on security analysis, threat modeling, vulnerability assessment, and compliance review.
+
+## CLI Commands
+
+```bash
+# Show version
+./secondbrain-cli version
+
+# Get help
+./secondbrain-cli --help
+```
 
 ## Table of Contents
 
@@ -200,47 +342,36 @@ Before installing Gorka, ensure you have the following requirements:
 
 Install gorka CLI tool and the agent system with a single command:
 ```bash
-curl -fsSL https://raw.githubusercontent.com/gork-labs/gorka/main/setup.sh | bash
+bash <(curl -fsSL https://github.com/gork-labs/gorka/releases/latest/download/gorka)
 ```
 
-**Force reinstall** (if you need to update or fix an existing installation):
+After installation, follow the displayed instructions to add `~/.local/bin` to your PATH.
 ```bash
-bash <(curl -fsSL https://raw.githubusercontent.com/gork-labs/gorka/main/setup.sh) --force
-```
-
-Then install the configurations:
+Then you can manage your system:
 ```bash
-# Install for current workspace
-gorka install
-
 # Check what's installed
-gorka update list
+gorka --help
 
 # Keep system updated
 gorka self-upgrade          # Upgrade gorka binary itself
-gorka update sync           # Update components to latest
 ```
 
 ### Manual Installation
 
 If you prefer manual installation:
 
-1. **Download the gorka CLI**:
+1. **Download the gorka installer**:
    ```bash
-   curl -fsSL https://raw.githubusercontent.com/gork-labs/gorka/main/bin/gorka -o ~/.local/bin/gorka
-   chmod +x ~/.local/bin/gorka
+   curl -fsSL https://github.com/gork-labs/gorka/releases/latest/download/gorka -o gorka
+   chmod +x gorka
    ```
 
-2. **Clone the repository**:
+2. **Run the installer**:
    ```bash
-   git clone https://github.com/gork-labs/gorka.git
-   cd gorka
+   ./gorka install
    ```
 
-3. **Install configurations**:
-   ```bash
-   ./bin/gorka install
-   ```
+3. **Follow the PATH instructions** displayed after installation.
 
 ### What Gets Installed
 

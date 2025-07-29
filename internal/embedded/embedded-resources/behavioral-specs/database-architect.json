@@ -1,0 +1,31 @@
+{
+  "agent_id": "database_architect",
+  "mcp_tool": "execute_database_behavioral_matrix",
+  "vscode_chatmode": "Database Architect - Gorka.chatmode.md",
+  "algorithm": {
+    "input": {
+      "database_analysis_target": "object",
+      "optimization_scope": "enum",
+      "technical_context": "object"
+    },
+    "steps": [
+      {
+        "action": "analyze_database_architecture_patterns",
+        "logic": "basic_schema_and_query_analysis"
+      },
+      {
+        "action": "validate_database_solution_quality",
+        "logic": "simple_data_integrity_validation"
+      }
+    ],
+    "output": {
+      "database_assessment": "object",
+      "optimization_recommendations": "array",
+      "solution_validation": "object"
+    },
+    "tools": {
+      "mcp_mode": ["read_file", "basic_database_analyzer", "validate_schema"],
+      "vscode_mode": ["read_file", "grep_search", "semantic_search"]
+    }
+  }
+}

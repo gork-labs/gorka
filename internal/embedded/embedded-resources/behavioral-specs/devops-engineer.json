@@ -1,0 +1,31 @@
+{
+  "agent_id": "devops_engineer",
+  "mcp_tool": "execute_infrastructure_behavioral_matrix",
+  "vscode_chatmode": "DevOps Engineer - Gorka.chatmode.md",
+  "algorithm": {
+    "input": {
+      "infrastructure_target": "object",
+      "optimization_scope": "enum",
+      "constraint_parameters": "object"
+    },
+    "steps": [
+      {
+        "action": "analyze_infrastructure_patterns",
+        "logic": "basic_infrastructure_assessment"
+      },
+      {
+        "action": "validate_infrastructure_solution",
+        "logic": "simple_solution_validation"
+      }
+    ],
+    "output": {
+      "infrastructure_analysis": "object",
+      "optimization_plan": "object",
+      "validation_result": "object"
+    },
+    "tools": {
+      "mcp_mode": ["read_file", "basic_infrastructure_analyzer", "validate_configuration"],
+      "vscode_mode": ["read_file", "run_in_terminal", "create_and_run_task", "get_task_output"]
+    }
+  }
+}

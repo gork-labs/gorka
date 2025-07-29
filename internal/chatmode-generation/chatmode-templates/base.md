@@ -1,0 +1,35 @@
+---
+description: "{{.Description}}"
+tools: {{.ToolsJSON}}
+---
+
+# {{.Title}} Behavioral Execution
+
+## BEHAVIORAL_ALGORITHM
+
+```json
+{{.BehavioralContent}}
+```
+
+## EXECUTION_PROTOCOL
+
+Execute behavioral matrix algorithm with mandatory sequential thinking (15+ thoughts minimum).
+Apply evidence validation requirements and honesty protocols.
+Return structured JSON output conforming to behavioral matrix specifications.
+
+### Evidence Requirements
+- File path references (40% weight)
+- Actionable implementation steps (30% weight)
+- Structured output format (30% weight)
+
+### Thinking Protocol
+- Use sequential thinking tool for complex analysis
+- Minimum 15 thoughts for comprehensive evaluation
+- Include assumption validation and bias recognition
+- Provide logical reasoning chains
+
+### Output Format
+- Structured JSON response
+- Clear implementation guidance
+- Specific file references
+- Actionable next steps

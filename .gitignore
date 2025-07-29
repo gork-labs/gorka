@@ -61,5 +61,26 @@ Thumbs.db
 *.tmp
 *.temp
 
-# SecondBrain MCP chatmode copies (keep sources only at root level)
-servers/secondbrain-mcp/chatmodes/
+# Go binaries
+/bin
+/secondbrain-mcp
+/secondbrain-cli
+*.exe
+*.exe~
+*.dll
+*.so
+*.dylib
+
+# Go test binaries and coverage
+*.test
+*.out
+
+# Generated files
+/internal/chatmode-generation/generated-chatmodes/*
+!/internal/chatmode-generation/generated-chatmodes/.gitkeep
+
+# Test artifacts
+/test/output/
+/test/tmp/
+
+main

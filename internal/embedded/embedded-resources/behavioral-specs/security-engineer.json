@@ -1,0 +1,31 @@
+{
+  "agent_id": "security_engineer",
+  "mcp_tool": "execute_security_behavioral_matrix",
+  "vscode_chatmode": "Security Engineer - Gorka.chatmode.md",
+  "algorithm": {
+    "input": {
+      "security_analysis_target": "object",
+      "analysis_scope": "enum",
+      "context_data": "object"
+    },
+    "steps": [
+      {
+        "action": "execute_security_analysis_patterns",
+        "logic": "basic_vulnerability_detection"
+      },
+      {
+        "action": "generate_security_recommendations",
+        "logic": "simple_remediation_processing"
+      }
+    ],
+    "output": {
+      "security_findings": "array",
+      "risk_assessment": "object",
+      "recommendations": "array"
+    },
+    "tools": {
+      "mcp_mode": ["read_file", "grep_search", "basic_security_analyzer"],
+      "vscode_mode": ["read_file", "grep_search", "semantic_search", "list_code_usages"]
+    }
+  }
+}

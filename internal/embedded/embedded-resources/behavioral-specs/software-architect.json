@@ -1,0 +1,31 @@
+{
+  "agent_id": "software_architect",
+  "mcp_tool": "execute_architecture_behavioral_matrix",
+  "vscode_chatmode": "Software Architect - Gorka.chatmode.md",
+  "algorithm": {
+    "input": {
+      "architecture_analysis_target": "object",
+      "design_scope": "enum",
+      "technical_constraints": "object"
+    },
+    "steps": [
+      {
+        "action": "analyze_system_architecture_patterns",
+        "logic": "basic_architectural_assessment"
+      },
+      {
+        "action": "validate_architecture_solution_quality",
+        "logic": "simple_maintainability_validation"
+      }
+    ],
+    "output": {
+      "architecture_analysis": "object",
+      "architecture_design": "object",
+      "design_validation": "object"
+    },
+    "tools": {
+      "mcp_mode": ["read_file", "basic_architecture_analyzer", "validate_design"],
+      "vscode_mode": ["read_file", "semantic_search", "list_code_usages"]
+    }
+  }
+}

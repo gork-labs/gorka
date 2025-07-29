@@ -1,7 +1,0 @@
-Task: {{task}}
-
-Context: {{context}}
-
-Expected Deliverables: {{expectedDeliverables}}
-
-Please execute this task with your {{agentType}} expertise.
