@@ -19,9 +19,9 @@ type FileTools struct {
 }
 
 type ReadFileRequest struct {
-	FilePath  string `json:"filePath"`
-	StartLine int    `json:"startLine"`
-	EndLine   int    `json:"endLine"`
+	FilePath  string `json:"file_path"`
+	StartLine int    `json:"start_line"`
+	EndLine   int    `json:"end_line"`
 }
 
 type ReadFileResponse struct {
@@ -31,9 +31,9 @@ type ReadFileResponse struct {
 }
 
 type ReplaceStringRequest struct {
-	FilePath  string `json:"filePath"`
-	OldString string `json:"oldString"`
-	NewString string `json:"newString"`
+	FilePath  string `json:"file_path"`
+	OldString string `json:"old_string"`
+	NewString string `json:"new_string"`
 }
 
 type ReplaceStringResponse struct {
@@ -45,7 +45,7 @@ type ReplaceStringResponse struct {
 }
 
 type CreateFileRequest struct {
-	FilePath string `json:"filePath"`
+	FilePath string `json:"file_path"`
 	Content  string `json:"content"`
 }
 
@@ -57,9 +57,9 @@ type CreateFileResponse struct {
 
 type GrepSearchRequest struct {
 	Query          string `json:"query"`
-	IncludePattern string `json:"includePattern,omitempty"`
-	IsRegexp       bool   `json:"isRegexp"`
-	MaxResults     int    `json:"maxResults,omitempty"`
+	IncludePattern string `json:"include_pattern,omitempty"`
+	IsRegexp       bool   `json:"is_regexp"`
+	MaxResults     int    `json:"max_results,omitempty"`
 }
 
 type GrepSearchResponse struct {
@@ -78,7 +78,7 @@ type GrepMatch struct {
 
 type FileSearchRequest struct {
 	Query      string `json:"query"`
-	MaxResults int    `json:"maxResults,omitempty"`
+	MaxResults int    `json:"max_results,omitempty"`
 }
 
 type FileSearchResponse struct {
@@ -109,6 +109,10 @@ func NewFileTools(workspaceRoot string) *FileTools {
 }
 
 func (ft *FileTools) validatePath(path string) (string, error) {
+	if path == "" {
+		return "", fmt.Errorf("file path cannot be empty")
+	}
+	
 	if !filepath.IsAbs(path) {
 		path = filepath.Join(ft.workspaceRoot, path)
 	}
@@ -134,6 +138,16 @@ func (ft *FileTools) ReadFile(req ReadFileRequest) (*ReadFileResponse, error) {
 	validPath, err := ft.validatePath(req.FilePath)
 	if err != nil {
 		return nil, err
+	}
+
+	// Check if path is a directory
+	info, err := os.Stat(validPath)
+	if err != nil {
+		return nil, err
+	}
+	
+	if info.IsDir() {
+		return nil, fmt.Errorf("path is a directory, not a file: %s", req.FilePath)
 	}
 
 	file, err := os.Open(validPath)

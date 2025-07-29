@@ -25,7 +25,7 @@ type KnowledgeGraph struct {
 
 type Entity struct {
 	Name         string    `json:"name"`
-	EntityType   string    `json:"entityType"`
+	EntityType   string    `json:"entity_type"`
 	Observations []string  `json:"observations"`
 	Created      time.Time `json:"created"`
 	Updated      time.Time `json:"updated"`
@@ -35,7 +35,7 @@ type Relation struct {
 	ID           string    `json:"id"`
 	From         string    `json:"from"`
 	To           string    `json:"to"`
-	RelationType string    `json:"relationType"`
+	RelationType string    `json:"relation_type"`
 	Created      time.Time `json:"created"`
 }
 
@@ -45,7 +45,7 @@ type CreateEntitiesRequest struct {
 
 type EntityData struct {
 	Name         string   `json:"name"`
-	EntityType   string   `json:"entityType"`
+	EntityType   string   `json:"entity_type"`
 	Observations []string `json:"observations"`
 }
 
@@ -53,7 +53,7 @@ type CreateEntitiesResponse struct {
 	Success     bool     `json:"success"`
 	Created     []string `json:"created"`
 	Updated     []string `json:"updated"`
-	EntityCount int      `json:"entityCount"`
+	EntityCount int      `json:"entity_count"`
 }
 
 type SearchNodesRequest struct {
@@ -73,7 +73,7 @@ type CreateRelationsRequest struct {
 type RelationData struct {
 	From         string `json:"from"`
 	To           string `json:"to"`
-	RelationType string `json:"relationType"`
+	RelationType string `json:"relation_type"`
 }
 
 type CreateRelationsResponse struct {
@@ -87,7 +87,7 @@ type AddObservationsRequest struct {
 }
 
 type ObservationData struct {
-	EntityName string   `json:"entityName"`
+	EntityName string   `json:"entity_name"`
 	Contents   []string `json:"contents"`
 }
 

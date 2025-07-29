@@ -17,42 +17,42 @@ type ThinkingTools struct {
 
 type ThinkingRequest struct {
 	Thought            string `json:"thought"`
-	NextThoughtNeeded  bool   `json:"nextThoughtNeeded"`
-	ThoughtNumber      int    `json:"thoughtNumber"`
-	TotalThoughts      int    `json:"totalThoughts"`
-	IsRevision         bool   `json:"isRevision,omitempty"`
-	RevisesThought     int    `json:"revisesThought,omitempty"`
-	BranchFromThought  int    `json:"branchFromThought,omitempty"`
-	BranchId           string `json:"branchId,omitempty"`
-	NeedsMoreThoughts  bool   `json:"needsMoreThoughts,omitempty"`
+	NextThoughtNeeded  bool   `json:"next_thought_needed"`
+	ThoughtNumber      int    `json:"thought_number"`
+	TotalThoughts      int    `json:"total_thoughts"`
+	IsRevision         bool   `json:"is_revision,omitempty"`
+	RevisesThought     int    `json:"revises_thought,omitempty"`
+	BranchFromThought  int    `json:"branch_from_thought,omitempty"`
+	BranchId           string `json:"branch_id,omitempty"`
+	NeedsMoreThoughts  bool   `json:"needs_more_thoughts,omitempty"`
 }
 
 type ThinkingResponse struct {
-	ThoughtNumber       int                `json:"thoughtNumber"`
-	TotalThoughts       int                `json:"totalThoughts"`
-	NextThoughtNeeded   bool               `json:"nextThoughtNeeded"`
-	ThoughtHistory      []ThoughtRecord    `json:"thoughtHistory"`
-	FinalConclusion     string             `json:"finalConclusion,omitempty"`
-	ValidationStatus    string             `json:"validationStatus"`
-	QualityMetrics      map[string]float64 `json:"qualityMetrics"`
+	ThoughtNumber       int                `json:"thought_number"`
+	TotalThoughts       int                `json:"total_thoughts"`
+	NextThoughtNeeded   bool               `json:"next_thought_needed"`
+	ThoughtHistory      []ThoughtRecord    `json:"thought_history"`
+	FinalConclusion     string             `json:"final_conclusion,omitempty"`
+	ValidationStatus    string             `json:"validation_status"`
+	QualityMetrics      map[string]float64 `json:"quality_metrics"`
 }
 
 type ThoughtRecord struct {
 	Number         int       `json:"number"`
 	Content        string    `json:"content"`
 	Timestamp      time.Time `json:"timestamp"`
-	IsRevision     bool      `json:"isRevision,omitempty"`
-	RevisesThought int       `json:"revisesThought,omitempty"`
-	BranchId       string    `json:"branchId,omitempty"`
+	IsRevision     bool      `json:"is_revision,omitempty"`
+	RevisesThought int       `json:"revises_thought,omitempty"`
+	BranchId       string    `json:"branch_id,omitempty"`
 }
 
 type ThinkingSession struct {
 	ID           string          `json:"id"`
 	Thoughts     []ThoughtRecord `json:"thoughts"`
 	Started      time.Time       `json:"started"`
-	LastUpdated  time.Time       `json:"lastUpdated"`
+	LastUpdated  time.Time       `json:"last_updated"`
 	Completed    bool            `json:"completed"`
-	MinThoughts  int             `json:"minThoughts"`
+	MinThoughts  int             `json:"min_thoughts"`
 }
 
 func NewThinkingTools(storageDir string) *ThinkingTools {
