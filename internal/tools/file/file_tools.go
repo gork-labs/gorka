@@ -261,12 +261,7 @@ func (ft *FileTools) GrepSearch(req GrepSearchRequest) (*GrepSearchResponse, err
 	var matches []GrepMatch
 	totalFound := 0
 
-	searchPath := ft.workspaceRoot
-	if req.IncludePattern != "" {
-		searchPath = filepath.Join(ft.workspaceRoot, req.IncludePattern)
-	}
-
-	err = filepath.WalkDir(searchPath, func(path string, d fs.DirEntry, err error) error {
+	err = filepath.WalkDir(ft.workspaceRoot, func(path string, d fs.DirEntry, err error) error {
 		if err != nil || d.IsDir() {
 			return nil
 		}
@@ -276,6 +271,18 @@ func (ft *FileTools) GrepSearch(req GrepSearchRequest) (*GrepSearchResponse, err
 		}
 
 		relPath, _ := filepath.Rel(ft.workspaceRoot, path)
+
+		// If includePattern is specified, check if file matches
+		if req.IncludePattern != "" {
+			matched, _ := filepath.Match(req.IncludePattern, filepath.Base(relPath))
+			if !matched {
+				// Also try matching against the full relative path for patterns like "*/dir/*"
+				matched, _ = filepath.Match(req.IncludePattern, relPath)
+				if !matched {
+					return nil
+				}
+			}
+		}
 
 		file, err := os.Open(path)
 		if err != nil {
@@ -358,10 +365,27 @@ func (ft *FileTools) FileSearch(req FileSearchRequest) (*FileSearchResponse, err
 		relPath, _ := filepath.Rel(ft.workspaceRoot, path)
 		fileName := filepath.Base(relPath)
 
-		if matched, _ := filepath.Match(req.Query, fileName); matched {
-			files = append(files, relPath)
-			totalFound++
-		} else if strings.Contains(strings.ToLower(fileName), strings.ToLower(req.Query)) {
+		// Try pattern matching on both filename and full relative path
+		var matched bool
+		
+		// Try matching the filename
+		if match, _ := filepath.Match(req.Query, fileName); match {
+			matched = true
+		}
+		
+		// Try matching the full relative path for patterns like "*/*.chatmode.md"
+		if !matched {
+			if match, _ := filepath.Match(req.Query, relPath); match {
+				matched = true
+			}
+		}
+		
+		// Also do substring matching as fallback
+		if !matched && strings.Contains(strings.ToLower(fileName), strings.ToLower(req.Query)) {
+			matched = true
+		}
+
+		if matched {
 			files = append(files, relPath)
 			totalFound++
 		}
@@ -425,10 +449,11 @@ func (ft *FileTools) CreateReadFileHandler() mcp.ToolHandler {
 			return nil, err
 		}
 		
+		// Return the actual file content, not just a status message
 		return &mcp.CallToolResultFor[any]{
 			Content: []mcp.Content{
 				&mcp.TextContent{
-					Text: fmt.Sprintf("Read %d lines from %s", result.LineCount, result.FilePath),
+					Text: result.Content,
 				},
 			},
 			IsError: false,
@@ -499,10 +524,13 @@ func (ft *FileTools) CreateGrepSearchHandler() mcp.ToolHandler {
 			return nil, err
 		}
 		
+		// Return the actual search results in JSON format
+		resultJSON, _ := json.Marshal(result)
+		
 		return &mcp.CallToolResultFor[any]{
 			Content: []mcp.Content{
 				&mcp.TextContent{
-					Text: fmt.Sprintf("Found %d matches for query '%s'", result.TotalFound, result.Query),
+					Text: string(resultJSON),
 				},
 			},
 			IsError: false,
@@ -522,10 +550,13 @@ func (ft *FileTools) CreateFileSearchHandler() mcp.ToolHandler {
 			return nil, err
 		}
 		
+		// Return the actual file list in JSON format
+		resultJSON, _ := json.Marshal(result)
+		
 		return &mcp.CallToolResultFor[any]{
 			Content: []mcp.Content{
 				&mcp.TextContent{
-					Text: fmt.Sprintf("Found %d files matching pattern '%s'", result.TotalFound, result.Pattern),
+					Text: string(resultJSON),
 				},
 			},
 			IsError: false,
@@ -545,10 +576,13 @@ func (ft *FileTools) CreateListDirHandler() mcp.ToolHandler {
 			return nil, err
 		}
 		
+		// Return the actual directory listing in JSON format
+		resultJSON, _ := json.Marshal(result)
+		
 		return &mcp.CallToolResultFor[any]{
 			Content: []mcp.Content{
 				&mcp.TextContent{
-					Text: fmt.Sprintf("Listed %d items in %s", len(result.Items), result.Path),
+					Text: string(resultJSON),
 				},
 			},
 			IsError: false,
