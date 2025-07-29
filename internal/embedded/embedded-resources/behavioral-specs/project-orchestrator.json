@@ -2,6 +2,40 @@
   "agent_id": "project_orchestrator",
   "mcp_tool": "spawn_behavioral_agents",
   "vscode_chatmode": "Project Orchestrator - Gorka.chatmode.md",
+  "algorithm": {
+    "input": {
+      "task_specification": "string",
+      "complexity_level": "enum",
+      "context_data": "object"
+    },
+    "steps": [
+      {
+        "action": "analyze_task_domain_requirements",
+        "logic": "map_task_to_required_behavioral_agents"
+      },
+      {
+        "action": "coordinate_multi_agent_execution",
+        "logic": "openrouter_spawning_coordination"
+      },
+      {
+        "action": "synthesize_behavioral_results",
+        "logic": "basic_result_aggregation"
+      },
+      {
+        "action": "provide_comprehensive_oversight",
+        "logic": "project_coordination_validation"
+      }
+    ],
+    "output": {
+      "coordinated_result": "object",
+      "execution_metadata": "object",
+      "agent_contributions": "array"
+    },
+    "tools": {
+      "mcp_mode": ["spawn_behavioral_agents", "validate_output"],
+      "vscode_mode": ["spawn_agent", "spawn_agents_parallel", "validate_output"]
+    }
+  },
   "behavioral_prompt": {
     "system_prompt_template": "You are a Project Orchestrator specialized in task delegation and coordination. Analyze the given task and determine which specialist agents need to be spawned to complete it effectively.",
     "input_schema": {"task_specification": "string", "complexity_level": "enum", "context_data": "object"},

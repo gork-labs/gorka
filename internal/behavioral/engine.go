@@ -49,8 +49,12 @@ func (e *Engine) LoadBehavioralMatrices() error {
 		return fmt.Errorf("failed to read behavioral specs directory: %w", err)
 	}
 
+	fmt.Printf("DEBUG: Found %d entries in behavioral-specs directory\n", len(entries))
+
 	for _, entry := range entries {
 		if !entry.IsDir() && filepath.Ext(entry.Name()) == ".json" {
+			fmt.Printf("DEBUG: Loading behavioral spec: %s\n", entry.Name())
+			
 			data, err := embedded.BehavioralSpecsFS.ReadFile("embedded-resources/behavioral-specs/" + entry.Name())
 			if err != nil {
 				return fmt.Errorf("failed to read behavioral spec %s: %w", entry.Name(), err)
@@ -61,8 +65,14 @@ func (e *Engine) LoadBehavioralMatrices() error {
 				return fmt.Errorf("failed to unmarshal behavioral spec %s: %w", entry.Name(), err)
 			}
 
+			fmt.Printf("DEBUG: Loaded matrix for agent: %s\n", matrix.AgentID)
 			e.matrices[matrix.AgentID] = &matrix
 		}
+	}
+
+	fmt.Printf("DEBUG: Total matrices loaded: %d\n", len(e.matrices))
+	for agentID := range e.matrices {
+		fmt.Printf("DEBUG: Available agent: %s\n", agentID)
 	}
 
 	return nil
