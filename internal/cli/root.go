@@ -3,8 +3,11 @@ package cli
 import (
 	"encoding/json"
 	"fmt"
+	"io"
 	"io/fs"
+	"net/http"
 	"os"
+	"os/exec"
 	"path/filepath"
 
 	"github.com/spf13/cobra"
@@ -44,10 +47,24 @@ var versionCmd = &cobra.Command{
 	},
 }
 
+var selfUpgradeCmd = &cobra.Command{
+	Use:   "self-upgrade",
+	Short: "Upgrade secondbrain-cli and secondbrain-mcp to the latest version",
+	Long:  "Download and run the latest installation script to upgrade both secondbrain-cli and secondbrain-mcp binaries",
+	Run: func(cmd *cobra.Command, args []string) {
+		if err := performSelfUpgrade(); err != nil {
+			fmt.Printf("Error during self-upgrade: %v\n", err)
+			return
+		}
+		fmt.Println("Self-upgrade completed successfully!")
+	},
+}
+
 func init() {
 	componentsCmd.AddCommand(componentsInstallCmd)
 	rootCmd.AddCommand(componentsCmd)
 	rootCmd.AddCommand(versionCmd)
+	rootCmd.AddCommand(selfUpgradeCmd)
 }
 
 // Execute executes the root command
@@ -254,4 +271,57 @@ func getChatmodesList() ([]string, error) {
 	}
 
 	return chatmodes, nil
+}
+
+// performSelfUpgrade downloads and executes the install script to upgrade the binaries
+func performSelfUpgrade() error {
+	const installScriptURL = "https://raw.githubusercontent.com/gork-labs/gorka/main/install.sh"
+	
+	fmt.Println("Downloading latest installation script...")
+	
+	// Download the install script
+	resp, err := http.Get(installScriptURL)
+	if err != nil {
+		return fmt.Errorf("failed to download install script: %w", err)
+	}
+	defer resp.Body.Close()
+	
+	if resp.StatusCode != http.StatusOK {
+		return fmt.Errorf("failed to download install script: HTTP %d", resp.StatusCode)
+	}
+	
+	// Create temporary file for the script
+	tmpFile, err := os.CreateTemp("", "gorka-install-*.sh")
+	if err != nil {
+		return fmt.Errorf("failed to create temporary file: %w", err)
+	}
+	defer os.Remove(tmpFile.Name()) // Clean up
+	defer tmpFile.Close()
+	
+	// Copy script content to temporary file
+	if _, err := io.Copy(tmpFile, resp.Body); err != nil {
+		return fmt.Errorf("failed to write install script: %w", err)
+	}
+	
+	// Close the file before making it executable
+	tmpFile.Close()
+	
+	// Make the script executable
+	if err := os.Chmod(tmpFile.Name(), 0755); err != nil {
+		return fmt.Errorf("failed to make script executable: %w", err)
+	}
+	
+	fmt.Println("Running installation script...")
+	
+	// Execute the install script
+	cmd := exec.Command("/bin/bash", tmpFile.Name())
+	cmd.Stdout = os.Stdout
+	cmd.Stderr = os.Stderr
+	cmd.Stdin = os.Stdin
+	
+	if err := cmd.Run(); err != nil {
+		return fmt.Errorf("failed to execute install script: %w", err)
+	}
+	
+	return nil
 }
