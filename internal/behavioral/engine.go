@@ -3,8 +3,9 @@ package behavioral
 import (
 	"encoding/json"
 	"fmt"
-	"os"
 	"path/filepath"
+
+	"gorka/internal/embedded"
 )
 
 type Engine struct {
@@ -42,25 +43,26 @@ func NewEngine() *Engine {
 }
 
 func (e *Engine) LoadBehavioralMatrices() error {
-	specDir := "internal/embedded-resources/behavioral-specs"
-
-	files, err := filepath.Glob(filepath.Join(specDir, "*.json"))
+	// Read all behavioral spec files from embedded resources
+	entries, err := embedded.BehavioralSpecsFS.ReadDir("embedded-resources/behavioral-specs")
 	if err != nil {
-		return err
+		return fmt.Errorf("failed to read behavioral specs directory: %w", err)
 	}
 
-	for _, file := range files {
-		data, err := os.ReadFile(file)
-		if err != nil {
-			return err
-		}
+	for _, entry := range entries {
+		if !entry.IsDir() && filepath.Ext(entry.Name()) == ".json" {
+			data, err := embedded.BehavioralSpecsFS.ReadFile("embedded-resources/behavioral-specs/" + entry.Name())
+			if err != nil {
+				return fmt.Errorf("failed to read behavioral spec %s: %w", entry.Name(), err)
+			}
 
-		var matrix BehavioralMatrix
-		if err := json.Unmarshal(data, &matrix); err != nil {
-			return err
-		}
+			var matrix BehavioralMatrix
+			if err := json.Unmarshal(data, &matrix); err != nil {
+				return fmt.Errorf("failed to unmarshal behavioral spec %s: %w", entry.Name(), err)
+			}
 
-		e.matrices[matrix.AgentID] = &matrix
+			e.matrices[matrix.AgentID] = &matrix
+		}
 	}
 
 	return nil

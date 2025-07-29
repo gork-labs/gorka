@@ -1,6 +1,6 @@
 ---
 description: "Gorka Project Orchestrator - Gorka is a specialized AI agent designed for project_orchestrator tasks. This agent processes requests through structured behavioral execution matrices optimized for LLM-to-LLM communication while providing human-readable outputs."
-tools: ["changes", "codebase", "editFiles", "extensions", "fetch", "findTestFiles", "githubRepo", "new", "openSimpleBrowser", "problems", "runCommands", "runNotebooks", "runTasks", "runTests", "search", "searchResults", "terminalLastCommand", "terminalSelection", "testFailure", "usages", "vscodeAPI", "git_diff", "git_diff_staged", "git_diff_unstaged", "git_log", "git_show", "git_status", "get_current_time", "sequentialthinking", "context7", "deepwiki", "memory"]
+tools: ['changes', 'codebase', 'editFiles', 'extensions', 'fetch', 'findTestFiles', 'githubRepo', 'new', 'openSimpleBrowser', 'problems', 'runCommands', 'runNotebooks', 'runTasks', 'runTests', 'search', 'searchResults', 'terminalLastCommand', 'terminalSelection', 'testFailure', 'usages', 'vscodeAPI', 'context7', 'deepwiki', 'git_diff', 'git_diff_staged', 'git_diff_unstaged', 'git_log', 'git_show', 'git_status', 'secondbrain']
 ---
 
 

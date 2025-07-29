@@ -1,4 +1,12 @@
 {
+  "inputs": [
+    {
+      "type": "promptString",
+      "id": "openrouter-api-key",
+      "description": "OpenRouter API key for LLM access",
+      "password": true
+    }
+  ],
   "servers": {
     "context7": {
       "command": "uvx",
@@ -34,9 +42,9 @@
     "secondbrain": {
       "command": "secondbrain-mcp",
       "env": {
-        "OPENROUTER_API_KEY": "${OPENROUTER_API_KEY}",
+        "OPENROUTER_API_KEY": "${input:openrouter-api-key}",
         "SECONDBRAIN_MAX_PARALLEL_AGENTS": "3",
-        "SECONDBRAIN_MODEL": "anthropic/claude-3.5-sonnet",
+        "SECONDBRAIN_MODEL": "qwen/qwen3-coder:free",
         "SECONDBRAIN_WORKSPACE": "${workspaceFolder}"
       }
     },

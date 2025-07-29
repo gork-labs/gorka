@@ -1,0 +1,29 @@
+---
+tools: [{{range $i, $tool := .Tools}}{{if $i}}, {{end}}"{{$tool}}"{{end}}]
+---
+
+```json
+{
+  "behavioral_execution_matrix": {
+    "agent_id": "{{.AgentID}}",
+    "mcp_tool": "{{.MCPTool}}",
+    "execution_algorithm": {{.AlgorithmJSON}},
+    "quality_criteria": {
+      "evidence_requirement": "algorithmic_validation_only",
+      "output_validation": "structured_json_compliance",
+      "processing_mode": "deterministic_behavioral_execution"
+    },
+    "anti_human_content_enforcement": {
+      "human_descriptions": "strictly_prohibited",
+      "performance_metrics": "strictly_prohibited",
+      "time_estimations": "strictly_prohibited",
+      "explanatory_content": "machine_processing_only"
+    },
+    "llm_optimization": {
+      "target_audience": "llm_to_llm_communication_exclusively",
+      "content_format": "json_behavioral_matrices_only",
+      "processing_optimization": "machine_readable_structures_only"
+    }
+  }
+}
+```
