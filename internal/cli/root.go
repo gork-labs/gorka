@@ -10,14 +10,15 @@ import (
 	"os/exec"
 	"path/filepath"
 
-	"github.com/spf13/cobra"
 	"gorka/internal/embedded"
+
+	"github.com/spf13/cobra"
 )
 
 var rootCmd = &cobra.Command{
-	Use:   "secondbrain-cli",
-	Short: "SecondBrain CLI management tool",
-	Long:  "A CLI tool for managing SecondBrain MCP server workspace and configuration",
+	Use:   "gorka",
+	Short: "Gorka CLI management tool",
+	Long:  "Gorka workspace and SecondBrain MCP",
 }
 
 var componentsCmd = &cobra.Command{
@@ -35,7 +36,6 @@ var componentsInstallCmd = &cobra.Command{
 			fmt.Printf("Error installing components: %v\n", err)
 			return
 		}
-		fmt.Println("Gorka components installed successfully!")
 	},
 }
 
@@ -43,14 +43,14 @@ var versionCmd = &cobra.Command{
 	Use:   "version",
 	Short: "Print the version number",
 	Run: func(cmd *cobra.Command, args []string) {
-		fmt.Println("SecondBrain CLI v0.1.0")
+		fmt.Println("Gorka CLI v0.1.0")
 	},
 }
 
 var selfUpgradeCmd = &cobra.Command{
 	Use:   "self-upgrade",
-	Short: "Upgrade secondbrain-cli and secondbrain-mcp to the latest version",
-	Long:  "Download and run the latest installation script to upgrade both secondbrain-cli and secondbrain-mcp binaries",
+	Short: "Upgrade gorka and secondbrain-mcp to the latest version",
+	Long:  "Download and run the latest installation script to upgrade both gorka and secondbrain-mcp binaries",
 	Run: func(cmd *cobra.Command, args []string) {
 		if err := performSelfUpgrade(); err != nil {
 			fmt.Printf("Error during self-upgrade: %v\n", err)
@@ -98,27 +98,35 @@ func installComponents() error {
 		return fmt.Errorf("failed to get current directory: %w", err)
 	}
 
+	fmt.Println("Installing Gorka workspace components...")
+	fmt.Printf("Working directory: %s\n", cwd)
+
 	// Step 1: Extract chatmodes to .github/chatmodes/
+	fmt.Println("\n1. Extracting chatmodes...")
 	if err := extractChatmodes(cwd); err != nil {
 		return fmt.Errorf("failed to extract chatmodes: %w", err)
 	}
 
 	// Step 2: Create gorka.json in .vscode/
+	fmt.Println("\n2. Creating Gorka configuration...")
 	if err := createGorkaConfig(cwd); err != nil {
 		return fmt.Errorf("failed to create gorka.json: %w", err)
 	}
 
 	// Step 3: Register MCP servers in .vscode/mcp.json
+	fmt.Println("\n3. Configuring MCP servers...")
 	if err := registerMCPServers(cwd); err != nil {
 		return fmt.Errorf("failed to register MCP servers: %w", err)
 	}
 
+	fmt.Println("\n✅ All components installed successfully!")
 	return nil
 }
 
 // extractChatmodes extracts chatmode files from embedded resources
 func extractChatmodes(workspaceDir string) error {
 	chatmodesDir := filepath.Join(workspaceDir, ".github", "chatmodes")
+	fmt.Printf("   Creating directory: %s\n", chatmodesDir)
 	if err := os.MkdirAll(chatmodesDir, 0755); err != nil {
 		return fmt.Errorf("failed to create chatmodes directory: %w", err)
 	}
@@ -129,6 +137,7 @@ func extractChatmodes(workspaceDir string) error {
 		return fmt.Errorf("failed to read embedded chatmodes: %w", err)
 	}
 
+	var installedCount int
 	for _, entry := range entries {
 		if entry.IsDir() {
 			continue
@@ -145,14 +154,19 @@ func extractChatmodes(workspaceDir string) error {
 		if err := os.WriteFile(targetPath, content, 0644); err != nil {
 			return fmt.Errorf("failed to write chatmode %s: %w", entry.Name(), err)
 		}
+
+		fmt.Printf("   ✓ Installed chatmode: %s\n", entry.Name())
+		installedCount++
 	}
 
+	fmt.Printf("   Installed %d chatmode files\n", installedCount)
 	return nil
 }
 
 // createGorkaConfig creates the gorka.json configuration file
 func createGorkaConfig(workspaceDir string) error {
 	vscodeDir := filepath.Join(workspaceDir, ".vscode")
+	fmt.Printf("   Creating directory: %s\n", vscodeDir)
 	if err := os.MkdirAll(vscodeDir, 0755); err != nil {
 		return fmt.Errorf("failed to create .vscode directory: %w", err)
 	}
@@ -167,7 +181,7 @@ func createGorkaConfig(workspaceDir string) error {
 		Servers: []string{
 			"context7",
 			"deepwiki",
-			"git", 
+			"git",
 			"secondbrain",
 		},
 		Inputs: []string{
@@ -182,6 +196,7 @@ func createGorkaConfig(workspaceDir string) error {
 	}
 
 	configPath := filepath.Join(vscodeDir, "gorka.json")
+	fmt.Printf("   ✓ Created gorka.json with %d servers, 1 input, and %d chatmodes\n", len(config.Servers), len(config.Chatmodes))
 	if err := os.WriteFile(configPath, configJSON, 0644); err != nil {
 		return fmt.Errorf("failed to write gorka.json: %w", err)
 	}
@@ -213,17 +228,20 @@ func registerMCPServers(workspaceDir string) error {
 				Command: "secondbrain-mcp",
 				Args:    []string{},
 				Env: map[string]string{
-					"OPENROUTER_API_KEY":               "${OPENROUTER_API_KEY}",
-					"SECONDBRAIN_MODEL":                "anthropic/claude-3.5-sonnet",
-					"SECONDBRAIN_WORKSPACE":            "${workspaceFolder}",
-					"SECONDBRAIN_MAX_PARALLEL_AGENTS":  "3",
+					"OPENROUTER_API_KEY":              "${input:openrouter-api-key}",
+					"SECONDBRAIN_MODEL":               "qwen/qwen3-coder:free",
+					"SECONDBRAIN_WORKSPACE":           "${workspaceFolder}",
+					"SECONDBRAIN_MAX_PARALLEL_AGENTS": "3",
 				},
 			},
 		},
 	}
 
+	var isUpdate bool
 	// Check if mcp.json already exists
 	if _, err := os.Stat(mcpPath); err == nil {
+		isUpdate = true
+		fmt.Printf("   Found existing mcp.json, merging configurations...\n")
 		// File exists, read and merge
 		existingData, err := os.ReadFile(mcpPath)
 		if err != nil {
@@ -237,9 +255,32 @@ func registerMCPServers(workspaceDir string) error {
 
 		// Merge configurations - preserve existing servers, add/update Gorka servers
 		for name, server := range mcpConfig.Servers {
-			existingConfig.Servers[name] = server
+			if existingServer, exists := existingConfig.Servers[name]; exists {
+				// Server already exists, merge environment variables gracefully
+				if existingServer.Env == nil {
+					existingServer.Env = make(map[string]string)
+				}
+
+				// Only add new environment variables, don't override existing ones
+				for envKey, envValue := range server.Env {
+					if _, envExists := existingServer.Env[envKey]; !envExists {
+						existingServer.Env[envKey] = envValue
+					}
+				}
+
+				// Update command and args (these are safe to update)
+				existingServer.Command = server.Command
+				existingServer.Args = server.Args
+
+				existingConfig.Servers[name] = existingServer
+			} else {
+				// New server, add it completely
+				existingConfig.Servers[name] = server
+			}
 		}
 		mcpConfig = existingConfig
+	} else {
+		fmt.Printf("   Creating new mcp.json...\n")
 	}
 
 	// Write the configuration
@@ -250,6 +291,12 @@ func registerMCPServers(workspaceDir string) error {
 
 	if err := os.WriteFile(mcpPath, configJSON, 0644); err != nil {
 		return fmt.Errorf("failed to write mcp.json: %w", err)
+	}
+
+	if isUpdate {
+		fmt.Printf("   ✓ Updated mcp.json with %d MCP servers\n", len(mcpConfig.Servers))
+	} else {
+		fmt.Printf("   ✓ Created mcp.json with %d MCP servers\n", len(mcpConfig.Servers))
 	}
 
 	return nil
@@ -276,20 +323,20 @@ func getChatmodesList() ([]string, error) {
 // performSelfUpgrade downloads and executes the install script to upgrade the binaries
 func performSelfUpgrade() error {
 	const installScriptURL = "https://raw.githubusercontent.com/gork-labs/gorka/main/install.sh"
-	
+
 	fmt.Println("Downloading latest installation script...")
-	
+
 	// Download the install script
 	resp, err := http.Get(installScriptURL)
 	if err != nil {
 		return fmt.Errorf("failed to download install script: %w", err)
 	}
 	defer resp.Body.Close()
-	
+
 	if resp.StatusCode != http.StatusOK {
 		return fmt.Errorf("failed to download install script: HTTP %d", resp.StatusCode)
 	}
-	
+
 	// Create temporary file for the script
 	tmpFile, err := os.CreateTemp("", "gorka-install-*.sh")
 	if err != nil {
@@ -297,31 +344,31 @@ func performSelfUpgrade() error {
 	}
 	defer os.Remove(tmpFile.Name()) // Clean up
 	defer tmpFile.Close()
-	
+
 	// Copy script content to temporary file
 	if _, err := io.Copy(tmpFile, resp.Body); err != nil {
 		return fmt.Errorf("failed to write install script: %w", err)
 	}
-	
+
 	// Close the file before making it executable
 	tmpFile.Close()
-	
+
 	// Make the script executable
 	if err := os.Chmod(tmpFile.Name(), 0755); err != nil {
 		return fmt.Errorf("failed to make script executable: %w", err)
 	}
-	
+
 	fmt.Println("Running installation script...")
-	
+
 	// Execute the install script
 	cmd := exec.Command("/bin/bash", tmpFile.Name())
 	cmd.Stdout = os.Stdout
 	cmd.Stderr = os.Stderr
 	cmd.Stdin = os.Stdin
-	
+
 	if err := cmd.Run(); err != nil {
 		return fmt.Errorf("failed to execute install script: %w", err)
 	}
-	
+
 	return nil
 }

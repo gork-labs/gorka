@@ -1,46 +1,27 @@
 {
   "servers": {
-    "sequentialthinking": {
-      "type": "stdio",
-      "command": "npx",
-      "args": [
-        "-y",
-        "@modelcontextprotocol/server-sequential-thinking@latest"
-      ],
-      "env": {}
-    },
     "context7": {
-      "type": "stdio",
-      "command": "npx",
+      "command": "uvx",
       "args": [
-        "-y",
-        "@upstash/context7-mcp@latest"
-      ],
-      "env": {}
+        "mcp-server-context7"
+      ]
     },
     "deepwiki": {
-      "type": "http",
-      "url": "https://mcp.deepwiki.com/sse",
-      "env": {}
+      "command": "npx",
+      "args": [
+        "-y",
+        "@deepwiki/mcp-server"
+      ]
     },
     "git": {
       "command": "uvx",
       "args": [
-        "mcp-server-git"
-      ],
-      "type": "stdio",
-      "env": {}
-    },
-    "time": {
-      "command": "uvx",
-      "args": [
-        "mcp-server-time"
-      ],
-      "type": "stdio",
-      "env": {}
+        "mcp-server-git",
+        "--repository",
+        "${workspaceFolder}"
+      ]
     },
     "memory": {
-      "type": "stdio",
       "command": "npx",
       "args": [
         "-y",
@@ -51,29 +32,26 @@
       }
     },
     "secondbrain": {
-      "type": "stdio",
       "command": "secondbrain-mcp",
       "env": {
-        "OPENROUTER_API_KEY": "${input:openrouter-api-key}",
-        "OPENROUTER_MODEL": "${input:openrouter-model}",
-        "SECONDBRAIN_WORKSPACE_FOLDER": "${workspaceFolder}",
-        "SECONDBRAIN_MCP_CONFIG_PATH": "${workspaceFolder}/.vscode/mcp.json",
-        "SECONDBRAIN_CHATMODES_PATH": "${workspaceFolder}/.vscode/secondbrain/chatmodes"
+        "OPENROUTER_API_KEY": "${OPENROUTER_API_KEY}",
+        "SECONDBRAIN_MAX_PARALLEL_AGENTS": "3",
+        "SECONDBRAIN_MODEL": "anthropic/claude-3.5-sonnet",
+        "SECONDBRAIN_WORKSPACE": "${workspaceFolder}"
       }
-    }
-  },
-  "inputs": [
-    {
-      "type": "promptString",
-      "id": "openrouter-api-key",
-      "description": "OpenRouter API Key for SecondBrain sub-agent spawning",
-      "password": true
     },
-    {
-      "type": "promptString",
-      "id": "openrouter-model",
-      "description": "Model to use for SecondBrain sub-agents (e.g., anthropic/claude-3-5-sonnet-20241022)",
-      "password": false
+    "sequentialthinking": {
+      "command": "npx",
+      "args": [
+        "-y",
+        "@modelcontextprotocol/server-sequential-thinking@latest"
+      ]
+    },
+    "time": {
+      "command": "uvx",
+      "args": [
+        "mcp-server-time"
+      ]
     }
-  ]
+  }
 }

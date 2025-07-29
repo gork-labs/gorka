@@ -78,7 +78,7 @@ detect_platform() {
 
 # Function to install workspace configuration
 install() {
-    print_step "Installing secondbrain-cli, secondbrain-mcp binaries and gorka script..."
+    print_step "Installing gorka, secondbrain-mcp binaries and gorka script..."
 
     # Create local bin directory
     local local_bin="$HOME/.local/bin"
@@ -122,27 +122,27 @@ install() {
     chmod +x "$binary_path"
     print_success "secondbrain-mcp binary downloaded successfully to $binary_path"
 
-    # Extract download URL for secondbrain-cli binary
-    local cli_binary_name="secondbrain-cli_${platform}"
+    # Extract download URL for gorka binary
+    local cli_binary_name="gorka_${platform}"
     local cli_download_url
     cli_download_url=$(echo "$release_info" | grep -o "\"browser_download_url\": \"[^\"]*${cli_binary_name}[^\"]*\"" | cut -d'"' -f4)
 
     if [ -z "$cli_download_url" ]; then
-        print_error "No secondbrain-cli binary found for platform: $platform"
+        print_error "No gorka binary found for platform: $platform"
         exit 1
     fi
 
-    # Download the secondbrain-cli binary
-    local cli_binary_path="$local_bin/secondbrain-cli"
-    print_info "Downloading secondbrain-cli binary from: $cli_download_url"
+    # Download the gorka binary
+    local cli_binary_path="$local_bin/gorka"
+    print_info "Downloading gorka binary from: $cli_download_url"
 
     if ! curl -L -o "$cli_binary_path" "$cli_download_url" 2>/dev/null; then
-        print_error "Failed to download secondbrain-cli binary"
+        print_error "Failed to download gorka binary"
         exit 1
     fi
 
     chmod +x "$cli_binary_path"
-    print_success "secondbrain-cli binary downloaded successfully to $cli_binary_path"
+    print_success "gorka binary downloaded successfully to $cli_binary_path"
 
     # Check if ~/.local/bin is in PATH
     if ! echo "$PATH" | grep -q "$local_bin"; then
@@ -150,7 +150,7 @@ install() {
         print_info ""
         print_info "To use the installed tools, add this line to your shell profile:"
         print_info ""
-        
+
         # Detect shell and provide specific instructions
         if [ -n "$ZSH_VERSION" ] || [ "$SHELL" = "/bin/zsh" ] || [ "$SHELL" = "/usr/bin/zsh" ]; then
             print_info "  echo 'export PATH=\"\$HOME/.local/bin:\$PATH\"' >> ~/.zshrc"
@@ -168,17 +168,17 @@ install() {
     print_success "Installation completed successfully!"
     print_info ""
     print_info "Installed tools:"
-    print_info "  • secondbrain-cli - Main CLI interface"
+    print_info "  • gorka - Main CLI interface"
     print_info "  • secondbrain-mcp - MCP server for VS Code"
     print_info ""
-    
+
     if echo "$PATH" | grep -q "$local_bin"; then
         print_info "✓ Tools are ready to use:"
-        print_info "  secondbrain-cli --help"
+        print_info "  gorka --help"
         print_info "  secondbrain-mcp --help"
     else
         print_warning "⚠ Please update your PATH first (see instructions above), then:"
-        print_info "  secondbrain-cli --help"
+        print_info "  gorka --help"
         print_info "  secondbrain-mcp --help"
     fi
 }

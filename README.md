@@ -36,11 +36,11 @@ Gorka is a project within **Gork Labs** - a comprehensive agent-powered developm
 Download and install Gorka with a single command:
 
 ```bash
-bash <(curl -fsSL https://github.com/gork-labs/gorka/releases/latest/download/gorka)
+bash <(curl -fsSL https://raw.githubusercontent.com/gork-labs/gorka/main/install.sh)
 ```
 
 This will:
-- Download the latest `secondbrain-cli` and `secondbrain-mcp` binaries
+- Download the latest `gorka` and `secondbrain-mcp` binaries
 - Install them to `~/.local/bin`
 - Add the `gorka` management script to your system
 - Provide instructions to update your PATH
@@ -81,7 +81,7 @@ export SECONDBRAIN_MAX_PARALLEL_AGENTS=3
 
 3. The CLI tool is ready to use:
 ```bash
-./secondbrain-cli version
+./gorka version
 ```
 
 ## Gorka Management Script
@@ -154,10 +154,10 @@ Focuses on security analysis, threat modeling, vulnerability assessment, and com
 
 ```bash
 # Show version
-./secondbrain-cli version
+./gorka version
 
 # Get help
-./secondbrain-cli --help
+./gorka --help
 ```
 
 ## Table of Contents

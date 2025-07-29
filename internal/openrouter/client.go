@@ -11,6 +11,20 @@ import (
 	"github.com/sashabaranov/go-openai"
 )
 
+// customTransport wraps http.RoundTripper to add custom headers
+type customTransport struct {
+	Transport http.RoundTripper
+}
+
+// RoundTrip implements http.RoundTripper interface
+func (t *customTransport) RoundTrip(req *http.Request) (*http.Response, error) {
+	// Add custom headers
+	req.Header.Set("HTTP-Referer", "https://github.com/gork-labs/gorka")
+	req.Header.Set("X-Title", "Gorka")
+
+	return t.Transport.RoundTrip(req)
+}
+
 // Client wraps the OpenAI client configured for OpenRouter
 type Client struct {
 	client *openai.Client
@@ -26,7 +40,8 @@ func NewClient() (*Client, error) {
 
 	// Configure OpenAI client for OpenRouter
 	httpClient := &http.Client{
-		Timeout: time.Duration(config.RequestTimeout) * time.Second,
+		Timeout:   time.Duration(config.RequestTimeout) * time.Second,
+		Transport: &customTransport{Transport: http.DefaultTransport},
 	}
 
 	clientConfig := openai.DefaultConfig(config.OpenRouterAPIKey)

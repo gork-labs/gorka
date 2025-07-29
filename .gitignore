@@ -64,7 +64,7 @@ Thumbs.db
 # Go binaries
 /bin
 /secondbrain-mcp
-/secondbrain-cli
+/gorka
 *.exe
 *.exe~
 *.dll

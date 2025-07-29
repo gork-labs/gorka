@@ -19,7 +19,7 @@ build: generate
 	@echo "Building all executables..."
 	@mkdir -p bin
 	go build -o bin/secondbrain-mcp ./cmd/secondbrain-mcp
-	go build -o bin/secondbrain-cli ./cmd/secondbrain-cli
+	go build -o bin/gorka ./cmd/gorka
 	go build -o bin/secondbrain-gen ./cmd/secondbrain-gen
 	@echo "Build complete: bin/secondbrain-{mcp,cli,gen}"
 
@@ -27,7 +27,7 @@ build: generate
 build-release: generate
 	@echo "Building cross-platform release binaries..."
 	@mkdir -p bin/release
-	@for binary in secondbrain-cli secondbrain-mcp secondbrain-gen; do \
+	@for binary in gorka secondbrain-mcp secondbrain-gen; do \
 		for platform in linux_amd64 linux_arm64 darwin_amd64 darwin_arm64 windows_amd64; do \
 			goos=$$(echo $$platform | cut -d'_' -f1); \
 			goarch=$$(echo $$platform | cut -d'_' -f2); \
@@ -46,7 +46,7 @@ build-release: generate
 # Install executables to GOPATH/bin
 install: build
 	go install ./cmd/secondbrain-mcp
-	go install ./cmd/secondbrain-cli
+	go install ./cmd/gorka
 	go install ./cmd/secondbrain-gen
 
 # Clean generated files and binaries
