@@ -32,6 +32,7 @@ document_type: "instructions"
 | **File Operations** | `editFiles`, `codebase`, `search` tools | `runCommands` for complex file system operations |
 | **Code Analysis** | `problems`, `usages`, `findTestFiles` tools | `runCommands` for specialized analysis scripts |
 | **Project Management** | `runTasks`, `runTests` tools | `runCommands` for custom build scripts |
+| **Workspace Setup** | `secondbrain-cli components install` | Manual file creation only if CLI unavailable |
 | **Time Operations** | `get_current_time` tool | Never use CLI date commands |
 | **Memory Operations** | Memory MCP tools | Never use CLI for data persistence |
 | **Documentation** | `fetch`, specialized research tools | `runCommands` for file system navigation only |
@@ -103,7 +104,27 @@ document_type: "instructions"
 - Environment setup scripts
 ```
 
-### 6. **Data and Time Operations**
+### 6. **Workspace and Project Setup Operations**
+```
+✅ MANDATORY - Use Specialized CLI Tools:
+- secondbrain-cli components install: For Gorka workspace setup
+- runTasks: For predefined VS Code tasks
+- problems: For code issue detection
+- usages: For code reference analysis
+
+🟡 ACCEPTABLE - CLI for Custom Operations:
+- Project-specific initialization scripts
+- Custom configuration deployment
+- Legacy setup procedures
+
+❌ AVOID - Manual File Operations for Workspace Setup:
+- Manual .vscode/ directory creation
+- Manual chatmode file copying
+- Manual MCP configuration setup
+- Manual component installation
+```
+
+### 7. **Data and Time Operations**
 ```
 ✅ MANDATORY - Use Specialized Tools:
 - get_current_time: For ALL timestamp needs
@@ -143,6 +164,19 @@ Step 4: Validate Choice
 ```
 
 ### 8. **Common Scenarios and Solutions**
+
+#### **Scenario: Setting Up Gorka Workspace**
+```
+✅ CORRECT:
+Use tool: runCommands  
+Arguments: {"command": "secondbrain-cli components install"}
+
+❌ INCORRECT:
+1. Manually create .vscode/ directory
+2. Manually copy chatmode files  
+3. Manually create gorka.json
+4. Manually update mcp.json
+```
 
 #### **Scenario: Checking Git Status**
 ```

@@ -144,29 +144,6 @@ install() {
     chmod +x "$cli_binary_path"
     print_success "secondbrain-cli binary downloaded successfully to $cli_binary_path"
 
-    # Extract download URL for the gorka script
-    local gorka_download_url
-    gorka_download_url=$(echo "$release_info" | grep -o "\"browser_download_url\": \"[^\"]*gorka[^\"]*\"" | cut -d'"' -f4)
-
-    if [ -n "$gorka_download_url" ]; then
-        # Download the gorka script
-        local gorka_path="$local_bin/gorka"
-        print_info "Downloading gorka script from: $gorka_download_url"
-
-        if ! curl -L -o "$gorka_path" "$gorka_download_url" 2>/dev/null; then
-            print_warning "Failed to download gorka script, using current version"
-            cp "$0" "$gorka_path"
-        fi
-
-        chmod +x "$gorka_path"
-        print_success "gorka script installed to $gorka_path"
-    else
-        print_info "No gorka script found in release, copying current version"
-        cp "$0" "$local_bin/gorka"
-        chmod +x "$local_bin/gorka"
-        print_success "gorka script copied to $local_bin/gorka"
-    fi
-
     # Check if ~/.local/bin is in PATH
     if ! echo "$PATH" | grep -q "$local_bin"; then
         print_warning "IMPORTANT: $local_bin is not in your PATH"
@@ -193,17 +170,16 @@ install() {
     print_info "Installed tools:"
     print_info "  • secondbrain-cli - Main CLI interface"
     print_info "  • secondbrain-mcp - MCP server for VS Code"
-    print_info "  • gorka - Management script"
     print_info ""
     
     if echo "$PATH" | grep -q "$local_bin"; then
         print_info "✓ Tools are ready to use:"
         print_info "  secondbrain-cli --help"
-        print_info "  gorka --help"
+        print_info "  secondbrain-mcp --help"
     else
         print_warning "⚠ Please update your PATH first (see instructions above), then:"
         print_info "  secondbrain-cli --help"
-        print_info "  gorka --help"
+        print_info "  secondbrain-mcp --help"
     fi
 }
 

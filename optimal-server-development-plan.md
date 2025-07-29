@@ -676,6 +676,88 @@ internal/
     }
   },
   "cli_command_definitions": {
+    "components_install_command": {
+      "command": "secondbrain-cli components install",
+      "description": "Install Gorka workspace components (.vscode and .github configurations)",
+      "implementation": {
+        "embedded_resource_access": "extract_chatmodes_and_create_vscode_configurations",
+        "workspace_setup": "create_vscode_and_github_directory_structures",
+        "mcp_registration": "register_secondbrain_mcp_in_vscode_mcp_json"
+      },
+      "installation_workflow": {
+        "step_1_extract_chatmodes": {
+          "action": "extract_embedded_chatmodes_to_github_chatmodes",
+          "source": "embedded_chatmodes_from_go_embed",
+          "target": ".github/chatmodes/",
+          "files": [
+            "Database Architect - Gorka.chatmode.md",
+            "Design Reviewer - Gorka.chatmode.md", 
+            "DevOps Engineer - Gorka.chatmode.md",
+            "Memory Curator - Gorka.chatmode.md",
+            "Project Orchestrator - Gorka.chatmode.md",
+            "Prompt Writer - Gorka.chatmode.md",
+            "Security Engineer - Gorka.chatmode.md",
+            "Software Architect - Gorka.chatmode.md",
+            "Software Engineer - Gorka.chatmode.md",
+            "Technical Writer - Gorka.chatmode.md",
+            "Test Engineer - Gorka.chatmode.md"
+          ]
+        },
+        "step_2_create_gorka_json": {
+          "action": "create_vscode_gorka_configuration",
+          "target_file": ".vscode/gorka.json",
+          "configuration_content": {
+            "servers": [
+              "context7", "deepwiki", "git", "secondbrain"
+            ],
+            "inputs": [
+              "openrouter-api-key", "secondbrain-model"
+            ],
+            "chatmodes": ["Database Architect - Gorka.chatmode.md", "...all_chatmode_files"],
+            "instructions": [
+              "DATETIME_HANDLING_GORKA.instructions.md",
+              "DOCUMENTATION_STANDARDS_GORKA.instructions.md", 
+              "FILE_EDITING_BEST_PRACTICES_GORKA.instructions.md",
+              "MEMORY_USAGE_GUIDELINES_GORKA.instructions.md",
+              "THINKING_PROCESS_GORKA.instructions.md"
+            ]
+          }
+        },
+        "step_3_register_mcp_server": {
+          "action": "register_secondbrain_mcp_in_vscode_configuration",
+          "target_file": ".vscode/mcp.json",
+          "merge_strategy": "create_if_not_exists_or_merge_with_existing",
+          "vscode_schema_compliance": "use_servers_as_root_key_not_mcpServers",
+          "mcp_configuration": {
+            "servers": {
+              "context7": {
+                "command": "uvx",
+                "args": ["mcp-server-context7"]
+              },
+              "deepwiki": {
+                "command": "npx",
+                "args": ["-y", "@deepwiki/mcp-server"]
+              },
+              "git": {
+                "command": "uvx",
+                "args": ["mcp-server-git", "--repository", "${workspaceFolder}"]
+              },
+              "secondbrain": {
+                "command": "secondbrain-mcp",
+                "args": [],
+                "env": {
+                  "OPENROUTER_API_KEY": "${OPENROUTER_API_KEY}",
+                  "SECONDBRAIN_MODEL": "anthropic/claude-3.5-sonnet",
+                  "SECONDBRAIN_WORKSPACE": "${workspaceFolder}",
+                  "SECONDBRAIN_MAX_PARALLEL_AGENTS": "3"
+                }
+              }
+            }
+          },
+          "environment_variables_requirement": "must_include_placeholder_values_for_required_env_vars"
+        }
+      }
+    },
     "chatmodes_list_command": {
       "command": "secondbrain-cli chatmodes list",
       "description": "Display all available Gorka chatmodes with metadata",

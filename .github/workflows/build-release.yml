@@ -101,10 +101,6 @@ jobs:
           # Copy all binaries from artifacts
           find artifacts -type f -name "secondbrain-*" -exec cp {} release-assets/ \;
           
-          # Copy install script as gorka
-          cp install.sh release-assets/gorka
-          chmod +x release-assets/gorka
-          
           # Create checksums
           cd release-assets
           sha256sum * > checksums.txt
@@ -134,7 +130,7 @@ jobs:
 
             Download and install with a single command:
             ```bash
-            bash <(curl -fsSL https://github.com/gork-labs/gorka/releases/download/${{ steps.generate-tag.outputs.tag-name }}/gorka)
+            bash <(curl -fsSL https://raw.githubusercontent.com/gork-labs/gorka/main/install.sh)
             ```
 
             After installation, follow the displayed instructions to add `~/.local/bin` to your PATH.
@@ -167,7 +163,6 @@ jobs:
 
             - **secondbrain-cli**: Command-line interface for agent management
             - **secondbrain-mcp**: Model Context Protocol server with behavioral matrices
-            - **gorka**: Installation and management script
 
             ### Verification
 
