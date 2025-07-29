@@ -81,7 +81,16 @@ type GorkaConfig struct {
 
 // MCPConfig represents the structure of mcp.json for VS Code
 type MCPConfig struct {
+	Inputs  []MCPInput           `json:"inputs,omitempty"`
 	Servers map[string]MCPServer `json:"servers"`
+}
+
+// MCPInput represents an input configuration for VS Code MCP
+type MCPInput struct {
+	Type        string `json:"type"`
+	ID          string `json:"id"`
+	Description string `json:"description"`
+	Password    bool   `json:"password,omitempty"`
 }
 
 // MCPServer represents a single MCP server configuration
@@ -211,6 +220,14 @@ func registerMCPServers(workspaceDir string) error {
 
 	// Create default MCP configuration
 	mcpConfig := MCPConfig{
+		Inputs: []MCPInput{
+			{
+				Type:        "promptString",
+				ID:          "openrouter-api-key",
+				Description: "OpenRouter API key for LLM access",
+				Password:    true,
+			},
+		},
 		Servers: map[string]MCPServer{
 			"context7": {
 				Command: "uvx",
@@ -278,6 +295,28 @@ func registerMCPServers(workspaceDir string) error {
 				existingConfig.Servers[name] = server
 			}
 		}
+
+		// Merge inputs - add new inputs that don't exist
+		if existingConfig.Inputs == nil {
+			existingConfig.Inputs = make([]MCPInput, 0)
+		}
+		
+		for _, newInput := range mcpConfig.Inputs {
+			found := false
+			for i, existingInput := range existingConfig.Inputs {
+				if existingInput.ID == newInput.ID {
+					// Update existing input with new configuration
+					existingConfig.Inputs[i] = newInput
+					found = true
+					break
+				}
+			}
+			if !found {
+				// Add new input
+				existingConfig.Inputs = append(existingConfig.Inputs, newInput)
+			}
+		}
+		
 		mcpConfig = existingConfig
 	} else {
 		fmt.Printf("   Creating new mcp.json...\n")
@@ -294,9 +333,9 @@ func registerMCPServers(workspaceDir string) error {
 	}
 
 	if isUpdate {
-		fmt.Printf("   ✓ Updated mcp.json with %d MCP servers\n", len(mcpConfig.Servers))
+		fmt.Printf("   ✓ Updated mcp.json with %d MCP servers and %d inputs\n", len(mcpConfig.Servers), len(mcpConfig.Inputs))
 	} else {
-		fmt.Printf("   ✓ Created mcp.json with %d MCP servers\n", len(mcpConfig.Servers))
+		fmt.Printf("   ✓ Created mcp.json with %d MCP servers and %d inputs\n", len(mcpConfig.Servers), len(mcpConfig.Inputs))
 	}
 
 	return nil
