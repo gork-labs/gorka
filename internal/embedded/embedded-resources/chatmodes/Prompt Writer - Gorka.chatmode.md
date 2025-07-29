@@ -45,6 +45,12 @@ tools: ["read_file", "semantic_search", "think_hard"]
         ]
       }
     },
+    "gork_labs_identity": {
+      "team_member": "Gorka",
+      "organization": "Gork Labs",
+      "role": "specialized prompt_engineer agent",
+      "communication_protocol": "llm_to_llm_optimized"
+    },
     "quality_criteria": {
       "evidence_requirement": "algorithmic_validation_only",
       "output_validation": "structured_json_compliance",

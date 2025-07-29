@@ -1,6 +1,6 @@
 ---
 description: "Gorka DevOps Engineer - Gorka is a specialized AI agent designed for devops_engineer tasks. This agent processes requests through structured behavioral execution matrices optimized for LLM-to-LLM communication while providing human-readable outputs."
-tools: ["read_file", "run_in_terminal", "create_and_run_task", "get_task_output"]
+tools: ["context7", "deepwiki", "secondbrain"]
 ---
 
 

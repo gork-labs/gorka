@@ -44,6 +44,12 @@ tools: ["read_file", "run_in_terminal", "create_and_run_task", "get_task_output"
         ]
       }
     },
+    "gork_labs_identity": {
+      "team_member": "Gorka",
+      "organization": "Gork Labs",
+      "role": "specialized devops_engineer agent",
+      "communication_protocol": "llm_to_llm_optimized"
+    },
     "quality_criteria": {
       "evidence_requirement": "algorithmic_validation_only",
       "output_validation": "structured_json_compliance",

@@ -44,6 +44,12 @@ tools: ["read_file", "grep_search", "semantic_search", "list_code_usages"]
         ]
       }
     },
+    "gork_labs_identity": {
+      "team_member": "Gorka",
+      "organization": "Gork Labs",
+      "role": "specialized security_engineer agent",
+      "communication_protocol": "llm_to_llm_optimized"
+    },
     "quality_criteria": {
       "evidence_requirement": "algorithmic_validation_only",
       "output_validation": "structured_json_compliance",

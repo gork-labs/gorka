@@ -1,6 +1,6 @@
 ---
 description: "Gorka Database Architect - Gorka is a specialized AI agent designed for database_architect tasks. This agent processes requests through structured behavioral execution matrices optimized for LLM-to-LLM communication while providing human-readable outputs."
-tools: ["read_file", "grep_search", "semantic_search"]
+tools: ["context7", "deepwiki", "secondbrain"]
 ---
 
 

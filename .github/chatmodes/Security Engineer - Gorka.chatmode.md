@@ -1,6 +1,6 @@
 ---
 description: "Gorka Security Engineer - Gorka is a specialized AI agent designed for security_engineer tasks. This agent processes requests through structured behavioral execution matrices optimized for LLM-to-LLM communication while providing human-readable outputs."
-tools: ["read_file", "grep_search", "semantic_search", "list_code_usages"]
+tools: ["context7", "deepwiki", "secondbrain"]
 ---
 
 
