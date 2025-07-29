@@ -1,4 +1,4 @@
-//go:generate go run ../../../cmd/secondbrain-gen --input=. --output=../chatmodes --verbose
+//go:generate go run ../../../../cmd/secondbrain-gen --input=. --output=../chatmodes --verbose
 
 package behavioral_specs
 

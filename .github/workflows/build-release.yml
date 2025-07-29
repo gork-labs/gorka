@@ -45,7 +45,7 @@ jobs:
       - name: Generate embedded assets
         run: |
           echo "Generating embedded assets..."
-          go generate ./internal/embedded-resources/behavioral-specs/
+          go generate ./internal/embedded/embedded-resources/behavioral-specs/
           echo "Assets generated successfully"
 
       - name: Build binary
@@ -98,8 +98,9 @@ jobs:
         run: |
           mkdir -p release-assets
 
-          # Copy all binaries from artifacts
-          find artifacts -type f -name "secondbrain-*" -exec cp {} release-assets/ \;
+          # Copy all binaries from artifacts (both gorka and secondbrain-mcp)
+          find artifacts -type f -name "gorka_*" -exec cp {} release-assets/ \;
+          find artifacts -type f -name "secondbrain-mcp_*" -exec cp {} release-assets/ \;
 
           # Create checksums
           cd release-assets

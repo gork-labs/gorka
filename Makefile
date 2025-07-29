@@ -11,7 +11,7 @@ deps:
 
 # Generate chatmodes from behavioral specs
 generate:
-	go generate ./internal/embedded-resources/behavioral-specs/
+	go generate ./internal/embedded/embedded-resources/behavioral-specs/
 	@echo "Chatmodes generated successfully"
 
 # Build all three executables
@@ -52,7 +52,7 @@ install: build
 # Clean generated files and binaries
 clean:
 	rm -rf bin/
-	rm -rf internal/embedded-resources/chatmodes/*.chatmode.md
+	rm -rf internal/embedded/embedded-resources/chatmodes/*.chatmode.md
 	go clean
 
 # Run tests
@@ -62,15 +62,15 @@ test:
 # Development workflow: watch for changes and regenerate
 dev-watch:
 	@echo "Watching for behavioral spec changes..."
-	while inotifywait -e modify internal/embedded-resources/behavioral-specs/*.json; do \
+	while inotifywait -e modify internal/embedded/embedded-resources/behavioral-specs/*.json; do \
 		make generate; \
 	done
 
 # Validate generated chatmodes are up-to-date
 validate-generation:
 	@echo "Validating chatmode generation..."
-	go run ./cmd/secondbrain-gen --input=internal/embedded-resources/behavioral-specs --output=internal/embedded-resources/chatmodes --validate
-	@if git diff --quiet internal/embedded-resources/chatmodes/; then \
+	go run ./cmd/secondbrain-gen --input=internal/embedded/embedded-resources/behavioral-specs --output=internal/embedded/embedded-resources/chatmodes --validate
+	@if git diff --quiet internal/embedded/embedded-resources/chatmodes/; then \
 		echo "✓ Generated chatmodes are up-to-date"; \
 	else \
 		echo "✗ Generated chatmodes are out of sync with behavioral specs"; \

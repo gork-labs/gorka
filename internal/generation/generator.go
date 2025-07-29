@@ -2,7 +2,6 @@ package generation
 
 import (
 	"crypto/md5"
-	"embed"
 	"encoding/json"
 	"fmt"
 	"io"
@@ -13,10 +12,8 @@ import (
 	"time"
 
 	"gorka/internal/behavioral"
+	"gorka/internal/embedded"
 )
-
-//go:embed chatmode-templates/default.tmpl
-var defaultTemplateFS embed.FS
 
 // ChatmodeGenerator handles generation of VS Code chatmode files from behavioral specifications
 // This is the specification-compliant version with enhanced validation
@@ -32,6 +29,7 @@ type ChatmodeData struct {
 	Description       string
 	Tools             []string
 	Algorithm         map[string]interface{}
+	AlgorithmJSON     string
 	BehavioralContent string
 	MCPTool           string
 	GeneratedAt       time.Time
@@ -76,10 +74,10 @@ func NewGenerator(config Config) *ChatmodeGenerator {
 	return generator
 }
 
-// loadTemplates loads chatmode templates (embedded and custom)
+// loadTemplates loads chatmode templates from embedded resources
 func (g *ChatmodeGenerator) loadTemplates() error {
-	// Load embedded default template
-	templateContent, err := defaultTemplateFS.ReadFile("chatmode-templates/default.tmpl")
+	// Load embedded default template from centralized embedded package
+	templateContent, err := embedded.ChatmodeTemplatesFS.ReadFile("embedded-resources/chatmode-templates/default.tmpl")
 	if err != nil {
 		return fmt.Errorf("failed to load embedded default template: %w", err)
 	}
@@ -207,9 +205,6 @@ func (g *ChatmodeGenerator) createChatmodeData(matrix *behavioral.BehavioralMatr
 	// Extract display name from VSCodeMode filename
 	displayName := strings.TrimSuffix(matrix.VSCodeMode, ".chatmode.md")
 
-	// Generate default description if not in algorithm
-	description := fmt.Sprintf("Gorka %s specialized agent", displayName)
-
 	// Get tools for VS Code mode from algorithm using shared behavioral processing
 	tools := behavioral.GetToolsFromAlgorithm(matrix.Algorithm, "vscode_mode")
 	
@@ -226,12 +221,20 @@ func (g *ChatmodeGenerator) createChatmodeData(matrix *behavioral.BehavioralMatr
 		}
 	}
 
+	// Serialize algorithm to JSON for embedding in template
+	algorithmJSON, err := json.MarshalIndent(matrix.Algorithm, "    ", "  ")
+	if err != nil {
+		// Fallback to empty object if serialization fails
+		algorithmJSON = []byte("{}")
+	}
+
 	return &ChatmodeData{
 		AgentID:           matrix.AgentID,
 		DisplayName:       displayName,
-		Description:       description,
+		Description:       "", // Eliminated per ANTI_HUMAN_CONTENT_DIRECTIVE
 		Tools:             tools,
 		Algorithm:         matrix.Algorithm,
+		AlgorithmJSON:     string(algorithmJSON),
 		BehavioralContent: "", // Will be populated by generateBehavioralContent
 		MCPTool:           matrix.MCPTool,
 		GeneratedAt:       time.Now(),
