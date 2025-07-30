@@ -883,14 +883,36 @@ func (e *Engine) synthesizeAgentResults(agentResults []map[string]interface{}, o
 		}
 	}
 	
+	// Determine coordination status based on success rate
+	var coordinationStatus string
+	successRate := float64(successCount) / float64(len(agentResults))
+	
+	switch {
+	case successRate >= 0.8: // 80% or higher success rate
+		coordinationStatus = "completed_successfully"
+	case successRate >= 0.5: // 50-79% success rate
+		coordinationStatus = "partial_success"
+	case successCount > 0: // Some success but less than 50%
+		coordinationStatus = "mostly_failed"
+	default: // Complete failure
+		coordinationStatus = "failed"
+	}
+	
 	// Update coordinated result
 	if coordinatedResult, ok := synthesizedResult["coordinated_result"].(map[string]interface{}); ok {
+		coordinatedResult["coordination_status"] = coordinationStatus
 		coordinatedResult["successful_agents"] = successCount
 		coordinatedResult["failed_agents"] = failCount
 		coordinatedResult["combined_insights"] = insights
 		coordinatedResult["synthesis_summary"] = fmt.Sprintf(
-			"Project orchestration completed: %d/%d agents successful. Key insights collected from specialized analysis.",
-			successCount, len(agentResults))
+			"Project orchestration %s: %d/%d agents successful (%.1f%% success rate). %s",
+			coordinationStatus, successCount, len(agentResults), successRate*100,
+			func() string {
+				if successCount > 0 {
+					return "Key insights collected from specialized analysis."
+				}
+				return "No successful agent executions completed."
+			}())
 	}
 	
 	e.logInfo("Synthesis completed - %d successful, %d failed agents", successCount, failCount)

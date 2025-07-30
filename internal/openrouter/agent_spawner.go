@@ -91,10 +91,10 @@ func (s *AgentSpawner) executeConversationLoop(agentSession *session.AgentSessio
 	var lastResponse *openai.ChatCompletionResponse
 	
 	for {
-		// Get current session messages
-		messages, err := s.sessionManager.GetSessionMessages(agentSession.ID)
+		// Get filtered session messages to prevent API token limits
+		messages, err := s.sessionManager.GetFilteredSessionMessages(agentSession.ID)
 		if err != nil {
-			return nil, fmt.Errorf("failed to get session messages: %w", err)
+			return nil, fmt.Errorf("failed to get filtered session messages: %w", err)
 		}
 		
 		// Execute via OpenRouter with current session history
