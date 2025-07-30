@@ -24,10 +24,6 @@
       "optimized_prompts": "array",
       "quality_metrics": "object",
       "algorithm_specifications": "object"
-    },
-    "tools": {
-      "mcp_mode": ["read_file", "basic_prompt_analyzer", "validate_prompt_quality"],
-      "vscode_mode": ["read_file", "semantic_search", "think_hard"]
     }
   }
 }

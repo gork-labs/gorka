@@ -22,10 +22,6 @@
       "database_assessment": "object",
       "optimization_recommendations": "array",
       "solution_validation": "object"
-    },
-    "tools": {
-      "mcp_mode": ["read_file", "basic_database_analyzer", "validate_schema"],
-      "vscode_mode": ["read_file", "grep_search", "semantic_search"]
     }
   }
 }

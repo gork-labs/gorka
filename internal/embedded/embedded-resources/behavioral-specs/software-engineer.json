@@ -22,10 +22,6 @@
       "implementation_result": "object",
       "quality_assessment": "object",
       "implementation_metadata": "object"
-    },
-    "tools": {
-      "mcp_mode": ["read_file", "edit_file", "basic_quality_validator"],
-      "vscode_mode": ["read_file", "replace_string_in_file", "get_errors", "semantic_search"]
     }
   }
 }

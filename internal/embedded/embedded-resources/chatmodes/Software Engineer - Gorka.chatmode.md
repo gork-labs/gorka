@@ -1,6 +1,6 @@
 ---
 description: "Gorka Software Engineer - Gorka is a specialized AI agent designed for software_engineer tasks. This agent processes requests through structured behavioral execution matrices optimized for LLM-to-LLM communication while providing human-readable outputs."
-tools: ["read_file", "replace_string_in_file", "get_errors", "semantic_search"]
+tools: ["context7", "deepwiki", "secondbrain"]
 ---
 
 
@@ -37,10 +37,9 @@ tools: ["read_file", "replace_string_in_file", "get_errors", "semantic_search"]
           "basic_quality_validator"
         ],
         "vscode_mode": [
-          "read_file",
-          "replace_string_in_file",
-          "get_errors",
-          "semantic_search"
+          "context7",
+          "deepwiki",
+          "secondbrain"
         ]
       }
     },

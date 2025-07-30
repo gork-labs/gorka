@@ -207,20 +207,7 @@ func (g *ChatmodeGenerator) createChatmodeData(matrix *types.BehavioralMatrix) *
 	displayName := strings.TrimSuffix(matrix.VSCodeMode, ".chatmode.md")
 
 	// Get tools for VS Code mode from algorithm using shared behavioral processing
-	tools := types.GetToolsFromAlgorithm(matrix.Algorithm, "vscode_mode")
-	
-	// Add default tools if none specified
-	if len(tools) == 0 {
-		tools = []string{
-			"changes", "codebase", "editFiles", "extensions", "fetch", "findTestFiles",
-			"githubRepo", "new", "openSimpleBrowser", "problems", "runCommands",
-			"runNotebooks", "runTasks", "runTests", "search", "searchResults",
-			"terminalLastCommand", "terminalSelection", "testFailure", "usages",
-			"vscodeAPI", "git_diff", "git_diff_staged", "git_diff_unstaged",
-			"git_log", "git_show", "git_status", "get_current_time",
-			"sequentialthinking", "context7", "deepwiki", "memory",
-		}
-	}
+	tools := []string{"context7", "deepwiki", "secondbrain"}
 
 	// Serialize algorithm to JSON for embedding in template
 	algorithmJSON, err := json.MarshalIndent(matrix.Algorithm, "    ", "  ")

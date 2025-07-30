@@ -84,3 +84,8 @@ Thumbs.db
 /test/tmp/
 
 main
+
+# Gorka storage - ignore thinking session files but keep directory structure
+.gorka/storage/thinking/*.json
+!.gorka/storage/thinking/.gitkeep
+!.gorka/storage/thinking/.gitignore

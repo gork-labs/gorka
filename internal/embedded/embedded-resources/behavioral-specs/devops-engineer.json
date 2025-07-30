@@ -22,10 +22,6 @@
       "infrastructure_analysis": "object",
       "optimization_plan": "object",
       "validation_result": "object"
-    },
-    "tools": {
-      "mcp_mode": ["read_file", "basic_infrastructure_analyzer", "validate_configuration"],
-      "vscode_mode": ["read_file", "run_in_terminal", "create_and_run_task", "get_task_output"]
     }
   }
 }

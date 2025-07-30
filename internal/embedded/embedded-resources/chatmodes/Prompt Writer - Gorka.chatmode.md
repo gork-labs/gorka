@@ -1,6 +1,6 @@
 ---
 description: "Gorka Prompt Writer - Gorka is a specialized AI agent designed for prompt_engineer tasks. This agent processes requests through structured behavioral execution matrices optimized for LLM-to-LLM communication while providing human-readable outputs."
-tools: ["read_file", "semantic_search", "think_hard"]
+tools: ["context7", "deepwiki", "secondbrain"]
 ---
 
 
@@ -39,9 +39,9 @@ tools: ["read_file", "semantic_search", "think_hard"]
           "validate_prompt_quality"
         ],
         "vscode_mode": [
-          "read_file",
-          "semantic_search",
-          "think_hard"
+          "context7",
+          "deepwiki",
+          "secondbrain"
         ]
       }
     },

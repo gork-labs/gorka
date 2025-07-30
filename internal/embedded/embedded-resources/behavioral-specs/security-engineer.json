@@ -22,10 +22,6 @@
       "security_findings": "array",
       "risk_assessment": "object",
       "recommendations": "array"
-    },
-    "tools": {
-      "mcp_mode": ["read_file", "grep_search", "basic_security_analyzer"],
-      "vscode_mode": ["read_file", "grep_search", "semantic_search", "list_code_usages"]
     }
   }
 }

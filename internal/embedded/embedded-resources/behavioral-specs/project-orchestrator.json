@@ -30,10 +30,6 @@
       "coordinated_result": "object",
       "execution_metadata": "object",
       "agent_contributions": "array"
-    },
-    "tools": {
-      "mcp_mode": ["spawn_behavioral_agents", "validate_output"],
-      "vscode_mode": ["spawn_agent", "spawn_agents_parallel", "validate_output"]
     }
   },
   "behavioral_prompt": {
@@ -45,10 +41,6 @@
       "Synthesize results from multiple specialist agents",
       "Provide comprehensive project coordination and oversight"
     ],
-    "output_schema": {"coordinated_result": "object", "execution_metadata": "object", "agent_contributions": "array"},
-    "tools": {
-      "mcp_mode": ["spawn_behavioral_agents", "validate_output"],
-      "vscode_mode": ["spawn_agent", "spawn_agents_parallel", "validate_output"]
-    }
+    "output_schema": {"coordinated_result": "object", "execution_metadata": "object", "agent_contributions": "array"}
   }
 }

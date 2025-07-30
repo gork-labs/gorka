@@ -22,10 +22,6 @@
       "architecture_analysis": "object",
       "architecture_design": "object",
       "design_validation": "object"
-    },
-    "tools": {
-      "mcp_mode": ["read_file", "basic_architecture_analyzer", "validate_design"],
-      "vscode_mode": ["read_file", "semantic_search", "list_code_usages"]
     }
   }
 }
