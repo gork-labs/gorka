@@ -12,7 +12,14 @@ import (
 	"strings"
 
 	"github.com/modelcontextprotocol/go-sdk/mcp"
+	"github.com/modelcontextprotocol/go-sdk/jsonschema"
 )
+
+// ToolRegistrar interface - should match the one in tools package
+type ToolRegistrar interface {
+	RegisterMCPTool(name, description string, handler mcp.ToolHandler, schema *jsonschema.Schema)
+	RegisterOpenAITool(name, description string, schema *jsonschema.Schema, executor func(params map[string]interface{}) (string, error))
+}
 
 type FileTools struct {
 	workspaceRoot string
@@ -106,6 +113,137 @@ func NewFileTools(workspaceRoot string) *FileTools {
 	return &FileTools{
 		workspaceRoot: workspaceRoot,
 	}
+}
+
+// Register implements the ToolProvider interface
+func (ft *FileTools) Register(registrar ToolRegistrar) {
+	// Define the schemas once to reuse for both MCP and OpenAI registration
+	
+	readFileSchema := &jsonschema.Schema{
+		Type: "object",
+		Properties: map[string]*jsonschema.Schema{
+			"file_path": {
+				Type:        "string",
+				Description: "Absolute path to the file to read",
+			},
+			"start_line": {
+				Type:        "integer",
+				Description: "Line number to start reading from (1-based)",
+				Default:     json.RawMessage("1"),
+			},
+			"end_line": {
+				Type:        "integer",
+				Description: "Line number to end reading at (1-based). If 0, read to end of file",
+				Default:     json.RawMessage("0"),
+			},
+		},
+		Required: []string{"file_path"},
+	}
+	
+	replaceStringSchema := &jsonschema.Schema{
+		Type: "object",
+		Properties: map[string]*jsonschema.Schema{
+			"file_path": {
+				Type:        "string",
+				Description: "Absolute path to the file to edit",
+			},
+			"old_string": {
+				Type:        "string",
+				Description: "Exact string to replace",
+			},
+			"new_string": {
+				Type:        "string",
+				Description: "Replacement string",
+			},
+		},
+		Required: []string{"file_path", "old_string", "new_string"},
+	}
+	
+	createFileSchema := &jsonschema.Schema{
+		Type: "object",
+		Properties: map[string]*jsonschema.Schema{
+			"file_path": {
+				Type:        "string",
+				Description: "Absolute path to the file to create",
+			},
+			"content": {
+				Type:        "string",
+				Description: "File content",
+			},
+		},
+		Required: []string{"file_path", "content"},
+	}
+	
+	grepSearchSchema := &jsonschema.Schema{
+		Type: "object",
+		Properties: map[string]*jsonschema.Schema{
+			"query": {
+				Type:        "string",
+				Description: "Search pattern",
+			},
+			"include_pattern": {
+				Type:        "string",
+				Description: "File pattern to include (optional)",
+			},
+			"is_regexp": {
+				Type:        "boolean",
+				Description: "Whether query is a regular expression",
+				Default:     json.RawMessage("false"),
+			},
+			"max_results": {
+				Type:        "integer",
+				Description: "Maximum number of results",
+				Default:     json.RawMessage("100"),
+			},
+		},
+		Required: []string{"query", "is_regexp"},
+	}
+	
+	fileSearchSchema := &jsonschema.Schema{
+		Type: "object",
+		Properties: map[string]*jsonschema.Schema{
+			"query": {
+				Type:        "string",
+				Description: "File name search pattern",
+			},
+			"max_results": {
+				Type:        "integer",
+				Description: "Maximum number of results",
+				Default:     json.RawMessage("100"),
+			},
+		},
+		Required: []string{"query"},
+	}
+	
+	listDirSchema := &jsonschema.Schema{
+		Type: "object",
+		Properties: map[string]*jsonschema.Schema{
+			"path": {
+				Type:        "string",
+				Description: "Absolute path to the directory to list",
+			},
+		},
+		Required: []string{"path"},
+	}
+	
+	// Register all tools for both MCP and OpenAI usage
+	registrar.RegisterMCPTool("read_file", "Read file contents with line range support", ft.CreateReadFileHandler(), readFileSchema)
+	registrar.RegisterOpenAITool("read_file", "Read file contents with line range support", readFileSchema, ft.createReadFileExecutor())
+	
+	registrar.RegisterMCPTool("replace_string_in_file", "Replace string in file with context validation", ft.CreateReplaceStringHandler(), replaceStringSchema)
+	registrar.RegisterOpenAITool("replace_string_in_file", "Replace string in file with context validation", replaceStringSchema, ft.createReplaceStringExecutor())
+	
+	registrar.RegisterMCPTool("create_file", "Create new file with content", ft.CreateCreateFileHandler(), createFileSchema)
+	registrar.RegisterOpenAITool("create_file", "Create new file with content", createFileSchema, ft.createCreateFileExecutor())
+	
+	registrar.RegisterMCPTool("grep_search", "Search for text patterns in files", ft.CreateGrepSearchHandler(), grepSearchSchema)
+	registrar.RegisterOpenAITool("grep_search", "Search for text patterns in files", grepSearchSchema, ft.createGrepSearchExecutor())
+	
+	registrar.RegisterMCPTool("file_search", "Search for files by name pattern", ft.CreateFileSearchHandler(), fileSearchSchema)
+	registrar.RegisterOpenAITool("file_search", "Search for files by name pattern", fileSearchSchema, ft.createFileSearchExecutor())
+	
+	registrar.RegisterMCPTool("list_dir", "List directory contents", ft.CreateListDirHandler(), listDirSchema)
+	registrar.RegisterOpenAITool("list_dir", "List directory contents", listDirSchema, ft.createListDirExecutor())
 }
 
 func (ft *FileTools) validatePath(path string) (string, error) {
@@ -679,4 +817,109 @@ func mapToStruct(m map[string]any, v interface{}) error {
 		return err
 	}
 	return json.Unmarshal(data, v)
+}
+
+// Executor functions for OpenAI tool calling
+func (ft *FileTools) createReadFileExecutor() func(params map[string]interface{}) (string, error) {
+	return func(params map[string]interface{}) (string, error) {
+		var req ReadFileRequest
+		if err := mapToStruct(params, &req); err != nil {
+			return "", err
+		}
+		
+		result, err := ft.ReadFile(req)
+		if err != nil {
+			return "", err
+		}
+		
+		return result.Content, nil
+	}
+}
+
+func (ft *FileTools) createReplaceStringExecutor() func(params map[string]interface{}) (string, error) {
+	return func(params map[string]interface{}) (string, error) {
+		var req ReplaceStringRequest
+		if err := mapToStruct(params, &req); err != nil {
+			return "", err
+		}
+		
+		result, err := ft.ReplaceString(req)
+		if err != nil {
+			return "", err
+		}
+		
+		return fmt.Sprintf("Successfully replaced string in %s at position %d", result.FilePath, result.ReplacedAt), nil
+	}
+}
+
+func (ft *FileTools) createCreateFileExecutor() func(params map[string]interface{}) (string, error) {
+	return func(params map[string]interface{}) (string, error) {
+		var req CreateFileRequest
+		if err := mapToStruct(params, &req); err != nil {
+			return "", err
+		}
+		
+		result, err := ft.CreateFile(req)
+		if err != nil {
+			return "", err
+		}
+		
+		action := "Updated"
+		if result.Created {
+			action = "Created"
+		}
+		
+		return fmt.Sprintf("%s file %s", action, result.FilePath), nil
+	}
+}
+
+func (ft *FileTools) createGrepSearchExecutor() func(params map[string]interface{}) (string, error) {
+	return func(params map[string]interface{}) (string, error) {
+		var req GrepSearchRequest
+		if err := mapToStruct(params, &req); err != nil {
+			return "", err
+		}
+		
+		result, err := ft.GrepSearch(req)
+		if err != nil {
+			return "", err
+		}
+		
+		resultJSON, _ := json.Marshal(result)
+		return string(resultJSON), nil
+	}
+}
+
+func (ft *FileTools) createFileSearchExecutor() func(params map[string]interface{}) (string, error) {
+	return func(params map[string]interface{}) (string, error) {
+		var req FileSearchRequest
+		if err := mapToStruct(params, &req); err != nil {
+			return "", err
+		}
+		
+		result, err := ft.FileSearch(req)
+		if err != nil {
+			return "", err
+		}
+		
+		resultJSON, _ := json.Marshal(result)
+		return string(resultJSON), nil
+	}
+}
+
+func (ft *FileTools) createListDirExecutor() func(params map[string]interface{}) (string, error) {
+	return func(params map[string]interface{}) (string, error) {
+		var req ListDirRequest
+		if err := mapToStruct(params, &req); err != nil {
+			return "", err
+		}
+		
+		result, err := ft.ListDir(req)
+		if err != nil {
+			return "", err
+		}
+		
+		resultJSON, _ := json.Marshal(result)
+		return string(resultJSON), nil
+	}
 }

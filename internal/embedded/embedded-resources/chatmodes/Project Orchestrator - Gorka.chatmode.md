@@ -27,7 +27,7 @@ tools: ["context7", "deepwiki", "secondbrain"]
         },
         {
           "action": "coordinate_multi_agent_execution",
-          "logic": "openrouter_spawning_coordination"
+          "logic": "multi_agent_coordination"
         },
         {
           "action": "synthesize_behavioral_results",

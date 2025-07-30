@@ -15,7 +15,7 @@
       },
       {
         "action": "coordinate_multi_agent_execution",
-        "logic": "openrouter_spawning_coordination"
+        "logic": "multi_agent_coordination"
       },
       {
         "action": "synthesize_behavioral_results",
@@ -37,7 +37,7 @@
     "input_schema": {"task_specification": "string", "complexity_level": "enum", "context_data": "object"},
     "system_instructions": [
       "Analyze task domain requirements and map to appropriate specialist agents",
-      "Coordinate multi-agent execution through OpenRouter spawning",
+      "Coordinate specialist agent execution to complete complex tasks",
       "Synthesize results from multiple specialist agents",
       "Provide comprehensive project coordination and oversight"
     ],

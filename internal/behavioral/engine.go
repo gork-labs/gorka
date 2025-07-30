@@ -8,6 +8,7 @@ import (
 
 	"gorka/internal/embedded"
 	"gorka/internal/openrouter"
+	"gorka/internal/tools"
 	"gorka/internal/types"
 )
 
@@ -16,6 +17,7 @@ type Engine struct {
 	qualityValidator *QualityValidator
 	honestyValidator *HonestyValidator
 	agentSpawner     *openrouter.AgentSpawner
+	toolsManager     *tools.ToolsManager // Add tools access for local execution
 }
 
 func NewEngine() *Engine {
@@ -81,10 +83,16 @@ func (e *Engine) ExecuteBehavioralMatrix(req *types.BehavioralRequest) (*types.B
 		return nil, fmt.Errorf("input validation failed: %w", err)
 	}
 
+	// All agents are handled the same way - execute based on their behavioral spec
+	return e.executeAgent(req, matrix)
+}
+
+// executeAgent handles execution for any agent type based on its behavioral spec
+func (e *Engine) executeAgent(req *types.BehavioralRequest, matrix *types.BehavioralMatrix) (*types.BehavioralResult, error) {
 	// Prepare user input from request parameters
 	userInput := formatUserInputFromRequest(req)
 
-	// Execute real LLM agent via OpenRouter - NO SIMULATION
+	// Execute real LLM agent via OpenRouter
 	llmResponse, err := e.agentSpawner.SpawnAgent(matrix, userInput)
 	if err != nil {
 		return nil, fmt.Errorf("OpenRouter agent execution failed: %w", err)
@@ -101,17 +109,17 @@ func (e *Engine) ExecuteBehavioralMatrix(req *types.BehavioralRequest) (*types.B
 	result := &types.BehavioralResult{
 		AgentID: req.AgentID,
 		OutputData: map[string]interface{}{
-			"llm_response":     llmContent,
-			"model_used":       llmResponse.Model,
-			"tokens_used":      llmResponse.Usage.TotalTokens,
+			"llm_response":      llmContent,
+			"model_used":        llmResponse.Model,
+			"tokens_used":       llmResponse.Usage.TotalTokens,
 			"completion_tokens": llmResponse.Usage.CompletionTokens,
-			"prompt_tokens":    llmResponse.Usage.PromptTokens,
+			"prompt_tokens":     llmResponse.Usage.PromptTokens,
 		},
 		ExecutionMeta: map[string]interface{}{
-			"execution_mode":   "openrouter_real",
-			"agent_id":        req.AgentID,
+			"execution_mode":    "openrouter_real",
+			"agent_id":         req.AgentID,
 			"openrouter_model": llmResponse.Model,
-			"request_id":      llmResponse.ID,
+			"request_id":       llmResponse.ID,
 		},
 	}
 

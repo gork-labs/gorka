@@ -11,7 +11,14 @@ import (
 	"time"
 
 	"github.com/modelcontextprotocol/go-sdk/mcp"
+	"github.com/modelcontextprotocol/go-sdk/jsonschema"
 )
+
+// ToolRegistrar interface - should match the one in tools package
+type ToolRegistrar interface {
+	RegisterMCPTool(name, description string, handler mcp.ToolHandler, schema *jsonschema.Schema)
+	RegisterOpenAITool(name, description string, schema *jsonschema.Schema, executor func(params map[string]interface{}) (string, error))
+}
 
 type ExecTools struct {
 	workspaceRoot string
@@ -40,6 +47,47 @@ func NewExecTools(workspaceRoot string) *ExecTools {
 	return &ExecTools{
 		workspaceRoot: workspaceRoot,
 	}
+}
+
+// Register implements the ToolProvider interface
+func (et *ExecTools) Register(registrar ToolRegistrar) {
+	execSchema := &jsonschema.Schema{
+		Type: "object",
+		Properties: map[string]*jsonschema.Schema{
+			"command": {
+				Type:        "string",
+				Description: "Command to execute",
+			},
+			"args": {
+				Type:        "array",
+				Description: "Command arguments",
+				Items: &jsonschema.Schema{
+					Type: "string",
+				},
+			},
+			"env": {
+				Type:        "object",
+				Description: "Environment variables to set",
+				AdditionalProperties: &jsonschema.Schema{
+					Type: "string",
+				},
+			},
+			"work_dir": {
+				Type:        "string",
+				Description: "Working directory (relative to workspace root)",
+			},
+			"timeout": {
+				Type:        "integer",
+				Description: "Timeout in seconds (default: 30)",
+				Default:     json.RawMessage("30"),
+			},
+		},
+		Required: []string{"command"},
+	}
+	
+	// Register exec for both MCP and OpenAI usage
+	registrar.RegisterMCPTool("exec", "Execute system commands with timeout and environment control", et.CreateExecHandler(), execSchema)
+	registrar.RegisterOpenAITool("exec", "Execute system commands with timeout and environment control", execSchema, et.createExecExecutor())
 }
 
 func (et *ExecTools) validateWorkDir(workDir string) (string, error) {
@@ -175,4 +223,22 @@ func mapToStruct(m map[string]any, v interface{}) error {
 		return err
 	}
 	return json.Unmarshal(data, v)
+}
+
+// Executor function for OpenAI tool calling
+func (et *ExecTools) createExecExecutor() func(params map[string]interface{}) (string, error) {
+	return func(params map[string]interface{}) (string, error) {
+		var req ExecRequest
+		if err := mapToStruct(params, &req); err != nil {
+			return "", err
+		}
+		
+		result, err := et.ExecuteCommand(req)
+		if err != nil {
+			return "", err
+		}
+		
+		resultJSON, _ := json.Marshal(result)
+		return string(resultJSON), nil
+	}
 }
