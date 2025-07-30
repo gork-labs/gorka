@@ -286,6 +286,11 @@ func (ft *FileTools) GrepSearch(req GrepSearchRequest) (*GrepSearchResponse, err
 
 		relPath, _ := filepath.Rel(ft.workspaceRoot, path)
 
+		// Skip binary files and large files that might cause scanner issues
+		if ft.shouldSkipFile(relPath, d) {
+			return nil
+		}
+
 		// If includePattern is specified, check if file matches
 		if req.IncludePattern != "" {
 			matched, _ := filepath.Match(req.IncludePattern, filepath.Base(relPath))
@@ -305,10 +310,22 @@ func (ft *FileTools) GrepSearch(req GrepSearchRequest) (*GrepSearchResponse, err
 		defer file.Close()
 
 		scanner := bufio.NewScanner(file)
+		// Set a reasonable maximum token size (64KB instead of default ~64KB)
+		// This prevents "token too long" errors on minified files
+		const maxTokenSize = 64 * 1024
+		buf := make([]byte, maxTokenSize)
+		scanner.Buffer(buf, maxTokenSize)
+		
 		lineNum := 1
 
 		for scanner.Scan() {
 			line := scanner.Text()
+
+			// Skip extremely long lines that might be minified code/data
+			if len(line) > 10000 {
+				lineNum++
+				continue
+			}
 
 			var match bool
 			var start, end int
@@ -344,7 +361,13 @@ func (ft *FileTools) GrepSearch(req GrepSearchRequest) (*GrepSearchResponse, err
 			lineNum++
 		}
 
-		return scanner.Err()
+		// Handle scanner errors gracefully - don't fail the entire search
+		if scanErr := scanner.Err(); scanErr != nil {
+			// Log the error but continue with other files
+			fmt.Printf("Warning: Skipping file %s due to scanning error: %v\n", relPath, scanErr)
+		}
+
+		return nil
 	})
 
 	if err != nil {
@@ -356,6 +379,52 @@ func (ft *FileTools) GrepSearch(req GrepSearchRequest) (*GrepSearchResponse, err
 		TotalFound: totalFound,
 		Query:      req.Query,
 	}, nil
+}
+
+// shouldSkipFile determines if a file should be skipped during grep search
+func (ft *FileTools) shouldSkipFile(relPath string, d fs.DirEntry) bool {
+	// Skip common binary file extensions
+	ext := strings.ToLower(filepath.Ext(relPath))
+	binaryExts := []string{
+		".exe", ".dll", ".so", ".dylib", ".bin", ".dat",
+		".jpg", ".jpeg", ".png", ".gif", ".bmp", ".ico",
+		".mp3", ".mp4", ".avi", ".mov", ".wav",
+		".zip", ".tar", ".gz", ".rar", ".7z",
+		".pdf", ".doc", ".docx", ".xls", ".xlsx",
+	}
+	
+	for _, binExt := range binaryExts {
+		if ext == binExt {
+			return true
+		}
+	}
+
+	// Skip very large files (over 10MB) that might be data/binary
+	if info, err := d.Info(); err == nil && info.Size() > 10*1024*1024 {
+		return true
+	}
+
+	// Skip common directories that contain large/binary files
+	skipDirs := []string{
+		"node_modules", ".git", "vendor", "dist", "build",
+		"target", "bin", ".vscode", ".idea", "__pycache__",
+	}
+	
+	pathParts := strings.Split(relPath, string(filepath.Separator))
+	for _, part := range pathParts {
+		for _, skipDir := range skipDirs {
+			if part == skipDir {
+				return true
+			}
+		}
+	}
+
+	// Skip minified files which often have extremely long lines
+	if strings.Contains(relPath, ".min.") {
+		return true
+	}
+
+	return false
 }
 
 func (ft *FileTools) FileSearch(req FileSearchRequest) (*FileSearchResponse, error) {

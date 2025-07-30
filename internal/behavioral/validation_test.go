@@ -2,13 +2,15 @@ package behavioral
 
 import (
 	"testing"
+
+	"gorka/internal/types"
 )
 
 func TestQualityValidator(t *testing.T) {
 	validator := NewQualityValidator()
 
 	// Test with sample behavioral result
-	result := &BehavioralResult{
+	result := &types.BehavioralResult{
 		AgentID: "software_engineer",
 		OutputData: map[string]interface{}{
 			"analysis": "analyzed internal/behavioral/engine.go and found implementation gaps",
@@ -63,7 +65,7 @@ func TestHonestyValidator(t *testing.T) {
 	validator := NewHonestyValidator()
 
 	// Test with sample behavioral result
-	result := &BehavioralResult{
+	result := &types.BehavioralResult{
 		AgentID: "software_engineer",
 		OutputData: map[string]interface{}{
 			"analysis": "analyzed_available_files in internal/behavioral directory. based_on_available_information, found implementation requirements. cannot_verify external dependencies without additional context.",
@@ -107,7 +109,7 @@ func TestEngineWithValidation(t *testing.T) {
 	}
 
 	// Test with mock behavioral request
-	req := &BehavioralRequest{
+	req := &types.BehavioralRequest{
 		AgentID: "test_agent",
 		InputParameters: map[string]interface{}{
 			"task": "validation_test",
@@ -116,7 +118,7 @@ func TestEngineWithValidation(t *testing.T) {
 	}
 
 	// Create mock matrix for test
-	engine.matrices["test_agent"] = &BehavioralMatrix{
+	engine.matrices["test_agent"] = &types.BehavioralMatrix{
 		AgentID:    "test_agent",
 		MCPTool:    "test_tool",
 		VSCodeMode: "test_mode",

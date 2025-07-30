@@ -5,6 +5,8 @@ import (
 	"fmt"
 	"regexp"
 	"strings"
+
+	"gorka/internal/types"
 )
 
 type QualityValidator struct {
@@ -34,7 +36,7 @@ func NewQualityValidator() *QualityValidator {
 	}
 }
 
-func (qv *QualityValidator) ValidateQuality(result *BehavioralResult) (*QualityAssessment, error) {
+func (qv *QualityValidator) ValidateQuality(result *types.BehavioralResult) (*QualityAssessment, error) {
 	assessment := &QualityAssessment{
 		ComponentScores: make(map[string]float64),
 		FailureReasons:  []string{},

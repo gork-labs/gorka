@@ -5,6 +5,7 @@ import (
 	"encoding/json"
 
 	"gorka/internal/behavioral"
+	"gorka/internal/types"
 
 	"github.com/modelcontextprotocol/go-sdk/mcp"
 )
@@ -42,7 +43,7 @@ func CreateBehavioralToolHandler(engine *behavioral.Engine, agentID string) mcp.
 			inputParams[k] = v
 		}
 
-		behavioralReq := &behavioral.BehavioralRequest{
+		behavioralReq := &types.BehavioralRequest{
 			AgentID:          agentID,
 			InputParameters:  inputParams,
 			ExecutionContext: map[string]interface{}{},

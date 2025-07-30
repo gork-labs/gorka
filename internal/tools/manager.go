@@ -4,6 +4,7 @@ import (
 	"encoding/json"
 	"path/filepath"
 
+	"gorka/internal/tools/exec"
 	"gorka/internal/tools/file"
 	"gorka/internal/tools/knowledge"
 	"gorka/internal/tools/thinking"
@@ -16,6 +17,7 @@ type ToolsManager struct {
 	fileTools      *file.FileTools
 	knowledgeTools *knowledge.KnowledgeTools
 	thinkingTools  *thinking.ThinkingTools
+	execTools      *exec.ExecTools
 }
 
 func NewToolsManager(workspaceRoot string, storageDir string) *ToolsManager {
@@ -26,6 +28,7 @@ func NewToolsManager(workspaceRoot string, storageDir string) *ToolsManager {
 		fileTools:      file.NewFileTools(workspaceRoot),
 		knowledgeTools: knowledge.NewKnowledgeTools(knowledgeStorageDir),
 		thinkingTools:  thinking.NewThinkingTools(thinkingStorageDir),
+		execTools:      exec.NewExecTools(workspaceRoot),
 	}
 }
 
@@ -374,6 +377,53 @@ func (tm *ToolsManager) RegisterAllTools(server *mcp.Server) error {
 		},
 	}
 
+	// Exec tools
+	execTools := []struct {
+		name        string
+		description string
+		handler     mcp.ToolHandler
+		schema      *jsonschema.Schema
+	}{
+		{
+			name:        "exec",
+			description: "Execute system commands with timeout and environment control",
+			handler:     tm.execTools.CreateExecHandler(),
+			schema: &jsonschema.Schema{
+				Type: "object",
+				Properties: map[string]*jsonschema.Schema{
+					"command": {
+						Type:        "string",
+						Description: "Command to execute",
+					},
+					"args": {
+						Type:        "array",
+						Description: "Command arguments",
+						Items: &jsonschema.Schema{
+							Type: "string",
+						},
+					},
+					"env": {
+						Type:        "object",
+						Description: "Environment variables to set",
+						AdditionalProperties: &jsonschema.Schema{
+							Type: "string",
+						},
+					},
+					"work_dir": {
+						Type:        "string",
+						Description: "Working directory (relative to workspace root)",
+					},
+					"timeout": {
+						Type:        "integer",
+						Description: "Timeout in seconds (default: 30)",
+						Default:     json.RawMessage("30"),
+					},
+				},
+				Required: []string{"command"},
+			},
+		},
+	}
+
 	// Register all file tools
 	for _, tool := range fileTools {
 		mcpTool := &mcp.Tool{
@@ -404,6 +454,16 @@ func (tm *ToolsManager) RegisterAllTools(server *mcp.Server) error {
 		mcp.AddTool(server, mcpTool, tool.handler)
 	}
 
+	// Register all exec tools
+	for _, tool := range execTools {
+		mcpTool := &mcp.Tool{
+			Name:        tool.name,
+			Description: tool.description,
+			InputSchema: tool.schema,
+		}
+		mcp.AddTool(server, mcpTool, tool.handler)
+	}
+
 	return nil
 }
 
@@ -417,4 +477,8 @@ func (tm *ToolsManager) GetKnowledgeTools() *knowledge.KnowledgeTools {
 
 func (tm *ToolsManager) GetThinkingTools() *thinking.ThinkingTools {
 	return tm.thinkingTools
+}
+
+func (tm *ToolsManager) GetExecTools() *exec.ExecTools {
+	return tm.execTools
 }

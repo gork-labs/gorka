@@ -11,8 +11,9 @@ import (
 	"text/template"
 	"time"
 
-	"gorka/internal/behavioral"
 	"gorka/internal/embedded"
+	"gorka/internal/types"
+	"gorka/internal/utils"
 )
 
 // ChatmodeGenerator handles generation of VS Code chatmode files from behavioral specifications
@@ -157,7 +158,7 @@ func (g *ChatmodeGenerator) generateChatmodeFromSpec(specFile string) (string, e
 		return "", err
 	}
 
-	var matrix behavioral.BehavioralMatrix
+	var matrix types.BehavioralMatrix
 	if err := json.Unmarshal(data, &matrix); err != nil {
 		return "", fmt.Errorf("failed to parse behavioral matrix: %w", err)
 	}
@@ -201,12 +202,12 @@ func (g *ChatmodeGenerator) generateChatmodeFromSpec(specFile string) (string, e
 }
 
 // createChatmodeData creates template data from a behavioral matrix
-func (g *ChatmodeGenerator) createChatmodeData(matrix *behavioral.BehavioralMatrix) *ChatmodeData {
+func (g *ChatmodeGenerator) createChatmodeData(matrix *types.BehavioralMatrix) *ChatmodeData {
 	// Extract display name from VSCodeMode filename
 	displayName := strings.TrimSuffix(matrix.VSCodeMode, ".chatmode.md")
 
 	// Get tools for VS Code mode from algorithm using shared behavioral processing
-	tools := behavioral.GetToolsFromAlgorithm(matrix.Algorithm, "vscode_mode")
+	tools := types.GetToolsFromAlgorithm(matrix.Algorithm, "vscode_mode")
 	
 	// Add default tools if none specified
 	if len(tools) == 0 {
@@ -243,22 +244,22 @@ func (g *ChatmodeGenerator) createChatmodeData(matrix *behavioral.BehavioralMatr
 
 // generateBehavioralContent generates behavioral content using shared behavioral processing
 // This ensures identical prompts between chatmodes and OpenRouter agent spawning
-func (g *ChatmodeGenerator) generateBehavioralContent(matrix *behavioral.BehavioralMatrix) (string, error) {
+func (g *ChatmodeGenerator) generateBehavioralContent(matrix *types.BehavioralMatrix) (string, error) {
 	// Load core system principles
-	coreSystemPrinciples, err := behavioral.LoadCoreSystemPrinciples()
+	coreSystemPrinciples, err := utils.LoadCoreSystemPrinciples()
 	if err != nil {
 		// Continue without core principles if not found (for development)
 		coreSystemPrinciples = ""
 	}
 
 	// Create task context for VS Code chatmode
-	taskContext := behavioral.TaskContext{
+	taskContext := types.TaskContext{
 		ExecutionMode:  "vscode_chatmode",
 		ToolsAvailable: "vscode_integrated_tools",
 	}
 
 	// Use shared behavioral processing to generate system prompt
-	return behavioral.BuildSystemPrompt(matrix, taskContext, coreSystemPrinciples)
+	return types.BuildSystemPrompt(matrix, taskContext, coreSystemPrinciples)
 }
 
 // FindOutdatedChatmodes finds chatmode files that are outdated compared to their behavioral specs
@@ -278,7 +279,7 @@ func (g *ChatmodeGenerator) FindOutdatedChatmodes() ([]string, error) {
 			return nil, err
 		}
 
-		var matrix behavioral.BehavioralMatrix
+		var matrix types.BehavioralMatrix
 		if err := json.Unmarshal(data, &matrix); err != nil {
 			return nil, err
 		}

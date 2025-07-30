@@ -4,7 +4,8 @@ import (
 	"context"
 	"fmt"
 
-	"gorka/internal/behavioral"
+	"gorka/internal/types"
+	"gorka/internal/utils"
 	"github.com/sashabaranov/go-openai"
 )
 
@@ -21,8 +22,8 @@ func NewAgentSpawner() (*AgentSpawner, error) {
 		return nil, fmt.Errorf("failed to create OpenRouter client: %w", err)
 	}
 
-	// Load core system principles from shared behavioral package
-	coreSystemPrinciples, err := behavioral.LoadCoreSystemPrinciples()
+	// Load core system principles from shared utils package
+	coreSystemPrinciples, err := utils.LoadCoreSystemPrinciples()
 	if err != nil {
 		// Continue without core principles if not found (for development)
 		coreSystemPrinciples = ""
@@ -35,16 +36,16 @@ func NewAgentSpawner() (*AgentSpawner, error) {
 }
 
 // SpawnAgent spawns an OpenRouter LLM agent using shared behavioral processing
-func (s *AgentSpawner) SpawnAgent(matrix *behavioral.BehavioralMatrix, userInput string) (*openai.ChatCompletionResponse, error) {
+func (s *AgentSpawner) SpawnAgent(matrix *types.BehavioralMatrix, userInput string) (*openai.ChatCompletionResponse, error) {
 	// Use the SAME system prompt building method as chatmode generation
 	// This ensures 100% consistency between chatmode and agent prompts
-	taskContext := behavioral.TaskContext{
+	taskContext := types.TaskContext{
 		ExecutionMode:  "openrouter_agent",
 		ToolsAvailable: "mcp_delegated_tools",
 	}
 
 	// Generate identical prompt content using shared behavioral processing
-	systemPrompt, err := behavioral.BuildSystemPrompt(matrix, taskContext, s.coreSystemPrinciples)
+	systemPrompt, err := types.BuildSystemPrompt(matrix, taskContext, s.coreSystemPrinciples)
 	if err != nil {
 		return nil, fmt.Errorf("failed to build system prompt: %w", err)
 	}
@@ -68,7 +69,7 @@ func (s *AgentSpawner) SpawnAgent(matrix *behavioral.BehavioralMatrix, userInput
 // SpawnAgentByID spawns an agent by loading the behavioral matrix from embedded resources
 func (s *AgentSpawner) SpawnAgentByID(agentID string, userInput string) (*openai.ChatCompletionResponse, error) {
 	// Load behavioral matrix for the agent
-	matrix, err := behavioral.GetBehavioralMatrixFromEmbedded(agentID)
+	matrix, err := utils.GetBehavioralMatrixFromEmbedded(agentID)
 	if err != nil {
 		return nil, fmt.Errorf("failed to load behavioral matrix for agent %s: %w", agentID, err)
 	}
@@ -93,6 +94,6 @@ func (s *AgentSpawner) GetAvailableAgents() ([]string, error) {
 
 // ValidateAgent checks if an agent ID is valid and can be spawned
 func (s *AgentSpawner) ValidateAgent(agentID string) error {
-	_, err := behavioral.GetBehavioralMatrixFromEmbedded(agentID)
+	_, err := utils.GetBehavioralMatrixFromEmbedded(agentID)
 	return err
 }

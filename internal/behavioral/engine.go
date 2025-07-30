@@ -4,41 +4,33 @@ import (
 	"encoding/json"
 	"fmt"
 	"path/filepath"
+	"strings"
 
 	"gorka/internal/embedded"
+	"gorka/internal/openrouter"
+	"gorka/internal/types"
 )
 
 type Engine struct {
-	matrices         map[string]*BehavioralMatrix
+	matrices         map[string]*types.BehavioralMatrix
 	qualityValidator *QualityValidator
 	honestyValidator *HonestyValidator
-}
-
-type BehavioralMatrix struct {
-	AgentID    string                 `json:"agent_id"`
-	MCPTool    string                 `json:"mcp_tool"`
-	VSCodeMode string                 `json:"vscode_chatmode"`
-	Algorithm  map[string]interface{} `json:"algorithm"`
-}
-
-type BehavioralRequest struct {
-	AgentID          string                 `json:"agent_id"`
-	InputParameters  map[string]interface{} `json:"input_parameters"`
-	ExecutionContext map[string]interface{} `json:"execution_context"`
-}
-
-type BehavioralResult struct {
-	AgentID       string                 `json:"agent_id"`
-	OutputData    map[string]interface{} `json:"output_data"`
-	ExecutionMeta map[string]interface{} `json:"execution_metadata"`
-	QualityScore  float64                `json:"quality_score"`
+	agentSpawner     *openrouter.AgentSpawner
 }
 
 func NewEngine() *Engine {
+	// Initialize OpenRouter agent spawner - fail fast if config is invalid
+	agentSpawner, err := openrouter.NewAgentSpawner()
+	if err != nil {
+		// Don't fallback to simulation - fail immediately
+		panic(fmt.Sprintf("Failed to initialize OpenRouter agent spawner: %v", err))
+	}
+
 	return &Engine{
-		matrices:         make(map[string]*BehavioralMatrix),
+		matrices:         make(map[string]*types.BehavioralMatrix),
 		qualityValidator: NewQualityValidator(),
 		honestyValidator: NewHonestyValidator(),
+		agentSpawner:     agentSpawner,
 	}
 }
 
@@ -60,7 +52,7 @@ func (e *Engine) LoadBehavioralMatrices() error {
 				return fmt.Errorf("failed to read behavioral spec %s: %w", entry.Name(), err)
 			}
 
-			var matrix BehavioralMatrix
+			var matrix types.BehavioralMatrix
 			if err := json.Unmarshal(data, &matrix); err != nil {
 				return fmt.Errorf("failed to unmarshal behavioral spec %s: %w", entry.Name(), err)
 			}
@@ -78,57 +70,118 @@ func (e *Engine) LoadBehavioralMatrices() error {
 	return nil
 }
 
-func (e *Engine) ExecuteBehavioralMatrix(req *BehavioralRequest) (*BehavioralResult, error) {
+func (e *Engine) ExecuteBehavioralMatrix(req *types.BehavioralRequest) (*types.BehavioralResult, error) {
 	matrix, exists := e.matrices[req.AgentID]
 	if !exists {
 		return nil, fmt.Errorf("behavioral matrix not found: %s", req.AgentID)
 	}
 
-	// Execute behavioral algorithm
-	result := &BehavioralResult{
-		AgentID:    req.AgentID,
-		OutputData: make(map[string]interface{}),
-		ExecutionMeta: map[string]interface{}{
-			"matrix_version": "1.0",
-			"execution_mode": "mcp_server",
-		},
-		QualityScore: 0.85,
+	// Prepare user input from request parameters
+	userInput := formatUserInputFromRequest(req)
+
+	// Execute real LLM agent via OpenRouter - NO SIMULATION
+	llmResponse, err := e.agentSpawner.SpawnAgent(matrix, userInput)
+	if err != nil {
+		return nil, fmt.Errorf("OpenRouter agent execution failed: %w", err)
 	}
 
-	// Process algorithm steps
+	// Process real LLM response
+	if len(llmResponse.Choices) == 0 {
+		return nil, fmt.Errorf("OpenRouter returned empty response")
+	}
+
+	llmContent := llmResponse.Choices[0].Message.Content
+
+	// Create result from actual LLM response
+	result := &types.BehavioralResult{
+		AgentID: req.AgentID,
+		OutputData: map[string]interface{}{
+			"llm_response":     llmContent,
+			"model_used":       llmResponse.Model,
+			"tokens_used":      llmResponse.Usage.TotalTokens,
+			"completion_tokens": llmResponse.Usage.CompletionTokens,
+			"prompt_tokens":    llmResponse.Usage.PromptTokens,
+		},
+		ExecutionMeta: map[string]interface{}{
+			"execution_mode":   "openrouter_real",
+			"agent_id":        req.AgentID,
+			"openrouter_model": llmResponse.Model,
+			"request_id":      llmResponse.ID,
+		},
+	}
+
+	// Process algorithm steps validation from actual response
 	if algorithm, ok := matrix.Algorithm["steps"].([]interface{}); ok {
+		stepResults := make(map[string]string)
 		for _, step := range algorithm {
 			if stepMap, ok := step.(map[string]interface{}); ok {
 				action := stepMap["action"].(string)
-				result.OutputData[action] = "executed"
+				// Check if LLM response addresses this step
+				if strings.Contains(strings.ToLower(llmContent), strings.ToLower(action)) ||
+				   strings.Contains(strings.ToLower(llmContent), strings.ReplaceAll(action, "_", " ")) {
+					stepResults[action] = "addressed_in_response"
+				} else {
+					stepResults[action] = "not_explicitly_addressed"
+				}
 			}
 		}
+		result.OutputData["algorithm_step_analysis"] = stepResults
 	}
 
-	// Validate quality
+	// Validate quality of real response
 	qualityAssessment, err := e.qualityValidator.ValidateQuality(result)
 	if err != nil {
-		return nil, err
+		return nil, fmt.Errorf("quality validation failed: %w", err)
 	}
 
-	// Validate honesty
+	// Validate honesty of real response
 	honestyAssessment, err := e.honestyValidator.ValidateHonesty(result)
 	if err != nil {
-		return nil, err
+		return nil, fmt.Errorf("honesty validation failed: %w", err)
 	}
 
-	// Update result with validation data
+	// Update result with validation of real LLM response
 	result.ExecutionMeta["quality_assessment"] = qualityAssessment
 	result.ExecutionMeta["honesty_assessment"] = honestyAssessment
 	result.QualityScore = qualityAssessment.OverallScore
 
-	// Determine if retry needed
+	// If quality is insufficient, return error instead of retry flag
 	if qualityAssessment.ValidationResult == "insufficient_quality" {
-		result.ExecutionMeta["retry_required"] = true
-		result.ExecutionMeta["retry_reason"] = "quality_validation_failed"
+		return nil, fmt.Errorf("LLM response quality insufficient: %s", qualityAssessment.ValidationResult)
 	}
 
 	return result, nil
+}
+
+// formatUserInputFromRequest converts request parameters into user input for LLM
+func formatUserInputFromRequest(req *types.BehavioralRequest) string {
+	var parts []string
+	
+	// Add agent context
+	parts = append(parts, fmt.Sprintf("Agent: %s", req.AgentID))
+	
+	// Process input parameters
+	if len(req.InputParameters) > 0 {
+		parts = append(parts, "Input Parameters:")
+		for key, value := range req.InputParameters {
+			parts = append(parts, fmt.Sprintf("- %s: %v", key, value))
+		}
+	}
+	
+	// Process execution context
+	if len(req.ExecutionContext) > 0 {
+		parts = append(parts, "Execution Context:")
+		for key, value := range req.ExecutionContext {
+			parts = append(parts, fmt.Sprintf("- %s: %v", key, value))
+		}
+	}
+	
+	// Default request if no specific parameters
+	if len(req.InputParameters) == 0 && len(req.ExecutionContext) == 0 {
+		parts = append(parts, "Please execute your behavioral matrix algorithm and provide your analysis.")
+	}
+	
+	return strings.Join(parts, "\n")
 }
 
 func (e *Engine) GetAvailableAgents() []string {

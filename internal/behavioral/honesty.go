@@ -2,6 +2,8 @@ package behavioral
 
 import (
 	"strings"
+
+	"gorka/internal/types"
 )
 
 type HonestyValidator struct {
@@ -35,7 +37,7 @@ func NewHonestyValidator() *HonestyValidator {
 	}
 }
 
-func (hv *HonestyValidator) ValidateHonesty(result *BehavioralResult) (*HonestyAssessment, error) {
+func (hv *HonestyValidator) ValidateHonesty(result *types.BehavioralResult) (*HonestyAssessment, error) {
 	assessment := &HonestyAssessment{
 		ViolationReasons: []string{},
 	}

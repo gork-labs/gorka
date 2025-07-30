@@ -9,6 +9,7 @@ import (
 	"os"
 	"os/exec"
 	"path/filepath"
+	"strings"
 
 	"gorka/internal/embedded"
 
@@ -110,20 +111,26 @@ func installComponents() error {
 	fmt.Println("Installing Gorka workspace components...")
 	fmt.Printf("Working directory: %s\n", cwd)
 
-	// Step 1: Extract chatmodes to .github/chatmodes/
-	fmt.Println("\n1. Extracting chatmodes...")
+	// Step 1: Create .gorka directory structure
+	fmt.Println("\n1. Setting up .gorka directory...")
+	if err := setupGorkaDirectory(cwd); err != nil {
+		return fmt.Errorf("failed to setup .gorka directory: %w", err)
+	}
+
+	// Step 2: Extract chatmodes to .github/chatmodes/
+	fmt.Println("\n2. Extracting chatmodes...")
 	if err := extractChatmodes(cwd); err != nil {
 		return fmt.Errorf("failed to extract chatmodes: %w", err)
 	}
 
-	// Step 2: Create gorka.json in .vscode/
-	fmt.Println("\n2. Creating Gorka configuration...")
+	// Step 3: Create gorka.json in .vscode/
+	fmt.Println("\n3. Creating Gorka configuration...")
 	if err := createGorkaConfig(cwd); err != nil {
 		return fmt.Errorf("failed to create gorka.json: %w", err)
 	}
 
-	// Step 3: Register MCP servers in .vscode/mcp.json
-	fmt.Println("\n3. Configuring MCP servers...")
+	// Step 4: Register MCP servers in .vscode/mcp.json
+	fmt.Println("\n4. Configuring MCP servers...")
 	if err := registerMCPServers(cwd); err != nil {
 		return fmt.Errorf("failed to register MCP servers: %w", err)
 	}
@@ -407,6 +414,88 @@ func performSelfUpgrade() error {
 
 	if err := cmd.Run(); err != nil {
 		return fmt.Errorf("failed to execute install script: %w", err)
+	}
+
+	return nil
+}
+
+// setupGorkaDirectory creates the .gorka directory structure with proper gitignore configuration
+func setupGorkaDirectory(workspaceDir string) error {
+	gorkaDir := filepath.Join(workspaceDir, ".gorka")
+	storageDir := filepath.Join(gorkaDir, "storage")
+	thinkingDir := filepath.Join(storageDir, "thinking")
+
+	// Create the directory structure
+	fmt.Printf("   Creating directory: %s\n", thinkingDir)
+	if err := os.MkdirAll(thinkingDir, 0755); err != nil {
+		return fmt.Errorf("failed to create .gorka/storage/thinking directory: %w", err)
+	}
+
+	// Create .gitkeep to preserve the directory structure
+	gitkeepPath := filepath.Join(thinkingDir, ".gitkeep")
+	gitkeepContent := "# Keep this directory in version control\n# Thinking session files are ignored but directory structure is preserved\n"
+	if err := os.WriteFile(gitkeepPath, []byte(gitkeepContent), 0644); err != nil {
+		return fmt.Errorf("failed to create .gitkeep: %w", err)
+	}
+	fmt.Printf("   ✓ Created .gitkeep in thinking directory\n")
+
+	// Create .gitignore to ignore thinking session files
+	gitignorePath := filepath.Join(thinkingDir, ".gitignore")
+	gitignoreContent := `# Ignore all thinking session files
+*.json
+!.gitkeep
+`
+	if err := os.WriteFile(gitignorePath, []byte(gitignoreContent), 0644); err != nil {
+		return fmt.Errorf("failed to create .gitignore: %w", err)
+	}
+	fmt.Printf("   ✓ Created .gitignore to ignore thinking session files\n")
+
+	// Also update the main .gitignore to ensure .gorka/storage/thinking/*.json is ignored
+	mainGitignorePath := filepath.Join(workspaceDir, ".gitignore")
+	if err := updateMainGitignore(mainGitignorePath); err != nil {
+		fmt.Printf("   Warning: Could not update main .gitignore: %v\n", err)
+	} else {
+		fmt.Printf("   ✓ Updated main .gitignore with .gorka/storage/thinking/ ignore rules\n")
+	}
+
+	fmt.Printf("   Setup complete: .gorka directory structure ready\n")
+	return nil
+}
+
+// updateMainGitignore adds .gorka/storage/thinking ignore rules to the main .gitignore
+func updateMainGitignore(gitignorePath string) error {
+	// Read existing .gitignore if it exists
+	var existingContent []byte
+	var err error
+	if _, statErr := os.Stat(gitignorePath); statErr == nil {
+		existingContent, err = os.ReadFile(gitignorePath)
+		if err != nil {
+			return fmt.Errorf("failed to read existing .gitignore: %w", err)
+		}
+	}
+
+	existingStr := string(existingContent)
+
+	// Check if .gorka rules already exist
+	if strings.Contains(existingStr, ".gorka/storage/thinking/") {
+		// Rules already exist, don't duplicate
+		return nil
+	}
+
+	// Add .gorka ignore rules
+	newRules := `
+# Gorka storage - ignore thinking session files but keep directory structure
+.gorka/storage/thinking/*.json
+!.gorka/storage/thinking/.gitkeep
+!.gorka/storage/thinking/.gitignore
+`
+
+	// Append to existing content
+	updatedContent := existingStr + newRules
+
+	// Write back to file
+	if err := os.WriteFile(gitignorePath, []byte(updatedContent), 0644); err != nil {
+		return fmt.Errorf("failed to write .gitignore: %w", err)
 	}
 
 	return nil
