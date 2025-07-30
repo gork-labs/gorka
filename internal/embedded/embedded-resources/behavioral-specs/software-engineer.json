@@ -2,6 +2,7 @@
   "agent_id": "software_engineer",
   "mcp_tool": "execute_implementation_behavioral_matrix",
   "vscode_chatmode": "Software Engineer - Gorka.chatmode.md",
+  "keywords": ["code", "implementation", "programming", "function", "class", "method", "bug", "refactor", "algorithm", "data structure"],
   "algorithm": {
     "input": {
       "implementation_specification": "object",

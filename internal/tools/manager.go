@@ -4,7 +4,9 @@ import (
 	"fmt"
 	"path/filepath"
 
+	"gorka/internal/interfaces"
 	"gorka/internal/tools/exec"
+	"gorka/internal/tools/fetch"
 	"gorka/internal/tools/file"
 	"gorka/internal/tools/knowledge"
 	"gorka/internal/tools/system"
@@ -15,29 +17,23 @@ import (
 	"github.com/sashabaranov/go-openai"
 )
 
-// ToolRegistrar defines the interface for registering tools
-type ToolRegistrar interface {
-	RegisterMCPTool(name, description string, handler mcp.ToolHandler, schema *jsonschema.Schema)
-	RegisterOpenAITool(name, description string, schema *jsonschema.Schema, executor func(params map[string]interface{}) (string, error))
-}
-
-// ToolProvider defines the interface for tool providers
-type ToolProvider interface {
-	Register(registrar ToolRegistrar)
-}
-
+// ToolsManager implements interfaces.ToolRegistrar and manages tool registration and execution
 type ToolsManager struct {
 	fileTools      *file.FileTools
 	knowledgeTools *knowledge.KnowledgeTools
 	thinkingTools  *thinking.ThinkingTools
 	execTools      *exec.ExecTools
 	systemTools    *system.SystemTools
+	fetchTools     *fetch.FetchTools
 	mcpTools       []MCPToolEntry
 	openaiTools    []openai.Tool
 	
 	// Registry for OpenAI tool execution
 	openaiExecutors map[string]func(params map[string]interface{}) (string, error)
 }
+
+// Compile-time check that ToolsManager implements interfaces.ToolRegistrar
+var _ interfaces.ToolRegistrar = (*ToolsManager)(nil)
 
 type MCPToolEntry struct {
 	Tool    *mcp.Tool
@@ -54,6 +50,7 @@ func NewToolsManager(workspaceRoot string, storageDir string) *ToolsManager {
 		thinkingTools:  thinking.NewThinkingTools(thinkingStorageDir),
 		execTools:      exec.NewExecTools(workspaceRoot),
 		systemTools:    system.NewSystemTools(),
+		fetchTools:     fetch.NewFetchTools(),
 		mcpTools:       []MCPToolEntry{},
 		openaiTools:    []openai.Tool{},
 		openaiExecutors: make(map[string]func(params map[string]interface{}) (string, error)),
@@ -62,7 +59,10 @@ func NewToolsManager(workspaceRoot string, storageDir string) *ToolsManager {
 	// Register all tools
 	tm.fileTools.Register(tm)
 	tm.execTools.Register(tm)
-	// TODO: Register other tools when we update them
+	tm.knowledgeTools.Register(tm)
+	tm.thinkingTools.Register(tm)
+	tm.systemTools.Register(tm)
+	tm.fetchTools.Register(tm)
 
 	return tm
 }
@@ -81,29 +81,6 @@ func (tm *ToolsManager) RegisterAllTools(server *mcp.Server) error {
 	// Register tools from the centralized registry
 	for _, tool := range tm.mcpTools {
 		mcp.AddTool(server, tool.Tool, tool.Handler)
-	}
-
-	// Register remaining tools that haven't been converted yet
-	// TODO: Remove this section as tools are converted to use Register() method
-	
-	// Knowledge tools (not yet converted)
-	knowledgeTools := []struct {
-		name        string
-		description string
-		handler     mcp.ToolHandler
-		schema      *jsonschema.Schema
-	}{
-		// ... (keep existing knowledge tools for now)
-	}
-
-	// Register remaining unconverted tools
-	for _, tool := range knowledgeTools {
-		mcpTool := &mcp.Tool{
-			Name:        tool.name,
-			Description: tool.description,
-			InputSchema: tool.schema,
-		}
-		mcp.AddTool(server, mcpTool, tool.handler)
 	}
 
 	return nil
@@ -125,8 +102,21 @@ func (tm *ToolsManager) GetExecTools() *exec.ExecTools {
 	return tm.execTools
 }
 
+func (tm *ToolsManager) GetFetchTools() *fetch.FetchTools {
+	return tm.fetchTools
+}
+
 // RegisterMCPTool registers a tool for MCP usage
 func (tm *ToolsManager) RegisterMCPTool(name, description string, handler mcp.ToolHandler, schema *jsonschema.Schema) {
+	// Check if tool is already registered to prevent duplicates
+	for _, entry := range tm.mcpTools {
+		if entry.Tool.Name == name {
+			// Tool already registered, replace the handler and return
+			entry.Handler = handler
+			return
+		}
+	}
+	
 	tm.mcpTools = append(tm.mcpTools, MCPToolEntry{
 		Tool: &mcp.Tool{
 			Name:        name,
@@ -139,6 +129,15 @@ func (tm *ToolsManager) RegisterMCPTool(name, description string, handler mcp.To
 
 // RegisterOpenAITool registers a tool for OpenAI/OpenRouter usage
 func (tm *ToolsManager) RegisterOpenAITool(name, description string, schema *jsonschema.Schema, executor func(params map[string]interface{}) (string, error)) {
+	// Check if tool is already registered to prevent duplicates
+	for _, tool := range tm.openaiTools {
+		if tool.Function.Name == name {
+			// Tool already registered, update the executor and return
+			tm.openaiExecutors[name] = executor
+			return
+		}
+	}
+	
 	tm.openaiTools = append(tm.openaiTools, openai.Tool{
 		Type: openai.ToolTypeFunction,
 		Function: &openai.FunctionDefinition{
@@ -161,7 +160,14 @@ func (tm *ToolsManager) GetOpenAITools() []openai.Tool {
 func (tm *ToolsManager) ExecuteOpenAITool(name string, params map[string]interface{}) (string, error) {
 	executor, exists := tm.openaiExecutors[name]
 	if !exists {
-		return "", fmt.Errorf("unknown tool: %s", name)
+		availableTools := func() []string {
+			var names []string
+			for toolName := range tm.openaiExecutors {
+				names = append(names, toolName)
+			}
+			return names
+		}()
+		return "", fmt.Errorf("unknown tool: %s (available: %v)", name, availableTools)
 	}
 	
 	return executor(params)

@@ -5,6 +5,12 @@
       "id": "openrouter-api-key",
       "description": "OpenRouter API key for LLM access",
       "password": true
+    },
+    {
+      "type": "promptString",
+      "id": "openai-api-key",
+      "description": "OpenAI API key for direct OpenAI access",
+      "password": true
     }
   ],
   "servers": {
@@ -43,9 +49,13 @@
       "command": "secondbrain-mcp",
       "env": {
         "OPENROUTER_API_KEY": "${input:openrouter-api-key}",
+        "OPENAI_API_KEY": "${input:openai-api-key}",
         "SECONDBRAIN_MAX_PARALLEL_AGENTS": "3",
-        "SECONDBRAIN_MODEL": "qwen/qwen3-coder:free",
-        "SECONDBRAIN_WORKSPACE": "${workspaceFolder}"
+        "_SECONDBRAIN_MODEL": "openai/gpt-4o-mini",
+        "SECONDBRAIN_MODEL": "o3",
+        "SECONDBRAIN_WORKSPACE": "${workspaceFolder}",
+        "SECONDBRAIN_USE_OPENAI": "true",
+        "SECONDBRAIN_LOG_LEVEL": "debug"
       }
     },
     "sequentialthinking": {

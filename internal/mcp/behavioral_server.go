@@ -58,7 +58,16 @@ func (bs *BehavioralServer) setupTools() {
 		fmt.Printf("Warning: Failed to register core tools: %v\n", err)
 	}
 
-	for _, toolDef := range BehavioralToolDefinitions {
+	// Load behavioral tool definitions dynamically
+	toolDefinitions, err := LoadBehavioralToolDefinitions()
+	if err != nil {
+		fmt.Printf("ERROR: Failed to load behavioral tool definitions: %v\n", err)
+		return
+	}
+
+	fmt.Printf("DEBUG: Loaded %d behavioral tool definitions\n", len(toolDefinitions))
+	
+	for _, toolDef := range toolDefinitions {
 		tool, handler, err := CreateBehavioralToolWithSchema(bs.engine, toolDef)
 		if err != nil {
 			fmt.Printf("Warning: Failed to create behavioral tool %s: %v\n", toolDef.Name, err)
@@ -66,6 +75,7 @@ func (bs *BehavioralServer) setupTools() {
 		}
 		
 		mcp.AddTool(bs.server, tool, handler)
+		fmt.Printf("DEBUG: Registered tool: %s -> %s\n", toolDef.Name, toolDef.AgentID)
 	}
 }
 

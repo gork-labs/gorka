@@ -1,5 +1,5 @@
 # Makefile for triple executable build system
-.PHONY: build clean generate install test deps build-release
+.PHONY: build clean generate install install-local test deps build-release
 
 # Default target
 all: generate build
@@ -48,6 +48,15 @@ install: build
 	go install ./cmd/secondbrain-mcp
 	go install ./cmd/gorka
 	go install ./cmd/secondbrain-gen
+
+# Install executables to ~/.local/bin
+install-local: build
+	@echo "Installing executables to ~/.local/bin..."
+	@mkdir -p ~/.local/bin
+	cp bin/secondbrain-mcp ~/.local/bin/
+	cp bin/gorka ~/.local/bin/
+	cp bin/secondbrain-gen ~/.local/bin/
+	@echo "✓ Installed to ~/.local/bin: secondbrain-mcp, gorka, secondbrain-gen"
 
 # Clean generated files and binaries
 clean:

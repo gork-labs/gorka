@@ -134,7 +134,7 @@ echo "  - SECONDBRAIN_MAX_PARALLEL_AGENTS: Concurrency limit (recommended: 3-5)"
 echo ""
 echo "OPTIONAL:"
 echo "  - SECONDBRAIN_LOG_LEVEL: Logging verbosity (default: info)"
-echo "  - SECONDBRAIN_REQUEST_TIMEOUT: API timeout (default: 60s)"
+echo "  - SECONDBRAIN_REQUEST_TIMEOUT: API timeout (default: 3600s)"
 echo "  - SECONDBRAIN_MAX_CONTEXT_SIZE: Token limit (default: 50000)"
 echo "  - SECONDBRAIN_OPENROUTER_BASE_URL: Custom API endpoint (default: https://openrouter.ai/api/v1)"
 ```

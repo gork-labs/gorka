@@ -1,0 +1,3 @@
+# Ignore all thinking session files
+*.json
+!.gitkeep

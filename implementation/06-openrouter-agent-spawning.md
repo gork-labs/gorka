@@ -714,5 +714,5 @@ export SECONDBRAIN_MAX_PARALLEL_AGENTS="3"
 
 # Agent lifecycle configuration
 export SECONDBRAIN_AGENT_TIMEOUT="300"  # 5 minutes max per agent
-export SECONDBRAIN_REQUEST_TIMEOUT="60" # 60 seconds API timeout
+export SECONDBRAIN_REQUEST_TIMEOUT="3600" # 3600 seconds API timeout
 ```

@@ -11,6 +11,7 @@ import (
 // Config holds all configuration values
 type Config struct {
 	OpenRouterAPIKey  string
+	OpenAIAPIKey      string
 	Model             string
 	Workspace         string
 	MaxParallelAgents int
@@ -18,6 +19,7 @@ type Config struct {
 	RequestTimeout    int
 	MaxContextSize    int
 	OpenRouterBaseURL string
+	UseOpenAI         bool
 }
 
 // LoadConfig loads and validates configuration from environment variables
@@ -57,13 +59,13 @@ func LoadConfig() (*Config, error) {
 		return nil, fmt.Errorf("invalid log level: %s (must be debug, info, warn, or error)", config.LogLevel)
 	}
 
-	timeoutStr := getEnvWithDefault("SECONDBRAIN_REQUEST_TIMEOUT", "60")
+	timeoutStr := getEnvWithDefault("SECONDBRAIN_REQUEST_TIMEOUT", "3600")
 	config.RequestTimeout, err = strconv.Atoi(timeoutStr)
 	if err != nil || config.RequestTimeout <= 0 {
 		return nil, errors.New("SECONDBRAIN_REQUEST_TIMEOUT must be a positive integer")
 	}
 
-	contextSizeStr := getEnvWithDefault("SECONDBRAIN_MAX_CONTEXT_SIZE", "50000")
+	contextSizeStr := getEnvWithDefault("SECONDBRAIN_MAX_CONTEXT_SIZE", "2048")
 	config.MaxContextSize, err = strconv.Atoi(contextSizeStr)
 	if err != nil || config.MaxContextSize <= 0 {
 		return nil, errors.New("SECONDBRAIN_MAX_CONTEXT_SIZE must be a positive integer")

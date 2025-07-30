@@ -2,6 +2,7 @@
   "agent_id": "security_engineer",
   "mcp_tool": "execute_security_behavioral_matrix",
   "vscode_chatmode": "Security Engineer - Gorka.chatmode.md",
+  "keywords": ["security", "vulnerability", "authentication", "authorization", "encryption", "attack", "threat", "compliance"],
   "algorithm": {
     "input": {
       "security_analysis_target": "object",

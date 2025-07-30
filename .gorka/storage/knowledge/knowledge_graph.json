@@ -1,0 +1,64 @@
+{
+  "entities": {
+    "Qwen 2.5 72B Model": {
+      "name": "Qwen 2.5 72B Model",
+      "entity_type": "Model",
+      "observations": [
+        "Successfully tested on OpenRouter",
+        "Integrated with behavioral agent system",
+        "Demonstrated high performance and reliability",
+        "Successfully tested on OpenRouter",
+        "Integrated with behavioral agent system",
+        "Demonstrated high performance and reliability"
+      ],
+      "created": "2025-07-30T16:02:06.98855+02:00",
+      "updated": "2025-07-30T16:02:06.991798+02:00"
+    },
+    "Test Report": {
+      "name": "Test Report",
+      "entity_type": "Document",
+      "observations": [
+        "Detailed process and results of the Qwen 2.5 72B model test",
+        "No significant issues encountered",
+        "Recommendations for further testing and integration",
+        "Detailed process and results of the Qwen 2.5 72B model test",
+        "No significant issues encountered",
+        "Recommendations for further testing and integration"
+      ],
+      "created": "2025-07-30T16:02:06.988551+02:00",
+      "updated": "2025-07-30T16:02:06.991798+02:00"
+    },
+    "create_file": {
+      "name": "create_file",
+      "entity_type": "MCP Tool",
+      "observations": [
+        "Accepts file_path and content parameters",
+        "Validates the path is within workspace",
+        "Creates parent directories if needed",
+        "Writes the content to file",
+        "Returns success/error status",
+        "Registered with MCP and OpenAI schemas",
+        "Accepts file_path and content parameters",
+        "Validates the path is within workspace",
+        "Creates parent directories if needed",
+        "Writes content to file",
+        "Returns success/error status",
+        "Functionality for creating files in the workspace",
+        "Error handling for invalid paths and failures",
+        "Integration with MCP for tool management"
+      ],
+      "created": "2025-07-30T16:27:11.256053+02:00",
+      "updated": "2025-07-30T16:27:13.686381+02:00"
+    }
+  },
+  "relations": {
+    "Qwen 2.5 72B Model|Tested In|Test Report": {
+      "id": "Qwen 2.5 72B Model|Tested In|Test Report",
+      "from": "Qwen 2.5 72B Model",
+      "to": "Test Report",
+      "relation_type": "Tested In",
+      "created": "2025-07-30T16:02:06.990718+02:00"
+    }
+  },
+  "updated": "2025-07-30T16:27:13.686382+02:00"
+}

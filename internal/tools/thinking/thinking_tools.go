@@ -8,6 +8,9 @@ import (
 	"path/filepath"
 	"time"
 
+	"gorka/internal/interfaces"
+
+	"github.com/modelcontextprotocol/go-sdk/jsonschema"
 	"github.com/modelcontextprotocol/go-sdk/mcp"
 )
 
@@ -16,25 +19,25 @@ type ThinkingTools struct {
 }
 
 type ThinkingRequest struct {
-	Thought            string `json:"thought"`
-	NextThoughtNeeded  bool   `json:"next_thought_needed"`
-	ThoughtNumber      int    `json:"thought_number"`
-	TotalThoughts      int    `json:"total_thoughts"`
-	IsRevision         bool   `json:"is_revision,omitempty"`
-	RevisesThought     int    `json:"revises_thought,omitempty"`
-	BranchFromThought  int    `json:"branch_from_thought,omitempty"`
-	BranchId           string `json:"branch_id,omitempty"`
-	NeedsMoreThoughts  bool   `json:"needs_more_thoughts,omitempty"`
+	Thought           string `json:"thought"`
+	NextThoughtNeeded bool   `json:"next_thought_needed"`
+	ThoughtNumber     int    `json:"thought_number"`
+	TotalThoughts     int    `json:"total_thoughts"`
+	IsRevision        bool   `json:"is_revision,omitempty"`
+	RevisesThought    int    `json:"revises_thought,omitempty"`
+	BranchFromThought int    `json:"branch_from_thought,omitempty"`
+	BranchId          string `json:"branch_id,omitempty"`
+	NeedsMoreThoughts bool   `json:"needs_more_thoughts,omitempty"`
 }
 
 type ThinkingResponse struct {
-	ThoughtNumber       int                `json:"thought_number"`
-	TotalThoughts       int                `json:"total_thoughts"`
-	NextThoughtNeeded   bool               `json:"next_thought_needed"`
-	ThoughtHistory      []ThoughtRecord    `json:"thought_history"`
-	FinalConclusion     string             `json:"final_conclusion,omitempty"`
-	ValidationStatus    string             `json:"validation_status"`
-	QualityMetrics      map[string]float64 `json:"quality_metrics"`
+	ThoughtNumber     int                `json:"thought_number"`
+	TotalThoughts     int                `json:"total_thoughts"`
+	NextThoughtNeeded bool               `json:"next_thought_needed"`
+	ThoughtHistory    []ThoughtRecord    `json:"thought_history"`
+	FinalConclusion   string             `json:"final_conclusion,omitempty"`
+	ValidationStatus  string             `json:"validation_status"`
+	QualityMetrics    map[string]float64 `json:"quality_metrics"`
 }
 
 type ThoughtRecord struct {
@@ -47,12 +50,12 @@ type ThoughtRecord struct {
 }
 
 type ThinkingSession struct {
-	ID           string          `json:"id"`
-	Thoughts     []ThoughtRecord `json:"thoughts"`
-	Started      time.Time       `json:"started"`
-	LastUpdated  time.Time       `json:"last_updated"`
-	Completed    bool            `json:"completed"`
-	MinThoughts  int             `json:"min_thoughts"`
+	ID          string          `json:"id"`
+	Thoughts    []ThoughtRecord `json:"thoughts"`
+	Started     time.Time       `json:"started"`
+	LastUpdated time.Time       `json:"last_updated"`
+	Completed   bool            `json:"completed"`
+	MinThoughts int             `json:"min_thoughts"`
 }
 
 func NewThinkingTools(storageDir string) *ThinkingTools {
@@ -65,6 +68,56 @@ func NewThinkingTools(storageDir string) *ThinkingTools {
 	}
 
 	return tt
+}
+
+// Register implements the interfaces.ToolProvider interface
+func (tt *ThinkingTools) Register(registrar interfaces.ToolRegistrar) {
+	thinkHardSchema := &jsonschema.Schema{
+		Type: "object",
+		Properties: map[string]*jsonschema.Schema{
+			"thought": {
+				Type:        "string",
+				Description: "Current thought content",
+			},
+			"next_thought_needed": {
+				Type:        "boolean",
+				Description: "Whether another thought is needed after this one",
+			},
+			"thought_number": {
+				Type:        "integer",
+				Description: "Current thought number in sequence",
+			},
+			"total_thoughts": {
+				Type:        "integer",
+				Description: "Total expected thoughts (minimum 15)",
+			},
+			"is_revision": {
+				Type:        "boolean",
+				Description: "Whether this thought revises a previous one",
+			},
+			"revises_thought": {
+				Type:        "integer",
+				Description: "Thought number being revised (if applicable)",
+			},
+			"branch_from_thought": {
+				Type:        "integer",
+				Description: "Thought number to branch from (if applicable)",
+			},
+			"branch_id": {
+				Type:        "string",
+				Description: "Branch identifier for tracking different reasoning paths",
+			},
+			"needs_more_thoughts": {
+				Type:        "boolean",
+				Description: "Whether more thoughts are needed beyond total_thoughts",
+			},
+		},
+		Required: []string{"thought", "next_thought_needed", "thought_number", "total_thoughts"},
+	}
+
+	// Register thinking tool for both MCP and OpenAI usage
+	registrar.RegisterMCPTool("think_hard", "Execute structured thinking process with minimum 15 thoughts", tt.CreateThinkHardHandler(), thinkHardSchema)
+	registrar.RegisterOpenAITool("think_hard", "Execute structured thinking process with minimum 15 thoughts", thinkHardSchema, tt.createThinkHardExecutor())
 }
 
 func (tt *ThinkingTools) generateSessionID() string {
@@ -271,16 +324,16 @@ func (tt *ThinkingTools) CreateThinkHardHandler() mcp.ToolHandler {
 		if err := mapToStruct(params.Arguments, &req); err != nil {
 			return nil, err
 		}
-		
+
 		result, err := tt.ExecuteThinking(req)
 		if err != nil {
 			return nil, err
 		}
-		
+
 		return &mcp.CallToolResultFor[any]{
 			Content: []mcp.Content{
 				&mcp.TextContent{
-					Text: fmt.Sprintf("Thought %d/%d processed. Status: %s. Quality metrics: %.2f avg length, %.2f compliance", 
+					Text: fmt.Sprintf("Thought %d/%d processed. Status: %s. Quality metrics: %.2f avg length, %.2f compliance",
 						result.ThoughtNumber, result.TotalThoughts, result.ValidationStatus,
 						result.QualityMetrics["average_thought_length"], result.QualityMetrics["minimum_compliance"]),
 				},
@@ -296,4 +349,38 @@ func mapToStruct(m map[string]any, v interface{}) error {
 		return err
 	}
 	return json.Unmarshal(data, v)
+}
+
+// Executor function for OpenAI tool calling
+func (tt *ThinkingTools) createThinkHardExecutor() func(params map[string]interface{}) (string, error) {
+	return func(params map[string]interface{}) (string, error) {
+		var req ThinkingRequest
+		if err := mapToStruct(params, &req); err != nil {
+			return "", err
+		}
+
+		result, err := tt.ExecuteThinking(req)
+		if err != nil {
+			return "", err
+		}
+
+		// Create explicit instruction for continuation
+		response := map[string]interface{}{
+			"thought_recorded": result,
+			"instruction":      "continue_thinking_required",
+		}
+
+		// Add continuation instruction if more thoughts needed
+		if result.NextThoughtNeeded {
+			response["next_action"] = fmt.Sprintf("You must continue thinking. Call think_hard again with thought_number: %d, total_thoughts: %d, next_thought_needed: true. You have completed %d of %d required thoughts.",
+				req.ThoughtNumber+1, result.TotalThoughts, req.ThoughtNumber, result.TotalThoughts)
+			response["completion_status"] = "in_progress"
+		} else {
+			response["next_action"] = "Thinking sequence complete. Proceed with your main task."
+			response["completion_status"] = "complete"
+		}
+
+		resultJSON, _ := json.Marshal(response)
+		return string(resultJSON), nil
+	}
 }

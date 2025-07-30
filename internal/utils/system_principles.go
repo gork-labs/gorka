@@ -1,8 +1,11 @@
 package utils
 
 import (
+	"bytes"
 	"encoding/json"
 	"fmt"
+	"io"
+	"os"
 	"sort"
 	"strings"
 
@@ -82,4 +85,20 @@ func GetBehavioralMatrixFromEmbedded(agentID string) (*types.BehavioralMatrix, e
 	}
 
 	return nil, fmt.Errorf("behavioral matrix for agent %s not found in embedded resources", agentID)
+}
+
+// IsBinaryFile checks if a file is likely binary by looking for null bytes in the first 512 bytes.
+func IsBinaryFile(file *os.File) (bool, error) {
+	buffer := make([]byte, 512)
+	n, err := file.Read(buffer)
+	if err != nil && err != io.EOF {
+		return false, err
+	}
+
+	// Rewind the file pointer so the caller can read from the beginning.
+	if _, err := file.Seek(0, 0); err != nil {
+		return false, err
+	}
+
+	return bytes.Contains(buffer[:n], []byte{0}), nil
 }

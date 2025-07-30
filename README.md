@@ -135,7 +135,7 @@ Configure VS Code MCP in `.vscode/mcp.json`:
 
 ### Optional
 - `SECONDBRAIN_LOG_LEVEL`: Logging level (default: "info")
-- `SECONDBRAIN_REQUEST_TIMEOUT`: API timeout in seconds (default: 60)
+- `SECONDBRAIN_REQUEST_TIMEOUT`: API timeout in seconds (default: 3600)
 - `SECONDBRAIN_MAX_CONTEXT_SIZE`: Token limit (default: 50000)
 - `SECONDBRAIN_OPENROUTER_BASE_URL`: API endpoint (default: "https://openrouter.ai/api/v1")
 

@@ -13,8 +13,8 @@ import (
 	"regexp"
 	"strings"
 
-	"github.com/modelcontextprotocol/go-sdk/mcp"
 	"github.com/modelcontextprotocol/go-sdk/jsonschema"
+	"github.com/modelcontextprotocol/go-sdk/mcp"
 )
 
 // ToolRegistrar interface - should match the one in tools package
@@ -46,11 +46,11 @@ type ReplaceStringRequest struct {
 }
 
 type ReplaceStringResponse struct {
-	Success     bool   `json:"success"`
-	FilePath    string `json:"filePath"`
-	ReplacedAt  int    `json:"replacedAt"`
-	OldContent  string `json:"oldContent"`
-	NewContent  string `json:"newContent"`
+	Success    bool   `json:"success"`
+	FilePath   string `json:"filePath"`
+	ReplacedAt int    `json:"replacedAt"`
+	OldContent string `json:"oldContent"`
+	NewContent string `json:"newContent"`
 }
 
 type CreateFileRequest struct {
@@ -78,11 +78,11 @@ type GrepSearchResponse struct {
 }
 
 type GrepMatch struct {
-	FilePath    string `json:"filePath"`
-	LineNumber  int    `json:"lineNumber"`
-	Line        string `json:"line"`
-	MatchStart  int    `json:"matchStart"`
-	MatchEnd    int    `json:"matchEnd"`
+	FilePath   string `json:"filePath"`
+	LineNumber int    `json:"lineNumber"`
+	Line       string `json:"line"`
+	MatchStart int    `json:"matchStart"`
+	MatchEnd   int    `json:"matchEnd"`
 }
 
 type FileSearchRequest struct {
@@ -120,7 +120,7 @@ func NewFileTools(workspaceRoot string) *FileTools {
 // Register implements the ToolProvider interface
 func (ft *FileTools) Register(registrar ToolRegistrar) {
 	// Define the schemas once to reuse for both MCP and OpenAI registration
-	
+
 	readFileSchema := &jsonschema.Schema{
 		Type: "object",
 		Properties: map[string]*jsonschema.Schema{
@@ -141,7 +141,7 @@ func (ft *FileTools) Register(registrar ToolRegistrar) {
 		},
 		Required: []string{"file_path"},
 	}
-	
+
 	replaceStringSchema := &jsonschema.Schema{
 		Type: "object",
 		Properties: map[string]*jsonschema.Schema{
@@ -160,7 +160,7 @@ func (ft *FileTools) Register(registrar ToolRegistrar) {
 		},
 		Required: []string{"file_path", "old_string", "new_string"},
 	}
-	
+
 	createFileSchema := &jsonschema.Schema{
 		Type: "object",
 		Properties: map[string]*jsonschema.Schema{
@@ -175,7 +175,7 @@ func (ft *FileTools) Register(registrar ToolRegistrar) {
 		},
 		Required: []string{"file_path", "content"},
 	}
-	
+
 	grepSearchSchema := &jsonschema.Schema{
 		Type: "object",
 		Properties: map[string]*jsonschema.Schema{
@@ -200,7 +200,7 @@ func (ft *FileTools) Register(registrar ToolRegistrar) {
 		},
 		Required: []string{"query", "is_regexp"},
 	}
-	
+
 	fileSearchSchema := &jsonschema.Schema{
 		Type: "object",
 		Properties: map[string]*jsonschema.Schema{
@@ -216,7 +216,7 @@ func (ft *FileTools) Register(registrar ToolRegistrar) {
 		},
 		Required: []string{"query"},
 	}
-	
+
 	listDirSchema := &jsonschema.Schema{
 		Type: "object",
 		Properties: map[string]*jsonschema.Schema{
@@ -227,23 +227,23 @@ func (ft *FileTools) Register(registrar ToolRegistrar) {
 		},
 		Required: []string{"path"},
 	}
-	
+
 	// Register all tools for both MCP and OpenAI usage
 	registrar.RegisterMCPTool("read_file", "Read file contents with line range support", ft.CreateReadFileHandler(), readFileSchema)
 	registrar.RegisterOpenAITool("read_file", "Read file contents with line range support", readFileSchema, ft.createReadFileExecutor())
-	
+
 	registrar.RegisterMCPTool("replace_string_in_file", "Replace string in file with context validation", ft.CreateReplaceStringHandler(), replaceStringSchema)
 	registrar.RegisterOpenAITool("replace_string_in_file", "Replace string in file with context validation", replaceStringSchema, ft.createReplaceStringExecutor())
-	
+
 	registrar.RegisterMCPTool("create_file", "Create new file with content", ft.CreateCreateFileHandler(), createFileSchema)
 	registrar.RegisterOpenAITool("create_file", "Create new file with content", createFileSchema, ft.createCreateFileExecutor())
-	
+
 	registrar.RegisterMCPTool("grep_search", "Search for text patterns in files", ft.CreateGrepSearchHandler(), grepSearchSchema)
 	registrar.RegisterOpenAITool("grep_search", "Search for text patterns in files", grepSearchSchema, ft.createGrepSearchExecutor())
-	
+
 	registrar.RegisterMCPTool("file_search", "Search for files by name pattern", ft.CreateFileSearchHandler(), fileSearchSchema)
 	registrar.RegisterOpenAITool("file_search", "Search for files by name pattern", fileSearchSchema, ft.createFileSearchExecutor())
-	
+
 	registrar.RegisterMCPTool("list_dir", "List directory contents", ft.CreateListDirHandler(), listDirSchema)
 	registrar.RegisterOpenAITool("list_dir", "List directory contents", listDirSchema, ft.createListDirExecutor())
 }
@@ -252,7 +252,7 @@ func (ft *FileTools) validatePath(path string) (string, error) {
 	if path == "" {
 		return "", fmt.Errorf("file path cannot be empty")
 	}
-	
+
 	if !filepath.IsAbs(path) {
 		path = filepath.Join(ft.workspaceRoot, path)
 	}
@@ -285,7 +285,7 @@ func (ft *FileTools) ReadFile(req ReadFileRequest) (*ReadFileResponse, error) {
 	if err != nil {
 		return nil, err
 	}
-	
+
 	if info.IsDir() {
 		return nil, fmt.Errorf("path is a directory, not a file: %s", req.FilePath)
 	}
@@ -342,7 +342,6 @@ func isBinary(file *os.File) (bool, error) {
 
 	return bytes.Contains(buffer[:n], []byte{0}), nil
 }
-
 
 func (ft *FileTools) ReplaceString(req ReplaceStringRequest) (*ReplaceStringResponse, error) {
 	validPath, err := ft.validatePath(req.FilePath)
@@ -481,7 +480,7 @@ func (ft *FileTools) GrepSearch(req GrepSearchRequest) (*GrepSearchResponse, err
 		const maxTokenSize = 64 * 1024
 		buf := make([]byte, maxTokenSize)
 		scanner.Buffer(buf, maxTokenSize)
-		
+
 		lineNum := 1
 
 		for scanner.Scan() {
@@ -558,7 +557,7 @@ func (ft *FileTools) shouldSkipFile(relPath string, d fs.DirEntry) bool {
 		".zip", ".tar", ".gz", ".rar", ".7z",
 		".pdf", ".doc", ".docx", ".xls", ".xlsx",
 	}
-	
+
 	for _, binExt := range binaryExts {
 		if ext == binExt {
 			return true
@@ -575,7 +574,7 @@ func (ft *FileTools) shouldSkipFile(relPath string, d fs.DirEntry) bool {
 		"node_modules", ".git", "vendor", "dist", "build",
 		"target", "bin", ".vscode", ".idea", "__pycache__",
 	}
-	
+
 	pathParts := strings.Split(relPath, string(filepath.Separator))
 	for _, part := range pathParts {
 		for _, skipDir := range skipDirs {
@@ -616,19 +615,19 @@ func (ft *FileTools) FileSearch(req FileSearchRequest) (*FileSearchResponse, err
 
 		// Try pattern matching on both filename and full relative path
 		var matched bool
-		
+
 		// Try matching the filename
 		if match, _ := filepath.Match(req.Query, fileName); match {
 			matched = true
 		}
-		
+
 		// Try matching the full relative path for patterns like "*/*.chatmode.md"
 		if !matched {
 			if match, _ := filepath.Match(req.Query, relPath); match {
 				matched = true
 			}
 		}
-		
+
 		// Also do substring matching as fallback
 		if !matched && strings.Contains(strings.ToLower(fileName), strings.ToLower(req.Query)) {
 			matched = true
@@ -692,12 +691,12 @@ func (ft *FileTools) CreateReadFileHandler() mcp.ToolHandler {
 		if err := mapToStruct(params.Arguments, &req); err != nil {
 			return nil, err
 		}
-		
+
 		result, err := ft.ReadFile(req)
 		if err != nil {
 			return nil, err
 		}
-		
+
 		// Return the actual file content, not just a status message
 		return &mcp.CallToolResultFor[any]{
 			Content: []mcp.Content{
@@ -716,12 +715,12 @@ func (ft *FileTools) CreateReplaceStringHandler() mcp.ToolHandler {
 		if err := mapToStruct(params.Arguments, &req); err != nil {
 			return nil, err
 		}
-		
+
 		result, err := ft.ReplaceString(req)
 		if err != nil {
 			return nil, err
 		}
-		
+
 		return &mcp.CallToolResultFor[any]{
 			Content: []mcp.Content{
 				&mcp.TextContent{
@@ -739,17 +738,17 @@ func (ft *FileTools) CreateCreateFileHandler() mcp.ToolHandler {
 		if err := mapToStruct(params.Arguments, &req); err != nil {
 			return nil, err
 		}
-		
+
 		result, err := ft.CreateFile(req)
 		if err != nil {
 			return nil, err
 		}
-		
+
 		action := "Updated"
 		if result.Created {
 			action = "Created"
 		}
-		
+
 		return &mcp.CallToolResultFor[any]{
 			Content: []mcp.Content{
 				&mcp.TextContent{
@@ -767,15 +766,15 @@ func (ft *FileTools) CreateGrepSearchHandler() mcp.ToolHandler {
 		if err := mapToStruct(params.Arguments, &req); err != nil {
 			return nil, err
 		}
-		
+
 		result, err := ft.GrepSearch(req)
 		if err != nil {
 			return nil, err
 		}
-		
+
 		// Return the actual search results in JSON format
 		resultJSON, _ := json.Marshal(result)
-		
+
 		return &mcp.CallToolResultFor[any]{
 			Content: []mcp.Content{
 				&mcp.TextContent{
@@ -793,15 +792,15 @@ func (ft *FileTools) CreateFileSearchHandler() mcp.ToolHandler {
 		if err := mapToStruct(params.Arguments, &req); err != nil {
 			return nil, err
 		}
-		
+
 		result, err := ft.FileSearch(req)
 		if err != nil {
 			return nil, err
 		}
-		
+
 		// Return the actual file list in JSON format
 		resultJSON, _ := json.Marshal(result)
-		
+
 		return &mcp.CallToolResultFor[any]{
 			Content: []mcp.Content{
 				&mcp.TextContent{
@@ -819,15 +818,15 @@ func (ft *FileTools) CreateListDirHandler() mcp.ToolHandler {
 		if err := mapToStruct(params.Arguments, &req); err != nil {
 			return nil, err
 		}
-		
+
 		result, err := ft.ListDir(req)
 		if err != nil {
 			return nil, err
 		}
-		
+
 		// Return the actual directory listing in JSON format
 		resultJSON, _ := json.Marshal(result)
-		
+
 		return &mcp.CallToolResultFor[any]{
 			Content: []mcp.Content{
 				&mcp.TextContent{
@@ -854,12 +853,12 @@ func (ft *FileTools) createReadFileExecutor() func(params map[string]interface{}
 		if err := mapToStruct(params, &req); err != nil {
 			return "", err
 		}
-		
+
 		result, err := ft.ReadFile(req)
 		if err != nil {
 			return "", err
 		}
-		
+
 		return result.Content, nil
 	}
 }
@@ -870,12 +869,12 @@ func (ft *FileTools) createReplaceStringExecutor() func(params map[string]interf
 		if err := mapToStruct(params, &req); err != nil {
 			return "", err
 		}
-		
+
 		result, err := ft.ReplaceString(req)
 		if err != nil {
 			return "", err
 		}
-		
+
 		return fmt.Sprintf("Successfully replaced string in %s at position %d", result.FilePath, result.ReplacedAt), nil
 	}
 }
@@ -886,17 +885,17 @@ func (ft *FileTools) createCreateFileExecutor() func(params map[string]interface
 		if err := mapToStruct(params, &req); err != nil {
 			return "", err
 		}
-		
+
 		result, err := ft.CreateFile(req)
 		if err != nil {
 			return "", err
 		}
-		
+
 		action := "Updated"
 		if result.Created {
 			action = "Created"
 		}
-		
+
 		return fmt.Sprintf("%s file %s", action, result.FilePath), nil
 	}
 }
@@ -907,12 +906,12 @@ func (ft *FileTools) createGrepSearchExecutor() func(params map[string]interface
 		if err := mapToStruct(params, &req); err != nil {
 			return "", err
 		}
-		
+
 		result, err := ft.GrepSearch(req)
 		if err != nil {
 			return "", err
 		}
-		
+
 		resultJSON, _ := json.Marshal(result)
 		return string(resultJSON), nil
 	}
@@ -924,12 +923,12 @@ func (ft *FileTools) createFileSearchExecutor() func(params map[string]interface
 		if err := mapToStruct(params, &req); err != nil {
 			return "", err
 		}
-		
+
 		result, err := ft.FileSearch(req)
 		if err != nil {
 			return "", err
 		}
-		
+
 		resultJSON, _ := json.Marshal(result)
 		return string(resultJSON), nil
 	}
@@ -941,12 +940,12 @@ func (ft *FileTools) createListDirExecutor() func(params map[string]interface{})
 		if err := mapToStruct(params, &req); err != nil {
 			return "", err
 		}
-		
+
 		result, err := ft.ListDir(req)
 		if err != nil {
 			return "", err
 		}
-		
+
 		resultJSON, _ := json.Marshal(result)
 		return string(resultJSON), nil
 	}

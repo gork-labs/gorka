@@ -9,7 +9,9 @@ import (
 	"strings"
 	"time"
 
+	"gorka/internal/interfaces"
 	"github.com/modelcontextprotocol/go-sdk/mcp"
+	"github.com/modelcontextprotocol/go-sdk/jsonschema"
 )
 
 type KnowledgeTools struct {
@@ -118,6 +120,137 @@ func NewKnowledgeTools(storageDir string) *KnowledgeTools {
 
 	kt.loadGraph()
 	return kt
+}
+
+// Register implements the interfaces.ToolProvider interface
+func (kt *KnowledgeTools) Register(registrar interfaces.ToolRegistrar) {
+	// Define schemas for knowledge tools
+	createEntitiesSchema := &jsonschema.Schema{
+		Type: "object",
+		Properties: map[string]*jsonschema.Schema{
+			"entities": {
+				Type: "array",
+				Items: &jsonschema.Schema{
+					Type: "object",
+					Properties: map[string]*jsonschema.Schema{
+						"name": {
+							Type:        "string",
+							Description: "Entity name",
+						},
+						"entity_type": {
+							Type:        "string",
+							Description: "Type of entity",
+						},
+						"observations": {
+							Type: "array",
+							Items: &jsonschema.Schema{
+								Type: "string",
+							},
+							Description: "Observations about the entity",
+						},
+					},
+					Required: []string{"name", "entity_type", "observations"},
+				},
+				Description: "Entities to create",
+			},
+		},
+		Required: []string{"entities"},
+	}
+	
+	searchNodesSchema := &jsonschema.Schema{
+		Type: "object",
+		Properties: map[string]*jsonschema.Schema{
+			"query": {
+				Type:        "string",
+				Description: "Search query for entities",
+			},
+		},
+		Required: []string{"query"},
+	}
+	
+	createRelationsSchema := &jsonschema.Schema{
+		Type: "object",
+		Properties: map[string]*jsonschema.Schema{
+			"relations": {
+				Type: "array",
+				Items: &jsonschema.Schema{
+					Type: "object",
+					Properties: map[string]*jsonschema.Schema{
+						"from": {
+							Type:        "string",
+							Description: "Source entity name",
+						},
+						"to": {
+							Type:        "string",
+							Description: "Target entity name",
+						},
+						"relation_type": {
+							Type:        "string",
+							Description: "Type of relation",
+						},
+					},
+					Required: []string{"from", "to", "relation_type"},
+				},
+				Description: "Relations to create",
+			},
+		},
+		Required: []string{"relations"},
+	}
+	
+	addObservationsSchema := &jsonschema.Schema{
+		Type: "object",
+		Properties: map[string]*jsonschema.Schema{
+			"observations": {
+				Type: "array",
+				Items: &jsonschema.Schema{
+					Type: "object",
+					Properties: map[string]*jsonschema.Schema{
+						"entity_name": {
+							Type:        "string",
+							Description: "Entity to add observations to",
+						},
+						"contents": {
+							Type: "array",
+							Items: &jsonschema.Schema{
+								Type: "string",
+							},
+							Description: "Observation contents",
+						},
+					},
+					Required: []string{"entity_name", "contents"},
+				},
+				Description: "Observations to add",
+			},
+		},
+		Required: []string{"observations"},
+	}
+	
+	readGraphSchema := &jsonschema.Schema{
+		Type: "object",
+		Properties: map[string]*jsonschema.Schema{
+			"format": {
+				Type:        "string",
+				Description: "Output format (optional)",
+				Enum:        []interface{}{"json", "summary"},
+			},
+		},
+	}
+	
+	// Register all knowledge tools for both MCP and OpenAI usage
+	registrar.RegisterMCPTool("create_entities", "Create entities in knowledge graph", kt.CreateCreateEntitiesHandler(), createEntitiesSchema)
+	registrar.RegisterOpenAITool("create_entities", "Create entities in knowledge graph", createEntitiesSchema, kt.createCreateEntitiesExecutor())
+	
+	registrar.RegisterMCPTool("search_nodes", "Search for entities in knowledge graph", kt.CreateSearchNodesHandler(), searchNodesSchema)
+	registrar.RegisterOpenAITool("search_nodes", "Search for entities in knowledge graph", searchNodesSchema, kt.createSearchNodesExecutor())
+	
+	registrar.RegisterMCPTool("create_relations", "Create relations between entities in knowledge graph", kt.CreateCreateRelationsHandler(), createRelationsSchema)
+	registrar.RegisterOpenAITool("create_relations", "Create relations between entities in knowledge graph", createRelationsSchema, kt.createCreateRelationsExecutor())
+	
+	registrar.RegisterMCPTool("add_observations", "Add observations to entities in knowledge graph", kt.CreateAddObservationsHandler(), addObservationsSchema)
+	registrar.RegisterOpenAITool("add_observations", "Add observations to entities in knowledge graph", addObservationsSchema, kt.createAddObservationsExecutor())
+	
+	registrar.RegisterMCPTool("read_graph", "Read the complete knowledge graph", kt.CreateReadGraphHandler(), readGraphSchema)
+	registrar.RegisterOpenAITool("read_graph", "Read the complete knowledge graph", readGraphSchema, kt.createReadGraphExecutor())
 }
 
 func (kt *KnowledgeTools) getGraphPath() string {
@@ -407,4 +540,84 @@ func mapToStruct(m map[string]any, v interface{}) error {
 		return err
 	}
 	return json.Unmarshal(data, v)
+}
+
+// Executor functions for OpenAI tool calling
+func (kt *KnowledgeTools) createCreateEntitiesExecutor() func(params map[string]interface{}) (string, error) {
+	return func(params map[string]interface{}) (string, error) {
+		var req CreateEntitiesRequest
+		if err := mapToStruct(params, &req); err != nil {
+			return "", err
+		}
+		
+		result, err := kt.CreateEntities(req)
+		if err != nil {
+			return "", err
+		}
+		
+		return fmt.Sprintf("Created %d entities, updated %d entities. Total entities: %d", 
+			len(result.Created), len(result.Updated), result.EntityCount), nil
+	}
+}
+
+func (kt *KnowledgeTools) createSearchNodesExecutor() func(params map[string]interface{}) (string, error) {
+	return func(params map[string]interface{}) (string, error) {
+		var req SearchNodesRequest
+		if err := mapToStruct(params, &req); err != nil {
+			return "", err
+		}
+		
+		result, err := kt.SearchNodes(req)
+		if err != nil {
+			return "", err
+		}
+		
+		resultJSON, _ := json.Marshal(result)
+		return string(resultJSON), nil
+	}
+}
+
+func (kt *KnowledgeTools) createCreateRelationsExecutor() func(params map[string]interface{}) (string, error) {
+	return func(params map[string]interface{}) (string, error) {
+		var req CreateRelationsRequest
+		if err := mapToStruct(params, &req); err != nil {
+			return "", err
+		}
+		
+		result, err := kt.CreateRelations(req)
+		if err != nil {
+			return "", err
+		}
+		
+		return fmt.Sprintf("Created %d relations. Total relations: %d", 
+			len(result.Created), result.Relations), nil
+	}
+}
+
+func (kt *KnowledgeTools) createAddObservationsExecutor() func(params map[string]interface{}) (string, error) {
+	return func(params map[string]interface{}) (string, error) {
+		var req AddObservationsRequest
+		if err := mapToStruct(params, &req); err != nil {
+			return "", err
+		}
+		
+		result, err := kt.AddObservations(req)
+		if err != nil {
+			return "", err
+		}
+		
+		return fmt.Sprintf("Added observations to %d entities", len(result.Updated)), nil
+	}
+}
+
+func (kt *KnowledgeTools) createReadGraphExecutor() func(params map[string]interface{}) (string, error) {
+	return func(params map[string]interface{}) (string, error) {
+		result, err := kt.ReadGraph()
+		if err != nil {
+			return "", err
+		}
+		
+		resultJSON, _ := json.Marshal(result)
+		return string(resultJSON), nil
+	}
 }

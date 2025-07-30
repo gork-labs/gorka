@@ -2,6 +2,7 @@
   "agent_id": "database_architect",
   "mcp_tool": "execute_database_behavioral_matrix",
   "vscode_chatmode": "Database Architect - Gorka.chatmode.md",
+  "keywords": ["database", "sql", "query", "schema", "table", "index", "migration", "data", "optimization"],
   "algorithm": {
     "input": {
       "database_analysis_target": "object",

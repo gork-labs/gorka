@@ -13,6 +13,7 @@ type BehavioralMatrix struct {
 	AgentID    string                 `json:"agent_id"`
 	MCPTool    string                 `json:"mcp_tool"`
 	VSCodeMode string                 `json:"vscode_chatmode"`
+	Keywords   []string               `json:"keywords,omitempty"` // Keywords for content-based agent selection
 	Algorithm  map[string]interface{} `json:"algorithm"`
 }
 
@@ -72,10 +73,19 @@ func BuildSystemPrompt(matrix *BehavioralMatrix, context TaskContext, coreSystem
 		promptBuilder.WriteString("\n")
 	}
 
-	// Add execution context
+	// Add execution context with tool usage emphasis
 	promptBuilder.WriteString("## EXECUTION CONTEXT\n")
 	promptBuilder.WriteString(fmt.Sprintf("Execution Mode: %s\n", context.ExecutionMode))
 	promptBuilder.WriteString(fmt.Sprintf("Tools Available: %s\n", context.ToolsAvailable))
+	promptBuilder.WriteString("\n")
+	promptBuilder.WriteString("## TOOL USAGE REQUIREMENTS\n")
+	promptBuilder.WriteString("You MUST use the available tools to execute your planned actions.\n")
+	promptBuilder.WriteString("Do not just provide analysis - actually perform the work using tool calls.\n")
+	promptBuilder.WriteString("Available tool categories include:\n")
+	promptBuilder.WriteString("- File operations (read, write, search, list directories)\n")
+	promptBuilder.WriteString("- Command execution (with security validation)\n")
+	promptBuilder.WriteString("- System information and configuration\n")
+	promptBuilder.WriteString("Use tools to implement your planned changes and return a summary of actions taken.\n")
 	promptBuilder.WriteString("\n")
 
 	// Add comprehensive behavioral algorithm as JSON
@@ -144,24 +154,28 @@ func getStringArrayFromAlgorithm(algorithm map[string]interface{}, key string) (
 // ExtractInputSchema converts algorithm.input definition to JSON Schema
 func ExtractInputSchema(matrix *BehavioralMatrix) (*jsonschema.Schema, error) {
 	algorithm := matrix.Algorithm
-	
+
 	// Try to get input schema from behavioral_prompt first (project-orchestrator format)
 	if behavioralPrompt, ok := algorithm["behavioral_prompt"].(map[string]interface{}); ok {
 		if inputSchema, ok := behavioralPrompt["input_schema"].(map[string]interface{}); ok {
 			return convertMapToJSONSchema(inputSchema, true)
 		}
 	}
-	
+
 	// Fallback to algorithm.input format (other agents)
 	if input, ok := algorithm["input"].(map[string]interface{}); ok {
 		return convertMapToJSONSchema(input, false)
 	}
-	
-	// Return empty schema if no input definition found - THIS IS THE PROBLEM
-	// We should require the schema parameters for proper validation
+
+	// Return empty schema if no input definition found - with a dummy property for OpenAI compatibility
 	return &jsonschema.Schema{
-		Type:       "object",
-		Properties: map[string]*jsonschema.Schema{},
+		Type: "object",
+		Properties: map[string]*jsonschema.Schema{
+			"context": {
+				Type:        "string",
+				Description: "Additional context (optional)",
+			},
+		},
 	}, nil
 }
 
@@ -172,23 +186,23 @@ func convertMapToJSONSchema(inputDef map[string]interface{}, isDetailed bool) (*
 		Properties: map[string]*jsonschema.Schema{},
 		Required:   []string{},
 	}
-	
+
 	for fieldName, fieldType := range inputDef {
 		fieldSchema, required := convertFieldToSchema(fieldName, fieldType, isDetailed)
 		schema.Properties[fieldName] = fieldSchema
-		
+
 		if required {
 			schema.Required = append(schema.Required, fieldName)
 		}
 	}
-	
+
 	return schema, nil
 }
 
 // convertFieldToSchema converts individual field definition to JSON Schema
 func convertFieldToSchema(fieldName string, fieldType interface{}, isDetailed bool) (*jsonschema.Schema, bool) {
 	required := true // Default to required unless specified otherwise
-	
+
 	switch typeStr := fieldType.(type) {
 	case string:
 		switch typeStr {
@@ -255,21 +269,21 @@ func convertFieldToSchema(fieldName string, fieldType interface{}, isDetailed bo
 func convertDetailedFieldSchema(fieldName string, schemaDef map[string]interface{}) (*jsonschema.Schema, bool) {
 	schema := &jsonschema.Schema{}
 	required := true
-	
+
 	// Extract type
 	if typeVal, ok := schemaDef["type"].(string); ok {
 		schema.Type = typeVal
 	} else {
 		schema.Type = "string" // Default
 	}
-	
+
 	// Extract description
 	if descVal, ok := schemaDef["description"].(string); ok {
 		schema.Description = descVal
 	} else {
 		schema.Description = fmt.Sprintf("%s parameter", strings.ReplaceAll(fieldName, "_", " "))
 	}
-	
+
 	// Extract enum values
 	if enumVal, ok := schemaDef["enum"].([]interface{}); ok {
 		var enumStrings []string
@@ -285,11 +299,11 @@ func convertDetailedFieldSchema(fieldName string, schemaDef map[string]interface
 			}
 		}
 	}
-	
+
 	// Extract required flag
 	if reqVal, ok := schemaDef["required"].(bool); ok {
 		required = reqVal
 	}
-	
+
 	return schema, required
 }

@@ -10,15 +10,10 @@ import (
 	"strings"
 	"time"
 
+	"gorka/internal/interfaces"
 	"github.com/modelcontextprotocol/go-sdk/mcp"
 	"github.com/modelcontextprotocol/go-sdk/jsonschema"
 )
-
-// ToolRegistrar interface - should match the one in tools package
-type ToolRegistrar interface {
-	RegisterMCPTool(name, description string, handler mcp.ToolHandler, schema *jsonschema.Schema)
-	RegisterOpenAITool(name, description string, schema *jsonschema.Schema, executor func(params map[string]interface{}) (string, error))
-}
 
 type ExecTools struct {
 	workspaceRoot string
@@ -49,8 +44,8 @@ func NewExecTools(workspaceRoot string) *ExecTools {
 	}
 }
 
-// Register implements the ToolProvider interface
-func (et *ExecTools) Register(registrar ToolRegistrar) {
+// Register implements the interfaces.ToolProvider interface
+func (et *ExecTools) Register(registrar interfaces.ToolRegistrar) {
 	execSchema := &jsonschema.Schema{
 		Type: "object",
 		Properties: map[string]*jsonschema.Schema{
