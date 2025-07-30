@@ -18,16 +18,30 @@ tools: ["context7", "deepwiki", "secondbrain"]
       "output": {
         "implementation_metadata": "object",
         "implementation_result": "object",
-        "quality_assessment": "object"
+        "integration_validation": "object",
+        "quality_assessment": "object",
+        "syntax_validation": "object"
       },
       "steps": [
+        {
+          "action": "examine_existing_codebase",
+          "logic": "mandatory_code_analysis_before_implementation"
+        },
         {
           "action": "analyze_implementation_requirements",
           "logic": "specification_to_implementation_mapping"
         },
         {
+          "action": "validate_syntax_and_conventions",
+          "logic": "language_specific_syntax_validation"
+        },
+        {
+          "action": "validate_integration_compatibility",
+          "logic": "architecture_integration_verification"
+        },
+        {
           "action": "validate_implementation_quality",
-          "logic": "basic_quality_assessment"
+          "logic": "comprehensive_quality_assessment"
         }
       ]
     },

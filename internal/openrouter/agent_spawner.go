@@ -36,7 +36,7 @@ func NewAgentSpawner(toolsManager *tools.ToolsManager, behavioralEngine Behavior
 		return nil, fmt.Errorf("failed to load config: %w", err)
 	}
 
-	client, err := NewClient()
+	client, err := NewClientWithToolsManager(toolsManager)
 	if err != nil {
 		return nil, fmt.Errorf("failed to create OpenRouter client: %w", err)
 	}

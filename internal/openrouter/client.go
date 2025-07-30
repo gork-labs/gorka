@@ -40,6 +40,11 @@ type Client struct {
 
 // NewClient creates a new OpenRouter client
 func NewClient() (*Client, error) {
+	return NewClientWithToolsManager(nil)
+}
+
+// NewClientWithToolsManager creates a new OpenRouter client with a specific tools manager
+func NewClientWithToolsManager(sharedToolsManager *tools.ToolsManager) (*Client, error) {
 	config, err := utils.LoadConfig()
 	if err != nil {
 		return nil, fmt.Errorf("failed to load config: %w", err)
@@ -65,8 +70,15 @@ func NewClient() (*Client, error) {
 		client = openai.NewClientWithConfig(clientConfig)
 	}
 
-	// Initialize tools manager
-	toolsManager := tools.NewToolsManager(config.Workspace, config.Workspace+"/.gorka/storage")
+	// Use shared tools manager if provided, otherwise create new one
+	var toolsManager *tools.ToolsManager
+	if sharedToolsManager != nil {
+		toolsManager = sharedToolsManager
+		fmt.Printf("DEBUG: Using shared tools manager with %d tools\n", len(toolsManager.GetOpenAITools()))
+	} else {
+		toolsManager = tools.NewToolsManager(config.Workspace, config.Workspace+"/.gorka/storage")
+		fmt.Printf("DEBUG: Created new tools manager with %d tools\n", len(toolsManager.GetOpenAITools()))
+	}
 
 	// Get OpenAI tools from centralized registry
 	openaiTools := toolsManager.GetOpenAITools()
@@ -81,6 +93,21 @@ func NewClient() (*Client, error) {
 		openaiTools:     openaiTools,
 		adapterRegistry: adapterRegistry,
 	}, nil
+}
+
+// RefreshTools updates the tools list from the tools manager
+func (c *Client) RefreshTools() {
+	c.openaiTools = c.toolsManager.GetOpenAITools()
+	fmt.Printf("DEBUG: Refreshed tools list - now have %d tools available\n", len(c.openaiTools))
+}
+
+// GetAvailableToolNames returns the names of all available tools
+func (c *Client) GetAvailableToolNames() []string {
+	var toolNames []string
+	for _, tool := range c.openaiTools {
+		toolNames = append(toolNames, tool.Function.Name)
+	}
+	return toolNames
 }
 
 // ToolExecutionMetadata tracks tool execution during the conversation

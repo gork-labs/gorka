@@ -349,8 +349,30 @@ func (e *Engine) executeAgentWork(agentID string, openaiResponse *openai.ChatCom
 		return e.executeOpenAIToolCalls(choice.Message.ToolCalls, choice.Message.Content)
 	}
 
-	// No tool calls found and no metadata - this is a failure
-	return nil, fmt.Errorf("agent %s provided no tool calls - behavioral agents must execute tools", agentID)
+	// No tool calls found and no metadata - check if there's substantial content
+	// Only accept content-only responses for very specific cases
+	contentLength := len(strings.TrimSpace(choice.Message.Content))
+	if contentLength > 500 && (agentID == "project_orchestrator" || strings.Contains(strings.ToLower(choice.Message.Content), "analysis complete")) {
+		// Only project orchestrator or explicitly marked analysis responses can skip tools
+		e.logDebug("Agent %s provided substantial analysis content (%d chars) without tool calls - accepting as final analysis", 
+			agentID, contentLength)
+		
+		return map[string]interface{}{
+			"response_content":   e.truncateContent(choice.Message.Content),
+			"execution_mode":     "content_analysis",
+			"tools_executed":     0,
+			"content_analysis":   true,
+			"summary":            fmt.Sprintf("Agent %s provided comprehensive analysis without tool execution", agentID),
+		}, nil
+	}
+	
+	// For specialist agents (software_engineer, etc.), tool usage is mandatory
+	if contentLength > 100 {
+		return nil, fmt.Errorf("agent %s provided content (%d chars) but did not use required tools - specialist agents must examine codebase", agentID, contentLength)
+	}
+	
+	// No tool calls and minimal content - this is a failure
+	return nil, fmt.Errorf("agent %s provided insufficient response (no tool calls and minimal content: %d chars)", agentID, contentLength)
 }
 
 // executeOpenAIToolCalls executes OpenAI SDK tool calls and returns results
@@ -471,6 +493,11 @@ func (e *Engine) GetBehavioralMatrices() map[string]*types.BehavioralMatrix {
 	return e.matrices
 }
 
+// GetToolsManager returns the engine's tools manager instance
+func (e *Engine) GetToolsManager() *tools.ToolsManager {
+	return e.toolsManager
+}
+
 // validateInputParameters validates request parameters against behavioral matrix schema
 func (e *Engine) validateInputParameters(req *types.BehavioralRequest, matrix *types.BehavioralMatrix) error {
 	// Extract expected input schema using the centralized function from types package
@@ -572,7 +599,7 @@ func (e *Engine) executeProjectOrchestration(req *types.BehavioralRequest, workR
 	return coordinatedResult, nil
 }
 
-// parseThinkingResults extracts required agents from thinking output
+// parseThinkingResults extracts required agents from thinking output using intelligent keyword and context analysis
 func (e *Engine) parseThinkingResults(workResults map[string]interface{}, llmContent string) ([]string, error) {
 	var requiredAgents []string
 	
@@ -584,7 +611,7 @@ func (e *Engine) parseThinkingResults(workResults map[string]interface{}, llmCon
 		}
 	}
 	
-	// Look for agent mentions in LLM content and thinking results
+	// Prepare content to search (combine LLM content and tool results)
 	contentToSearch := strings.ToLower(llmContent)
 	
 	// Also check tool results if available
@@ -598,15 +625,145 @@ func (e *Engine) parseThinkingResults(workResults map[string]interface{}, llmCon
 		}
 	}
 	
-	// Find mentioned agents
+	e.logDebug("Analyzing content for agent selection: %d chars", len(contentToSearch))
+	
+	// Enhanced agent selection using multiple strategies
+	agentScores := make(map[string]int)
+	
+	// Strategy 1: Direct agent name mentions
 	for _, agent := range availableAgents {
 		if strings.Contains(contentToSearch, agent) || 
 		   strings.Contains(contentToSearch, strings.ReplaceAll(agent, "_", " ")) {
-			requiredAgents = append(requiredAgents, agent)
+			agentScores[agent] += 3 // High priority for direct mentions
+			e.logDebug("Direct mention found for agent: %s", agent)
 		}
 	}
 	
+	// Strategy 2: Keyword-based analysis using behavioral spec keywords
+	keywordMap := e.getAgentKeywordMap()
+	for agentID, keywords := range keywordMap {
+		if agentID == "project_orchestrator" {
+			continue // Skip orchestrator
+		}
+		keywordMatches := 0
+		for _, keyword := range keywords {
+			if strings.Contains(contentToSearch, strings.ToLower(keyword)) {
+				keywordMatches++
+			}
+		}
+		if keywordMatches > 0 {
+			agentScores[agentID] += keywordMatches // Score based on keyword relevance
+			e.logDebug("Agent %s matched %d keywords", agentID, keywordMatches)
+		}
+	}
+	
+	// Strategy 3: Task domain analysis using keywords from behavioral specs
+	domainPatterns := e.getDomainPatternsFromSpecs()
+	
+	for agentID, patterns := range domainPatterns {
+		if agentID == "project_orchestrator" {
+			continue
+		}
+		patternMatches := 0
+		for _, pattern := range patterns {
+			if strings.Contains(contentToSearch, pattern) {
+				patternMatches++
+			}
+		}
+		if patternMatches > 0 {
+			agentScores[agentID] += patternMatches
+			e.logDebug("Agent %s matched %d domain patterns", agentID, patternMatches)
+		}
+	}
+	
+	// Strategy 4: Check for explicit tool execution requests using dynamic tool mapping
+	toolExecutionPatterns := e.getToolExecutionPatternsFromSpecs()
+	
+	for agentID, toolName := range toolExecutionPatterns {
+		if strings.Contains(contentToSearch, toolName) {
+			agentScores[agentID] += 5 // Very high priority for explicit tool mentions
+			e.logDebug("Explicit tool execution request found for agent: %s", agentID)
+		}
+	}
+	
+	// Select agents based on scores (threshold-based selection)
+	const minScore = 1
+	for agentID, score := range agentScores {
+		if score >= minScore {
+			requiredAgents = append(requiredAgents, agentID)
+			e.logDebug("Selected agent %s with score %d", agentID, score)
+		}
+	}
+	
+	// Fallback: If no agents selected through intelligent analysis, use original simple matching
+	if len(requiredAgents) == 0 {
+		e.logWarn("No agents selected through intelligent analysis, falling back to simple matching")
+		for _, agent := range availableAgents {
+			if strings.Contains(contentToSearch, agent) || 
+			   strings.Contains(contentToSearch, strings.ReplaceAll(agent, "_", " ")) {
+				requiredAgents = append(requiredAgents, agent)
+			}
+		}
+	}
+	
+	e.logInfo("Agent selection completed: %d agents selected from %d available", len(requiredAgents), len(availableAgents))
 	return requiredAgents, nil
+}
+
+// getAgentKeywordMap extracts keywords from behavioral matrices dynamically
+func (e *Engine) getAgentKeywordMap() map[string][]string {
+	keywordMap := make(map[string][]string)
+	
+	for agentID, matrix := range e.matrices {
+		// Use the Keywords field from the behavioral matrix struct
+		if len(matrix.Keywords) > 0 {
+			keywordMap[agentID] = matrix.Keywords
+			e.logDebug("Loaded %d keywords for agent %s: %v", len(matrix.Keywords), agentID, matrix.Keywords)
+		}
+	}
+	
+	e.logDebug("Agent keyword map created with %d entries", len(keywordMap))
+	return keywordMap
+}
+
+// getDomainPatternsFromSpecs dynamically creates domain patterns from behavioral spec keywords
+func (e *Engine) getDomainPatternsFromSpecs() map[string][]string {
+	domainPatterns := make(map[string][]string)
+	
+	for agentID, matrix := range e.matrices {
+		if agentID == "project_orchestrator" {
+			continue // Skip orchestrator
+		}
+		
+		// Use keywords from behavioral spec as domain patterns
+		if len(matrix.Keywords) > 0 {
+			domainPatterns[agentID] = matrix.Keywords
+			e.logDebug("Created domain patterns for %s: %v", agentID, matrix.Keywords)
+		}
+	}
+	
+	e.logDebug("Domain patterns created for %d agents", len(domainPatterns))
+	return domainPatterns
+}
+
+// getToolExecutionPatternsFromSpecs dynamically creates tool execution patterns from behavioral specs
+func (e *Engine) getToolExecutionPatternsFromSpecs() map[string]string {
+	toolExecutionPatterns := make(map[string]string)
+	
+	for agentID, matrix := range e.matrices {
+		if agentID == "project_orchestrator" {
+			continue // Skip orchestrator
+		}
+		
+		// Extract the MCP tool name from the behavioral spec
+		if matrix.MCPTool != "" {
+			toolExecutionPatterns[agentID] = matrix.MCPTool
+			e.logDebug("Mapped agent %s to tool %s", agentID, matrix.MCPTool)
+		}
+	}
+	
+	e.logDebug("Tool execution patterns created for %d agents", len(toolExecutionPatterns))
+	return toolExecutionPatterns
 }
 
 // spawnRequiredAgentsParallel spawns the determined agents in parallel with configuration-driven control

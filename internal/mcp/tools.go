@@ -92,6 +92,30 @@ func CreateBehavioralToolHandler(engine *behavioral.Engine, agentID string) mcp.
 	}
 }
 
+// CreateBehavioralOpenAIExecutor creates an OpenAI executor function for behavioral tools
+func CreateBehavioralOpenAIExecutor(engine *behavioral.Engine, agentID string) func(params map[string]interface{}) (string, error) {
+	return func(params map[string]interface{}) (string, error) {
+		behavioralReq := &types.BehavioralRequest{
+			AgentID:          agentID,
+			InputParameters:  params,
+			ExecutionContext: map[string]interface{}{},
+		}
+
+		result, err := engine.ExecuteBehavioralMatrix(behavioralReq)
+		if err != nil {
+			return "", err
+		}
+
+		// Return raw JSON for LLM-to-LLM communication
+		resultJSON, err := json.Marshal(result)
+		if err != nil {
+			return "", fmt.Errorf("failed to marshal behavioral result: %w", err)
+		}
+		
+		return string(resultJSON), nil
+	}
+}
+
 // CreateBehavioralToolWithSchema creates a behavioral tool with extracted input schema
 func CreateBehavioralToolWithSchema(engine *behavioral.Engine, toolDef ToolDefinition) (*mcp.Tool, mcp.ToolHandler, error) {
 	// Get the behavioral matrix to extract schema

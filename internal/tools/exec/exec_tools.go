@@ -118,28 +118,19 @@ func (et *ExecTools) ExecuteCommand(req ExecRequest) (*ExecResponse, error) {
 		return nil, err
 	}
 
-	// Create command
-	cmd := exec.Command(req.Command, req.Args...)
-	cmd.Dir = workDir
-
-	// Set environment variables
-	cmd.Env = os.Environ()
-	if req.Env != nil {
-		for key, value := range req.Env {
-			cmd.Env = append(cmd.Env, fmt.Sprintf("%s=%s", key, value))
-		}
-	}
-
 	// Set timeout (default 30 seconds)
 	timeout := time.Duration(req.Timeout) * time.Second
 	if timeout <= 0 {
 		timeout = 30 * time.Second
 	}
 
+	// Create command with timeout context
 	ctx, cancel := context.WithTimeout(context.Background(), timeout)
 	defer cancel()
-	cmd = exec.CommandContext(ctx, req.Command, req.Args...)
+	cmd := exec.CommandContext(ctx, req.Command, req.Args...)
 	cmd.Dir = workDir
+
+	// Set environment variables - start with current environment
 	cmd.Env = os.Environ()
 	if req.Env != nil {
 		for key, value := range req.Env {

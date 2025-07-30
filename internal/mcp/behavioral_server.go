@@ -3,8 +3,6 @@ package mcp
 import (
 	"context"
 	"fmt"
-	"os"
-	"path/filepath"
 
 	"gorka/internal/behavioral"
 	"gorka/internal/tools"
@@ -26,17 +24,8 @@ func NewBehavioralServer(engine *behavioral.Engine, config *utils.Config) *Behav
 		Version: "1.0.0",
 	}, nil)
 
-	// Use workspace from config
-	workspaceRoot := config.Workspace
-
-	// Set up storage directory
-	storageDir := filepath.Join(workspaceRoot, ".gorka", "storage")
-	if err := os.MkdirAll(storageDir, 0755); err != nil {
-		fmt.Printf("Warning: Failed to create storage directory: %v\n", err)
-	}
-
-	// Initialize tools manager
-	toolsManager := tools.NewToolsManager(workspaceRoot, storageDir)
+	// Use the engine's existing tools manager instead of creating a new one
+	toolsManager := engine.GetToolsManager()
 
 	bs := &BehavioralServer{
 		engine:       engine,
@@ -74,8 +63,18 @@ func (bs *BehavioralServer) setupTools() {
 			continue
 		}
 		
+		// Register to MCP server (existing behavior)
 		mcp.AddTool(bs.server, tool, handler)
-		fmt.Printf("DEBUG: Registered tool: %s -> %s\n", toolDef.Name, toolDef.AgentID)
+		
+		// Register to OpenAI tool system so agents can access it
+		bs.toolsManager.RegisterOpenAITool(
+			tool.Name,
+			tool.Description,
+			tool.InputSchema,
+			CreateBehavioralOpenAIExecutor(bs.engine, toolDef.AgentID),
+		)
+		
+		fmt.Printf("DEBUG: Registered tool to both MCP and OpenAI: %s -> %s\n", toolDef.Name, toolDef.AgentID)
 	}
 }
 

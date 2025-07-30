@@ -2,6 +2,7 @@
   "agent_id": "devops_engineer",
   "mcp_tool": "execute_infrastructure_behavioral_matrix",
   "vscode_chatmode": "DevOps Engineer - Gorka.chatmode.md",
+  "keywords": ["deployment", "infrastructure", "docker", "kubernetes", "ci/cd", "pipeline", "containerization", "cloud", "aws", "terraform", "automation", "monitoring"],
   "algorithm": {
     "input": {
       "infrastructure_target": "object",

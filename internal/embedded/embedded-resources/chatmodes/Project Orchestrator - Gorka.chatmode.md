@@ -23,21 +23,80 @@ tools: ["context7", "deepwiki", "secondbrain"]
       "steps": [
         {
           "action": "analyze_task_domain_requirements",
-          "logic": "map_task_to_required_behavioral_agents"
+          "logic": "intelligent_task_decomposition_and_agent_mapping",
+          "tools_required": [
+            "think_hard"
+          ]
+        },
+        {
+          "action": "execute_specialist_agents",
+          "logic": "dynamic_agent_spawning_based_on_analysis",
+          "tools_required": [
+            "execute_implementation_behavioral_matrix",
+            "execute_architecture_behavioral_matrix",
+            "execute_security_behavioral_matrix",
+            "execute_database_behavioral_matrix",
+            "execute_infrastructure_behavioral_matrix",
+            "execute_prompt_engineering_behavioral_matrix"
+          ]
         },
         {
           "action": "coordinate_multi_agent_execution",
-          "logic": "multi_agent_coordination"
+          "logic": "parallel_agent_coordination_and_monitoring",
+          "tools_required": [
+            "think_hard"
+          ]
         },
         {
           "action": "synthesize_behavioral_results",
-          "logic": "basic_result_aggregation"
+          "logic": "intelligent_result_aggregation_and_synthesis",
+          "tools_required": [
+            "think_hard"
+          ]
         },
         {
           "action": "provide_comprehensive_oversight",
-          "logic": "project_coordination_validation"
+          "logic": "quality_validation_and_coordination_oversight",
+          "tools_required": [
+            "think_hard"
+          ]
         }
-      ]
+      ],
+      "thinking_protocol_requirements": {
+        "evidence_based_reasoning": "mandatory_for_all_conclusions",
+        "json_thinking_format": "structured_thought_sequences_required",
+        "mandatory_sequential_thinking": "15_plus_thoughts_minimum_enforced",
+        "tool_specification": "think_hard_tool_required"
+      },
+      "tools": {
+        "mcp_mode": [
+          "think_hard",
+          "execute_implementation_behavioral_matrix",
+          "execute_architecture_behavioral_matrix",
+          "execute_security_behavioral_matrix",
+          "execute_database_behavioral_matrix",
+          "execute_infrastructure_behavioral_matrix",
+          "execute_prompt_engineering_behavioral_matrix"
+        ],
+        "openrouter_mode": [
+          "think_hard",
+          "execute_implementation_behavioral_matrix",
+          "execute_architecture_behavioral_matrix",
+          "execute_security_behavioral_matrix",
+          "execute_database_behavioral_matrix",
+          "execute_infrastructure_behavioral_matrix",
+          "execute_prompt_engineering_behavioral_matrix"
+        ],
+        "required": [
+          "think_hard",
+          "execute_implementation_behavioral_matrix",
+          "execute_architecture_behavioral_matrix",
+          "execute_security_behavioral_matrix",
+          "execute_database_behavioral_matrix",
+          "execute_infrastructure_behavioral_matrix",
+          "execute_prompt_engineering_behavioral_matrix"
+        ]
+      }
     },
     "gork_labs_identity": {
       "team_member": "Gorka",

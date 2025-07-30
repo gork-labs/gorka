@@ -2,6 +2,7 @@
   "agent_id": "prompt_engineer",
   "mcp_tool": "execute_prompt_engineering_behavioral_matrix",
   "vscode_chatmode": "Prompt Writer - Gorka.chatmode.md",
+  "keywords": ["prompt", "llm", "ai", "model", "gpt", "claude", "optimization", "temperature", "tokens", "inference", "fine-tune", "embedding", "instruction", "chatbot"],
   "algorithm": {
     "input": {
       "prompt_optimization_target": "object",

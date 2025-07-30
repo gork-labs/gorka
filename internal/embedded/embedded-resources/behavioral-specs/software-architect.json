@@ -2,6 +2,7 @@
   "agent_id": "software_architect",
   "mcp_tool": "execute_architecture_behavioral_matrix",
   "vscode_chatmode": "Software Architect - Gorka.chatmode.md",
+  "keywords": ["architecture", "design", "pattern", "structure", "component", "system", "scalability", "maintainability", "microservices", "framework", "blueprint", "topology"],
   "algorithm": {
     "input": {
       "architecture_analysis_target": "object",
