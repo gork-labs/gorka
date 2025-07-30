@@ -56,14 +56,14 @@ func (bs *BehavioralServer) setupTools() {
 		fmt.Printf("Warning: Failed to register core tools: %v\n", err)
 	}
 
-	// Add behavioral matrix tools
+	// Add behavioral matrix tools with extracted schemas
 	for _, toolDef := range BehavioralToolDefinitions {
-		tool := &mcp.Tool{
-			Name:        toolDef.Name,
-			Description: toolDef.Description,
+		tool, handler, err := CreateBehavioralToolWithSchema(bs.engine, toolDef)
+		if err != nil {
+			fmt.Printf("Warning: Failed to create behavioral tool %s: %v\n", toolDef.Name, err)
+			continue
 		}
-
-		handler := CreateBehavioralToolHandler(bs.engine, toolDef.AgentID)
+		
 		mcp.AddTool(bs.server, tool, handler)
 	}
 }

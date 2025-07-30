@@ -63,3 +63,41 @@ func CreateBehavioralToolHandler(engine *behavioral.Engine, agentID string) mcp.
 		}, nil
 	}
 }
+
+// CreateBehavioralToolWithSchema creates a behavioral tool with extracted input schema
+func CreateBehavioralToolWithSchema(engine *behavioral.Engine, toolDef ToolDefinition) (*mcp.Tool, mcp.ToolHandler, error) {
+	// Get the behavioral matrix to extract schema
+	matrices := engine.GetBehavioralMatrices()
+	matrix, exists := matrices[toolDef.AgentID]
+	if !exists {
+		// Return tool without schema if matrix not found
+		tool := &mcp.Tool{
+			Name:        toolDef.Name,
+			Description: toolDef.Description,
+		}
+		handler := CreateBehavioralToolHandler(engine, toolDef.AgentID)
+		return tool, handler, nil
+	}
+	
+	// Extract input schema from behavioral matrix
+	inputSchema, err := types.ExtractInputSchema(matrix)
+	if err != nil {
+		// Return tool without schema if extraction fails
+		tool := &mcp.Tool{
+			Name:        toolDef.Name,
+			Description: toolDef.Description,
+		}
+		handler := CreateBehavioralToolHandler(engine, toolDef.AgentID)
+		return tool, handler, nil
+	}
+	
+	// Create tool with extracted schema
+	tool := &mcp.Tool{
+		Name:        toolDef.Name,
+		Description: toolDef.Description,
+		InputSchema: inputSchema,
+	}
+	
+	handler := CreateBehavioralToolHandler(engine, toolDef.AgentID)
+	return tool, handler, nil
+}
