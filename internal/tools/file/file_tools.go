@@ -2,9 +2,11 @@ package file
 
 import (
 	"bufio"
+	"bytes"
 	"context"
 	"encoding/json"
 	"fmt"
+	"io"
 	"io/fs"
 	"os"
 	"path/filepath"
@@ -294,6 +296,15 @@ func (ft *FileTools) ReadFile(req ReadFileRequest) (*ReadFileResponse, error) {
 	}
 	defer file.Close()
 
+	// Check if the file is binary before reading
+	isBin, err := isBinary(file)
+	if err != nil {
+		return nil, fmt.Errorf("error checking file type for %s: %w", req.FilePath, err)
+	}
+	if isBin {
+		return nil, fmt.Errorf("cannot read binary file: %s", req.FilePath)
+	}
+
 	var lines []string
 	scanner := bufio.NewScanner(file)
 	lineNum := 1
@@ -315,6 +326,23 @@ func (ft *FileTools) ReadFile(req ReadFileRequest) (*ReadFileResponse, error) {
 		FilePath:  req.FilePath,
 	}, nil
 }
+
+// isBinary checks if a file is likely binary by looking for null bytes in the first 512 bytes.
+func isBinary(file *os.File) (bool, error) {
+	buffer := make([]byte, 512)
+	n, err := file.Read(buffer)
+	if err != nil && err != io.EOF {
+		return false, err
+	}
+
+	// Rewind the file pointer so the caller can read from the beginning.
+	if _, err := file.Seek(0, 0); err != nil {
+		return false, err
+	}
+
+	return bytes.Contains(buffer[:n], []byte{0}), nil
+}
+
 
 func (ft *FileTools) ReplaceString(req ReplaceStringRequest) (*ReplaceStringResponse, error) {
 	validPath, err := ft.validatePath(req.FilePath)
