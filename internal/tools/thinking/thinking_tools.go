@@ -330,12 +330,26 @@ func (tt *ThinkingTools) CreateThinkHardHandler() mcp.ToolHandler {
 			return nil, err
 		}
 
+		// Return JSON structure like the OpenAI executor
+		response := map[string]interface{}{
+			"thought_recorded": result,
+			"instruction":      "continue_thinking_required",
+		}
+
+		if result.NextThoughtNeeded {
+			response["next_action"] = fmt.Sprintf("You must continue thinking. Call think_hard again with thought_number: %d, total_thoughts: %d, next_thought_needed: true. You have completed %d of %d required thoughts.",
+				req.ThoughtNumber+1, result.TotalThoughts, req.ThoughtNumber, result.TotalThoughts)
+			response["completion_status"] = "in_progress"
+		} else {
+			response["next_action"] = "Thinking sequence complete. Proceed with your main task."
+			response["completion_status"] = "complete"
+		}
+
+		resultJSON, _ := json.Marshal(response)
 		return &mcp.CallToolResultFor[any]{
 			Content: []mcp.Content{
 				&mcp.TextContent{
-					Text: fmt.Sprintf("Thought %d/%d processed. Status: %s. Quality metrics: %.2f avg length, %.2f compliance",
-						result.ThoughtNumber, result.TotalThoughts, result.ValidationStatus,
-						result.QualityMetrics["average_thought_length"], result.QualityMetrics["minimum_compliance"]),
+					Text: string(resultJSON),
 				},
 			},
 			IsError: false,

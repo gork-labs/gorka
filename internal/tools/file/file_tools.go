@@ -697,11 +697,12 @@ func (ft *FileTools) CreateReadFileHandler() mcp.ToolHandler {
 			return nil, err
 		}
 
-		// Return the actual file content, not just a status message
+		// Return JSON structure instead of plain content
+		resultJSON, _ := json.Marshal(result)
 		return &mcp.CallToolResultFor[any]{
 			Content: []mcp.Content{
 				&mcp.TextContent{
-					Text: result.Content,
+					Text: string(resultJSON),
 				},
 			},
 			IsError: false,

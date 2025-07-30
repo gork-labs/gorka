@@ -457,10 +457,12 @@ func (kt *KnowledgeTools) CreateSearchNodesHandler() mcp.ToolHandler {
 			return nil, err
 		}
 		
+		// Return actual search results instead of summary
+		resultJSON, _ := json.Marshal(result)
 		return &mcp.CallToolResultFor[any]{
 			Content: []mcp.Content{
 				&mcp.TextContent{
-					Text: fmt.Sprintf("Found %d entities matching query '%s'", result.Found, result.Query),
+					Text: string(resultJSON),
 				},
 			},
 			IsError: false,
@@ -522,11 +524,12 @@ func (kt *KnowledgeTools) CreateReadGraphHandler() mcp.ToolHandler {
 			return nil, err
 		}
 		
+		// Return actual graph data instead of summary
+		resultJSON, _ := json.Marshal(result)
 		return &mcp.CallToolResultFor[any]{
 			Content: []mcp.Content{
 				&mcp.TextContent{
-					Text: fmt.Sprintf("Knowledge graph contains %d entities and %d relations", 
-						result.EntityCount, result.RelationCount),
+					Text: string(resultJSON),
 				},
 			},
 			IsError: false,

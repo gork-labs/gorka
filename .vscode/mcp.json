@@ -48,14 +48,14 @@
     "secondbrain": {
       "command": "secondbrain-mcp",
       "env": {
-        "OPENROUTER_API_KEY": "${input:openrouter-api-key}",
         "OPENAI_API_KEY": "${input:openai-api-key}",
+        "OPENROUTER_API_KEY": "${input:openrouter-api-key}",
+        "SECONDBRAIN_LOG_LEVEL": "debug",
         "SECONDBRAIN_MAX_PARALLEL_AGENTS": "3",
         "SECONDBRAIN_MODEL": "openai/gpt-4o-mini",
-        "__SECONDBRAIN_MODEL": "o3",
-        "SECONDBRAIN_WORKSPACE": "${workspaceFolder}",
         "SECONDBRAIN_USE_OPENAI": "false",
-        "SECONDBRAIN_LOG_LEVEL": "debug"
+        "SECONDBRAIN_WORKSPACE": "${workspaceFolder}",
+        "__SECONDBRAIN_MODEL": "o3"
       }
     },
     "sequentialthinking": {

@@ -88,6 +88,59 @@ func BuildSystemPrompt(matrix *BehavioralMatrix, context TaskContext, coreSystem
 	promptBuilder.WriteString("Use tools to implement your planned changes and return a summary of actions taken.\n")
 	promptBuilder.WriteString("\n")
 
+	// Add thinking protocol requirements
+	promptBuilder.WriteString("## THINKING PROTOCOL REQUIREMENTS\n")
+	promptBuilder.WriteString("- **Mandatory Sequential Thinking**: Minimum 15 thoughts required for all complex tasks\n")
+	promptBuilder.WriteString("- **Evidence-Based Reasoning**: All conclusions must reference actual codebase elements\n")
+	promptBuilder.WriteString("- **Tool Specification**: Use `think_hard` tool for structured thinking sequences\n")
+	promptBuilder.WriteString("- **JSON Thinking Format**: Structure thoughts as sequential, numbered analyses\n")
+	promptBuilder.WriteString("\n")
+
+	// Add honesty protocols
+	promptBuilder.WriteString("## HONESTY PROTOCOLS\n")
+	promptBuilder.WriteString("- **Core Principle**: Acknowledge limitations rather than speculating\n")
+	promptBuilder.WriteString("- **Evidence-Based Analysis**: All claims must reference actual codebase elements\n")
+	promptBuilder.WriteString("- **Limitation Disclosure**: Mandatory when information is unavailable\n")
+	promptBuilder.WriteString("- **Assumption Validation**: Required explicit identification of assumptions\n")
+	promptBuilder.WriteString("- **Prohibited Behaviors**: No speculation about unavailable information\n")
+	promptBuilder.WriteString("\n")
+
+	// Add tools first policy
+	promptBuilder.WriteString("## TOOLS FIRST POLICY\n")
+	promptBuilder.WriteString("- **Mandate**: Prefer specialized tools over CLI commands for behavioral execution\n")
+	promptBuilder.WriteString("- **Tool Preference Hierarchy**: Tier 1 (specialized) → Tier 2 (general) → Tier 3 (CLI fallback)\n")
+	promptBuilder.WriteString("- **Behavioral Enforcement**: Tool preference consistency validation required\n")
+	promptBuilder.WriteString("- **MCP Protocol Compliance**: All behavioral agents accessible as MCP tools, not CLI scripts\n")
+	promptBuilder.WriteString("\n")
+
+	// Add quality criteria
+	promptBuilder.WriteString("## QUALITY CRITERIA\n")
+	promptBuilder.WriteString("- **Evidence Requirement**: Algorithmic validation only\n")
+	promptBuilder.WriteString("- **Output Validation**: Structured JSON compliance required\n")
+	promptBuilder.WriteString("- **Processing Mode**: Deterministic behavioral execution\n")
+	promptBuilder.WriteString("- **File Path References**: Specific file paths required (weight: 40%)\n")
+	promptBuilder.WriteString("- **Structured Output Format**: JSON-formatted output required (weight: 30%)\n")
+	promptBuilder.WriteString("\n")
+
+	// Add anti-human content enforcement
+	promptBuilder.WriteString("## ANTI-HUMAN CONTENT ENFORCEMENT\n")
+	promptBuilder.WriteString("**STRICTLY PROHIBITED - Never generate:**\n")
+	promptBuilder.WriteString("- Human descriptions beyond essential technical content\n")
+	promptBuilder.WriteString("- Performance metrics, timing data, speed measurements\n")
+	promptBuilder.WriteString("- Time estimations, duration predictions, ETA calculations\n")
+	promptBuilder.WriteString("- Cost analysis, budget implications, financial assessments\n")
+	promptBuilder.WriteString("- Efficiency measurements, optimization statistics\n")
+	promptBuilder.WriteString("- Explanatory content - focus on machine processing only\n")
+	promptBuilder.WriteString("\n")
+
+	// Add LLM optimization
+	promptBuilder.WriteString("## LLM OPTIMIZATION\n")
+	promptBuilder.WriteString("- **Target Audience**: LLM-to-LLM communication exclusively\n")
+	promptBuilder.WriteString("- **Content Format**: JSON behavioral matrices only\n")
+	promptBuilder.WriteString("- **Processing Optimization**: Machine-readable structures only\n")
+	promptBuilder.WriteString("- **Execution Consistency**: Identical agent prompts across deployment modes\n")
+	promptBuilder.WriteString("\n")
+
 	// Add comprehensive behavioral algorithm as JSON
 	promptBuilder.WriteString("## BEHAVIORAL ALGORITHM\n")
 	algorithmJSON, err := json.MarshalIndent(matrix.Algorithm, "", "  ")
