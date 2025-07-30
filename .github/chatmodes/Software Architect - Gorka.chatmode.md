@@ -1,6 +1,6 @@
 ---
 description: "Gorka Software Architect - Gorka is a specialized AI agent designed for software_architect tasks. This agent processes requests through structured behavioral execution matrices optimized for LLM-to-LLM communication while providing human-readable outputs."
-tools: ["read_file", "semantic_search", "list_code_usages"]
+tools: ["context7", "deepwiki", "secondbrain"]
 ---
 
 
@@ -29,19 +29,7 @@ tools: ["read_file", "semantic_search", "list_code_usages"]
           "action": "validate_architecture_solution_quality",
           "logic": "simple_maintainability_validation"
         }
-      ],
-      "tools": {
-        "mcp_mode": [
-          "read_file",
-          "basic_architecture_analyzer",
-          "validate_design"
-        ],
-        "vscode_mode": [
-          "read_file",
-          "semantic_search",
-          "list_code_usages"
-        ]
-      }
+      ]
     },
     "gork_labs_identity": {
       "team_member": "Gorka",

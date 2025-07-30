@@ -10,7 +10,6 @@ import (
 	"gorka/internal/tools"
 	"gorka/internal/utils"
 
-	"github.com/modelcontextprotocol/go-sdk/jsonschema"
 	"github.com/sashabaranov/go-openai"
 )
 
@@ -121,131 +120,6 @@ func (c *Client) HealthCheck(ctx context.Context) error {
 // GetModel returns the configured model name
 func (c *Client) GetModel() string {
 	return c.config.Model
-}
-
-// convertMCPToolsToOpenAI converts MCP tools to OpenAI format
-func convertMCPToolsToOpenAI(toolsManager *tools.ToolsManager) []openai.Tool {
-	// Define which tools to expose to OpenRouter agents (exclude orchestrator tools)
-	toolDefinitions := []struct {
-		name        string
-		description string
-		schema      *jsonschema.Schema
-	}{
-		{
-			name:        "read_file",
-			description: "Read file contents with line range support",
-			schema: &jsonschema.Schema{
-				Type: "object",
-				Properties: map[string]*jsonschema.Schema{
-					"file_path": {Type: "string", Description: "Absolute path to the file to read"},
-					"start_line": {Type: "integer", Description: "Line number to start reading from (1-based)", Default: json.RawMessage("1")},
-					"end_line": {Type: "integer", Description: "Line number to end reading at (1-based). If 0, read to end of file", Default: json.RawMessage("0")},
-				},
-				Required: []string{"file_path"},
-			},
-		},
-		{
-			name:        "file_search",
-			description: "Search for files by name pattern",
-			schema: &jsonschema.Schema{
-				Type: "object",
-				Properties: map[string]*jsonschema.Schema{
-					"query": {Type: "string", Description: "File name search pattern"},
-					"max_results": {Type: "integer", Description: "Maximum number of results", Default: json.RawMessage("100")},
-				},
-				Required: []string{"query"},
-			},
-		},
-		{
-			name:        "grep_search",
-			description: "Search for text patterns in files",
-			schema: &jsonschema.Schema{
-				Type: "object",
-				Properties: map[string]*jsonschema.Schema{
-					"query": {Type: "string", Description: "Search pattern"},
-					"include_pattern": {Type: "string", Description: "File pattern to include (optional)"},
-					"is_regexp": {Type: "boolean", Description: "Whether query is a regular expression", Default: json.RawMessage("false")},
-					"max_results": {Type: "integer", Description: "Maximum number of results", Default: json.RawMessage("100")},
-				},
-				Required: []string{"query", "is_regexp"},
-			},
-		},
-		{
-			name:        "list_dir",
-			description: "List directory contents",
-			schema: &jsonschema.Schema{
-				Type: "object",
-				Properties: map[string]*jsonschema.Schema{
-					"path": {Type: "string", Description: "Absolute path to the directory to list"},
-				},
-				Required: []string{"path"},
-			},
-		},
-		{
-			name:        "replace_string_in_file",
-			description: "Replace string in file with context validation",
-			schema: &jsonschema.Schema{
-				Type: "object",
-				Properties: map[string]*jsonschema.Schema{
-					"file_path": {Type: "string", Description: "Absolute path to the file to edit"},
-					"old_string": {Type: "string", Description: "Exact string to replace"},
-					"new_string": {Type: "string", Description: "Replacement string"},
-				},
-				Required: []string{"file_path", "old_string", "new_string"},
-			},
-		},
-		{
-			name:        "create_file",
-			description: "Create new file with content",
-			schema: &jsonschema.Schema{
-				Type: "object",
-				Properties: map[string]*jsonschema.Schema{
-					"file_path": {Type: "string", Description: "Absolute path to the file to create"},
-					"content": {Type: "string", Description: "File content"},
-				},
-				Required: []string{"file_path", "content"},
-			},
-		},
-	}
-
-	var openaiTools []openai.Tool
-	for _, tool := range toolDefinitions {
-		openaiTools = append(openaiTools, openai.Tool{
-			Type: openai.ToolTypeFunction,
-			Function: &openai.FunctionDefinition{
-				Name:        tool.name,
-				Description: tool.description,
-				Parameters:  convertJSONSchemaToMap(tool.schema),
-			},
-		})
-	}
-
-	return openaiTools
-}
-
-// convertJSONSchemaToMap converts jsonschema.Schema to map[string]interface{}
-func convertJSONSchemaToMap(schema *jsonschema.Schema) map[string]interface{} {
-	result := map[string]interface{}{
-		"type": schema.Type,
-	}
-
-	if schema.Properties != nil {
-		properties := make(map[string]interface{})
-		for name, prop := range schema.Properties {
-			properties[name] = convertJSONSchemaToMap(prop)
-		}
-		result["properties"] = properties
-	}
-
-	if len(schema.Required) > 0 {
-		result["required"] = schema.Required
-	}
-
-	if schema.Description != "" {
-		result["description"] = schema.Description
-	}
-
-	return result
 }
 
 // handleToolCalls processes tool calls and continues the conversation

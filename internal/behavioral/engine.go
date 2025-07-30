@@ -10,6 +10,9 @@ import (
 	"gorka/internal/openrouter"
 	"gorka/internal/tools"
 	"gorka/internal/types"
+	"gorka/internal/utils"
+	"github.com/modelcontextprotocol/go-sdk/jsonschema"
+	"github.com/sashabaranov/go-openai"
 )
 
 type Engine struct {
@@ -28,11 +31,21 @@ func NewEngine() *Engine {
 		panic(fmt.Sprintf("Failed to initialize OpenRouter agent spawner: %v", err))
 	}
 
+	// Load config to get workspace path
+	config, err := utils.LoadConfig()
+	if err != nil {
+		panic(fmt.Sprintf("Failed to load config: %v", err))
+	}
+
+	// Initialize tools manager for hybrid execution
+	toolsManager := tools.NewToolsManager(config.Workspace, config.Workspace+"/.gorka/storage")
+
 	return &Engine{
 		matrices:         make(map[string]*types.BehavioralMatrix),
 		qualityValidator: NewQualityValidator(),
 		honestyValidator: NewHonestyValidator(),
 		agentSpawner:     agentSpawner,
+		toolsManager:     toolsManager,
 	}
 }
 
@@ -89,37 +102,42 @@ func (e *Engine) ExecuteBehavioralMatrix(req *types.BehavioralRequest) (*types.B
 
 // executeAgent handles execution for any agent type based on its behavioral spec
 func (e *Engine) executeAgent(req *types.BehavioralRequest, matrix *types.BehavioralMatrix) (*types.BehavioralResult, error) {
-	// Prepare user input from request parameters
+	// Phase 1: Get execution plan from LLM
 	userInput := formatUserInputFromRequest(req)
-
-	// Execute real LLM agent via OpenRouter
 	llmResponse, err := e.agentSpawner.SpawnAgent(matrix, userInput)
 	if err != nil {
 		return nil, fmt.Errorf("OpenRouter agent execution failed: %w", err)
 	}
 
-	// Process real LLM response
 	if len(llmResponse.Choices) == 0 {
 		return nil, fmt.Errorf("OpenRouter returned empty response")
 	}
 
 	llmContent := llmResponse.Choices[0].Message.Content
 
-	// Create result from actual LLM response
+	// Phase 2: Execute actual work based on agent type  
+	workResults, err := e.executeAgentWork(req.AgentID, llmResponse, req.InputParameters)
+	if err != nil {
+		return nil, fmt.Errorf("agent work execution failed: %w", err)
+	}
+
+	// Phase 3: Create comprehensive result
 	result := &types.BehavioralResult{
 		AgentID: req.AgentID,
 		OutputData: map[string]interface{}{
-			"llm_response":      llmContent,
+			"llm_plan":          llmContent,
+			"work_results":      workResults,
 			"model_used":        llmResponse.Model,
 			"tokens_used":       llmResponse.Usage.TotalTokens,
 			"completion_tokens": llmResponse.Usage.CompletionTokens,
 			"prompt_tokens":     llmResponse.Usage.PromptTokens,
 		},
 		ExecutionMeta: map[string]interface{}{
-			"execution_mode":    "openrouter_real",
+			"execution_mode":    "hybrid_llm_plus_tools",
 			"agent_id":         req.AgentID,
 			"openrouter_model": llmResponse.Model,
 			"request_id":       llmResponse.ID,
+			"work_executed":    len(workResults) > 0,
 		},
 	}
 
@@ -164,6 +182,60 @@ func (e *Engine) executeAgent(req *types.BehavioralRequest, matrix *types.Behavi
 	}
 
 	return result, nil
+}
+
+// executeAgentWork performs actual work based on the OpenAI response with tool calls
+func (e *Engine) executeAgentWork(agentID string, openaiResponse *openai.ChatCompletionResponse, inputParams map[string]interface{}) (map[string]interface{}, error) {
+	if len(openaiResponse.Choices) == 0 {
+		return e.executeAnalysisOnly("No response choices available", agentID), nil
+	}
+
+	choice := openaiResponse.Choices[0]
+	
+	// Check if there are tool calls in the response
+	if len(choice.Message.ToolCalls) == 0 {
+		// No tool calls, return analysis only
+		return e.executeAnalysisOnly(choice.Message.Content, agentID), nil
+	}
+
+	// Execute all tool calls and collect results
+	toolResults := make(map[string]interface{})
+	
+	for i, toolCall := range choice.Message.ToolCalls {
+		result, err := e.executeOpenAIToolCall(toolCall)
+		if err != nil {
+			return nil, fmt.Errorf("tool execution failed for %s (call %d): %w", toolCall.Function.Name, i, err)
+		}
+		
+		toolResults[fmt.Sprintf("tool_call_%d_%s", i, toolCall.Function.Name)] = result
+	}
+
+	return map[string]interface{}{
+		"tool_results":     toolResults,
+		"response_content": choice.Message.Content,
+		"execution_mode":   "openai_tools",
+		"tools_executed":   len(choice.Message.ToolCalls),
+	}, nil
+}
+
+// executeOpenAIToolCall executes a single OpenAI tool call using the ToolsManager
+func (e *Engine) executeOpenAIToolCall(toolCall openai.ToolCall) (string, error) {
+	var params map[string]interface{}
+	if err := json.Unmarshal([]byte(toolCall.Function.Arguments), &params); err != nil {
+		return "", fmt.Errorf("failed to parse tool arguments: %w", err)
+	}
+
+	// Use the centralized OpenAI tool execution system
+	return e.toolsManager.ExecuteOpenAITool(toolCall.Function.Name, params)
+}
+
+// executeAnalysisOnly is a fallback for when no tool call is detected.
+func (e *Engine) executeAnalysisOnly(llmPlan, agentID string) map[string]interface{} {
+	return map[string]interface{}{
+		"analysis":       llmPlan,
+		"execution_note": fmt.Sprintf("No tool call detected for agent %s. Returning analysis.", agentID),
+		"execution_mode": "analysis_only",
+	}
 }
 
 // formatUserInputFromRequest converts request parameters into user input for LLM
@@ -211,75 +283,56 @@ func (e *Engine) GetBehavioralMatrices() map[string]*types.BehavioralMatrix {
 
 // validateInputParameters validates request parameters against behavioral matrix schema
 func (e *Engine) validateInputParameters(req *types.BehavioralRequest, matrix *types.BehavioralMatrix) error {
-	// Extract expected input schema from behavioral matrix
-	var inputSchema map[string]interface{}
-	
-	// Try behavioral_prompt.input_schema first (project-orchestrator format)
-	if behavioralPrompt, ok := matrix.Algorithm["behavioral_prompt"].(map[string]interface{}); ok {
-		if schema, ok := behavioralPrompt["input_schema"].(map[string]interface{}); ok {
-			inputSchema = schema
-		}
+	// Extract expected input schema using the centralized function from types package
+	schema, err := types.ExtractInputSchema(matrix)
+	if err != nil {
+		return fmt.Errorf("failed to extract input schema: %w", err)
 	}
 	
-	// Fallback to algorithm.input format (other agents)
-	if inputSchema == nil {
-		if schema, ok := matrix.Algorithm["input"].(map[string]interface{}); ok {
-			inputSchema = schema
-		}
-	}
-	
-	// If no schema defined, allow any parameters
-	if inputSchema == nil {
+	// If no schema properties defined, allow any parameters
+	if len(schema.Properties) == 0 {
 		return nil
 	}
 	
-	// Validate required fields and types
-	for fieldName, fieldDef := range inputSchema {
-		if err := e.validateField(fieldName, fieldDef, req.InputParameters); err != nil {
-			return fmt.Errorf("field %s: %w", fieldName, err)
+	// Validate required fields
+	for _, requiredField := range schema.Required {
+		if _, exists := req.InputParameters[requiredField]; !exists {
+			return fmt.Errorf("required field missing: %s", requiredField)
+		}
+	}
+	
+	// Validate field types and constraints
+	for fieldName, fieldSchema := range schema.Properties {
+		if value, exists := req.InputParameters[fieldName]; exists {
+			if err := e.validateFieldValue(fieldName, value, fieldSchema); err != nil {
+				return fmt.Errorf("field %s: %w", fieldName, err)
+			}
 		}
 	}
 	
 	return nil
 }
 
-// validateField validates individual field against its definition
-func (e *Engine) validateField(fieldName string, fieldDef interface{}, params map[string]interface{}) error {
-	value, exists := params[fieldName]
-	
-	// Handle different field definition formats
-	switch def := fieldDef.(type) {
-	case string:
-		// Simple type definition (e.g., "string", "enum", "object")
-		return e.validateSimpleField(fieldName, def, value, exists, true) // Default required
-	case map[string]interface{}:
-		// Detailed definition with type, required, etc.
-		return e.validateDetailedField(fieldName, def, value, exists)
-	default:
-		// Unknown definition format, skip validation
-		return nil
-	}
-}
-
-// validateSimpleField validates field with simple type definition
-func (e *Engine) validateSimpleField(fieldName, typeDef string, value interface{}, exists, required bool) error {
-	if required && !exists {
-		return fmt.Errorf("required field missing")
-	}
-	
-	if !exists {
-		return nil // Optional field not provided
-	}
-	
-	// Validate type
-	switch typeDef {
+// validateFieldValue validates a single field value against its schema
+func (e *Engine) validateFieldValue(fieldName string, value interface{}, schema *jsonschema.Schema) error {
+	switch schema.Type {
 	case "string":
 		if _, ok := value.(string); !ok {
 			return fmt.Errorf("expected string, got %T", value)
 		}
-	case "enum":
-		if _, ok := value.(string); !ok {
-			return fmt.Errorf("expected string (enum), got %T", value)
+		// Validate enum constraints
+		if len(schema.Enum) > 0 {
+			valueStr := value.(string)
+			valid := false
+			for _, enumVal := range schema.Enum {
+				if enumStr, ok := enumVal.(string); ok && enumStr == valueStr {
+					valid = true
+					break
+				}
+			}
+			if !valid {
+				return fmt.Errorf("invalid enum value: %s", valueStr)
+			}
 		}
 	case "object":
 		if _, ok := value.(map[string]interface{}); !ok {
@@ -299,50 +352,6 @@ func (e *Engine) validateSimpleField(fieldName, typeDef string, value interface{
 			// Accept numeric types
 		default:
 			return fmt.Errorf("expected integer, got %T", value)
-		}
-	}
-	
-	return nil
-}
-
-// validateDetailedField validates field with detailed definition
-func (e *Engine) validateDetailedField(fieldName string, fieldDef map[string]interface{}, value interface{}, exists bool) error {
-	// Extract required flag (default true)
-	required := true
-	if reqVal, ok := fieldDef["required"].(bool); ok {
-		required = reqVal
-	}
-	
-	// Extract type (default string)
-	typeDef := "string"
-	if typeVal, ok := fieldDef["type"].(string); ok {
-		typeDef = typeVal
-	}
-	
-	// Validate using simple field validation
-	if err := e.validateSimpleField(fieldName, typeDef, value, exists, required); err != nil {
-		return err
-	}
-	
-	// Additional validation for enum values
-	if typeDef == "string" || typeDef == "enum" {
-		if enumVals, ok := fieldDef["enum"].([]interface{}); ok && exists {
-			valueStr, ok := value.(string)
-			if !ok {
-				return fmt.Errorf("enum value must be string")
-			}
-			
-			valid := false
-			for _, enumVal := range enumVals {
-				if enumStr, ok := enumVal.(string); ok && enumStr == valueStr {
-					valid = true
-					break
-				}
-			}
-			
-			if !valid {
-				return fmt.Errorf("invalid enum value: %s", valueStr)
-			}
 		}
 	}
 	

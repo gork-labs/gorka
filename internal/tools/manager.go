@@ -144,7 +144,7 @@ func (tm *ToolsManager) RegisterOpenAITool(name, description string, schema *jso
 		Function: &openai.FunctionDefinition{
 			Name:        name,
 			Description: description,
-			Parameters:  schema, // Direct assignment, no conversion needed
+			Parameters:  schema, // Direct assignment - jsonschema.Schema implements proper JSON serialization
 		},
 	})
 	

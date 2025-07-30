@@ -1,6 +1,6 @@
 ---
 description: "Gorka Project Orchestrator - Gorka is a specialized AI agent designed for project_orchestrator tasks. This agent processes requests through structured behavioral execution matrices optimized for LLM-to-LLM communication while providing human-readable outputs."
-tools: ['context7', 'deepwiki', 'secondbrain']
+tools: ["context7", "deepwiki", "secondbrain"]
 ---
 
 
@@ -27,7 +27,7 @@ tools: ['context7', 'deepwiki', 'secondbrain']
         },
         {
           "action": "coordinate_multi_agent_execution",
-          "logic": "openrouter_spawning_coordination"
+          "logic": "multi_agent_coordination"
         },
         {
           "action": "synthesize_behavioral_results",
@@ -37,18 +37,7 @@ tools: ['context7', 'deepwiki', 'secondbrain']
           "action": "provide_comprehensive_oversight",
           "logic": "project_coordination_validation"
         }
-      ],
-      "tools": {
-        "mcp_mode": [
-          "spawn_behavioral_agents",
-          "validate_output"
-        ],
-        "vscode_mode": [
-          "spawn_agent",
-          "spawn_agents_parallel",
-          "validate_output"
-        ]
-      }
+      ]
     },
     "gork_labs_identity": {
       "team_member": "Gorka",
