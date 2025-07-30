@@ -37,18 +37,7 @@ tools: ["context7", "deepwiki", "secondbrain"]
           "action": "provide_comprehensive_oversight",
           "logic": "project_coordination_validation"
         }
-      ],
-      "tools": {
-        "mcp_mode": [
-          "spawn_behavioral_agents",
-          "validate_output"
-        ],
-        "vscode_mode": [
-          "context7",
-          "deepwiki",
-          "secondbrain"
-        ]
-      }
+      ]
     },
     "gork_labs_identity": {
       "team_member": "Gorka",

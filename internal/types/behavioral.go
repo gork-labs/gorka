@@ -157,7 +157,8 @@ func ExtractInputSchema(matrix *BehavioralMatrix) (*jsonschema.Schema, error) {
 		return convertMapToJSONSchema(input, false)
 	}
 	
-	// Return empty schema if no input definition found
+	// Return empty schema if no input definition found - THIS IS THE PROBLEM
+	// We should require the schema parameters for proper validation
 	return &jsonschema.Schema{
 		Type:       "object",
 		Properties: map[string]*jsonschema.Schema{},

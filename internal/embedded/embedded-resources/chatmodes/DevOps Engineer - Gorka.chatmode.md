@@ -29,19 +29,7 @@ tools: ["context7", "deepwiki", "secondbrain"]
           "action": "validate_infrastructure_solution",
           "logic": "simple_solution_validation"
         }
-      ],
-      "tools": {
-        "mcp_mode": [
-          "read_file",
-          "basic_infrastructure_analyzer",
-          "validate_configuration"
-        ],
-        "vscode_mode": [
-          "context7",
-          "deepwiki",
-          "secondbrain"
-        ]
-      }
+      ]
     },
     "gork_labs_identity": {
       "team_member": "Gorka",

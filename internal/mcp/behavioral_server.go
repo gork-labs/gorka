@@ -44,19 +44,20 @@ func NewBehavioralServer(engine *behavioral.Engine, config *utils.Config) *Behav
 		toolsManager: toolsManager,
 	}
 
-	// Add all tools
+	if err := bs.engine.LoadBehavioralMatrices(); err != nil {
+		panic(fmt.Sprintf("Failed to load behavioral matrices: %v", err))
+	}
+
 	bs.setupTools()
 
 	return bs
 }
 
 func (bs *BehavioralServer) setupTools() {
-	// Register core tools (file, knowledge, thinking)
 	if err := bs.toolsManager.RegisterAllTools(bs.server); err != nil {
 		fmt.Printf("Warning: Failed to register core tools: %v\n", err)
 	}
 
-	// Add behavioral matrix tools with extracted schemas
 	for _, toolDef := range BehavioralToolDefinitions {
 		tool, handler, err := CreateBehavioralToolWithSchema(bs.engine, toolDef)
 		if err != nil {
@@ -69,21 +70,13 @@ func (bs *BehavioralServer) setupTools() {
 }
 
 func (bs *BehavioralServer) Start(ctx context.Context) error {
-	// Load behavioral matrices
-	if err := bs.engine.LoadBehavioralMatrices(); err != nil {
-		return fmt.Errorf("failed to load behavioral matrices: %w", err)
-	}
-
-	// Create stdio transport
 	transport := mcp.NewStdioTransport()
 
-	// Connect server to transport
 	session, err := bs.server.Connect(ctx, transport)
 	if err != nil {
 		return fmt.Errorf("failed to connect server: %w", err)
 	}
 
-	// Wait for session to complete
 	session.Wait()
 	return nil
 }

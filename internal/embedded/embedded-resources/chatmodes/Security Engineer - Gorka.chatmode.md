@@ -29,19 +29,7 @@ tools: ["context7", "deepwiki", "secondbrain"]
           "action": "generate_security_recommendations",
           "logic": "simple_remediation_processing"
         }
-      ],
-      "tools": {
-        "mcp_mode": [
-          "read_file",
-          "grep_search",
-          "basic_security_analyzer"
-        ],
-        "vscode_mode": [
-          "context7",
-          "deepwiki",
-          "secondbrain"
-        ]
-      }
+      ]
     },
     "gork_labs_identity": {
       "team_member": "Gorka",

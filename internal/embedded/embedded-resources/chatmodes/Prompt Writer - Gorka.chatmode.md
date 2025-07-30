@@ -31,19 +31,7 @@ tools: ["context7", "deepwiki", "secondbrain"]
           "action": "generate_optimization_algorithms",
           "logic": "simple_prompt_pattern_generation"
         }
-      ],
-      "tools": {
-        "mcp_mode": [
-          "read_file",
-          "basic_prompt_analyzer",
-          "validate_prompt_quality"
-        ],
-        "vscode_mode": [
-          "context7",
-          "deepwiki",
-          "secondbrain"
-        ]
-      }
+      ]
     },
     "gork_labs_identity": {
       "team_member": "Gorka",
